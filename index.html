@@ -39,6 +39,7 @@
     --border-strong: #D6CCBA;
     --topbar-h: 54px;
     --sidebar-w: 288px;
+    --font-scale: 1;
     --font-serif: "Shippori Mincho", "Yu Mincho", Georgia, serif;
     --font-sans: "Be Vietnam Pro", "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
   }
@@ -466,7 +467,7 @@
     padding: 13px 16px;
     margin-bottom: 12px;
     font-family: var(--font-serif);
-    font-size: 16.5px;
+    font-size: calc(16.5px * var(--font-scale));
     line-height: 1.85;
     color: var(--ink);
   }
@@ -1005,6 +1006,52 @@
   .scroll-top-btn.show { display: inline-flex; }
   .scroll-top-btn:hover { border-color: var(--vermilion); color: var(--vermilion); }
 
+  /* PERSONAL NOTE BOX */
+  .note-btn {
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 99px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .note-btn:hover, .note-btn.has-note {
+    border-color: var(--indigo);
+    color: var(--indigo);
+    background: var(--indigo-soft);
+  }
+  .note-box {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-strong);
+  }
+  .note-box.open { display: block; }
+  .note-textarea {
+    width: 100%;
+    min-height: 62px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+    outline: none;
+  }
+  .note-textarea:focus { border-color: var(--indigo); background: var(--surface); }
+
+  /* MOBILE BOTTOM NAVIGATION BAR */
+  .bottom-nav { display: none; }
+
   /* ==================== RESPONSIVE (MOBILE & TABLET) ==================== */
   @media (max-width: 960px) {
     body { overflow: auto; height: auto; min-height: 100%; }
@@ -1013,13 +1060,12 @@
       top: 0;
       height: auto;
       padding: 8px 10px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: 6px;
     }
     .mobile-menu-btn { display: inline-flex; min-width: 38px; min-height: 38px; justify-content: center; }
     .brand-title { display: none; }
-    .top-center { order: 3; width: 100%; overflow-x: auto; padding-bottom: 2px; }
-    .tab-btn.active::after { display: none; }
+    .top-center { display: none; }
     .workspace { overflow: visible; }
     .sidebar {
       position: fixed;
@@ -1030,12 +1076,42 @@
       z-index: 95;
     }
     .sidebar.mobile-open { transform: translateX(0); }
-    .stage { overflow: visible; padding: 12px 12px 48px; }
+    .stage { overflow: visible; padding: 12px 12px 86px; }
     .study-card { padding: 14px 14px; }
-    .jp-prompt { font-size: 15.5px; padding: 11px 13px; }
+    .jp-prompt { font-size: calc(15.5px * var(--font-scale)); padding: 11px 13px; }
     .exam-2col { grid-template-columns: 1fr; }
     .exam-options-grid { grid-template-columns: 1fr; }
     .btn, .tab-btn, .bm-btn, .tts-btn { min-height: 36px; }
+    .scroll-top-btn { bottom: 76px; right: 14px; }
+    .bottom-nav {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 70;
+      padding: 4px 2px calc(4px + env(safe-area-inset-bottom));
+    }
+    .bnav-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 6px 2px;
+      font-size: 10.5px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .bnav-btn.active { color: var(--vermilion); }
+    .bnav-btn .ico { width: 18px; height: 18px; }
   }
 </style>
 </head>
@@ -1173,6 +1249,25 @@
   <div class="modal-body">
     <div id="accountInfoBox" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;"></div>
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12.5px;color:var(--ink-2);margin-bottom:14px;">
+      <strong style="color:var(--ink);">Hiển thị &amp; Âm thanh tiếng Nhật</strong>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;">
+        <span>Cỡ chữ câu hỏi:</span>
+        <div class="pill-group" id="fontScalePills">
+          <button class="choice-pill" data-scale="1" onclick="setFontScale(1)">Chuẩn</button>
+          <button class="choice-pill" data-scale="1.12" onclick="setFontScale(1.12)">Lớn</button>
+          <button class="choice-pill" data-scale="1.25" onclick="setFontScale(1.25)">Rất lớn</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;">
+        <span>Tốc độ đọc TTS:</span>
+        <div class="pill-group" id="ttsRatePills">
+          <button class="choice-pill" data-rate="0.75" onclick="setTtsRate(0.75)">0.75x (Chậm)</button>
+          <button class="choice-pill" data-rate="0.95" onclick="setTtsRate(0.95)">1.0x (Chuẩn)</button>
+          <button class="choice-pill" data-rate="1.15" onclick="setTtsRate(1.15)">1.2x (Nhanh)</button>
+        </div>
+      </div>
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12.5px;color:var(--ink-2);margin-bottom:14px;">
       <strong style="color:var(--ink);">Nguồn bài học (Google Drive)</strong>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="fetchPublicMarkdownFiles(true);closeSettings();">Tải lại 3 file .md</button>
@@ -1192,6 +1287,29 @@
   <svg class="ico" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
 </button>
 
+<nav class="bottom-nav" aria-label="Điều hướng điện thoại">
+  <button class="bnav-btn active" data-tab="tuvung" onclick="switchTab('tuvung')">
+    <svg class="ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    <span>Từ vựng</span>
+  </button>
+  <button class="bnav-btn" data-tab="nguphap" onclick="switchTab('nguphap')">
+    <svg class="ico" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    <span>Ngữ pháp</span>
+  </button>
+  <button class="bnav-btn" data-tab="dochieu" onclick="switchTab('dochieu')">
+    <svg class="ico" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    <span>Đọc hiểu</span>
+  </button>
+  <button class="bnav-btn" data-tab="flashcard" onclick="switchTab('flashcard')">
+    <svg class="ico" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+    <span>Flashcard</span>
+  </button>
+  <button class="bnav-btn" data-tab="exam" onclick="switchTab('exam')">
+    <svg class="ico" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span>Thi thử</span>
+  </button>
+</nav>
+
 <script>
 // ==================== SVG ICON HELPERS ====================
 const ICONS = {
@@ -1205,7 +1323,8 @@ const ICONS = {
   user: '<svg class="ico" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
   shuffle: '<svg class="ico" viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>',
   refresh: '<svg class="ico" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
-  check: '<svg class="ico" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'
+  check: '<svg class="ico" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+  note: '<svg class="ico" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
 };
 
 // ==================== CONFIGURATION ====================
@@ -1234,6 +1353,9 @@ const KEYS = {
   MASTERED_IDS: "jlpt_n1_mastered_ids_v1",
   LAST_READ: "jlpt_n1_last_read_v1",
   EXAM_HISTORY: "jlpt_n1_exam_history_v1",
+  NOTES: "jlpt_n1_notes_v1",
+  FONT_SCALE: "jlpt_n1_font_scale_v1",
+  TTS_RATE: "jlpt_n1_tts_rate_v1",
   THEME: "jlpt_n1_theme_v1"
 };
 
@@ -1247,6 +1369,9 @@ let doneIds = loadSetFromStorage(KEYS.DONE_IDS);
 let masteredIds = loadSetFromStorage(KEYS.MASTERED_IDS);
 let lastReadMap = loadJsonFromStorage(KEYS.LAST_READ, {});
 let examHistory = loadJsonFromStorage(KEYS.EXAM_HISTORY, []);
+let notesMap = loadJsonFromStorage(KEYS.NOTES, {});
+let ttsRate = parseFloat(localStorage.getItem(KEYS.TTS_RATE) || "0.95") || 0.95;
+let fontScale = parseFloat(localStorage.getItem(KEYS.FONT_SCALE) || "1") || 1;
 let mdStore = { tuvung: "", nguphap: "", dochieu: "" };
 let tabItems = { tuvung: [], nguphap: [], dochieu: [] };
 let parsedQuizBank = [];
@@ -1309,6 +1434,40 @@ function saveExamHistory(skipCloud = false) {
   localStorage.setItem(KEYS.EXAM_HISTORY, JSON.stringify(examHistory));
   if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
 }
+function saveNotesMap(skipCloud = false) {
+  localStorage.setItem(KEYS.NOTES, JSON.stringify(notesMap));
+  if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
+}
+function toggleNoteBox(idx) {
+  const box = document.getElementById("note-box-" + idx);
+  if (box) {
+    box.classList.toggle("open");
+    if (box.classList.contains("open")) box.querySelector("textarea")?.focus();
+  }
+}
+function updateQuestionNote(id, text, btnId) {
+  const val = String(text || "").trim();
+  if (val) notesMap[id] = { text: val, updatedAt: new Date().toISOString() };
+  else delete notesMap[id];
+  saveNotesMap();
+  const btn = document.getElementById(btnId);
+  if (btn) btn.classList.toggle("has-note", !!val);
+}
+function setFontScale(scale) {
+  fontScale = Number(scale) || 1;
+  document.documentElement.style.setProperty("--font-scale", String(fontScale));
+  localStorage.setItem(KEYS.FONT_SCALE, String(fontScale));
+  syncPreferencePills();
+}
+function setTtsRate(rate) {
+  ttsRate = Number(rate) || 0.95;
+  localStorage.setItem(KEYS.TTS_RATE, String(ttsRate));
+  syncPreferencePills();
+}
+function syncPreferencePills() {
+  document.querySelectorAll("#fontScalePills .choice-pill").forEach(b => b.classList.toggle("active", Number(b.dataset.scale) === fontScale));
+  document.querySelectorAll("#ttsRatePills .choice-pill").forEach(b => b.classList.toggle("active", Number(b.dataset.rate) === ttsRate));
+}
 function toggleDoneItem(id) {
   if (doneIds.has(id)) doneIds.delete(id);
   else doneIds.add(id);
@@ -1322,7 +1481,7 @@ function speakJapanese(text) {
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(clean);
   u.lang = "ja-JP";
-  u.rate = 0.95;
+  u.rate = ttsRate;
   window.speechSynthesis.speak(u);
 }
 
@@ -1679,6 +1838,8 @@ function renderCurrentView(preserveScroll = false) {
     }
     const isBm = !!bmState.items[item.id];
     const isDone = doneIds.has(item.id);
+    const noteObj = notesMap[item.id];
+    const noteText = typeof noteObj === "string" ? noteObj : (noteObj?.text || "");
     html += `
       <article class="study-card ${isBm ? 'is-bookmarked' : ''} ${isDone ? 'is-done' : ''}" id="list-item-${idx}" data-idx="${idx}" data-bm-card="${escapeHtml(item.id)}">
         <div class="card-head">
@@ -1686,6 +1847,9 @@ function renderCurrentView(preserveScroll = false) {
           <div class="card-actions">
             ${item.jpText ? `<button class="tts-btn" onclick='speakJapanese(${JSON.stringify(item.jpText)})' title="Nghe đọc tiếng Nhật">${ICONS.volume}<span>Nghe</span></button>` : ""}
             ${item.type === "question" ? `
+              <button class="note-btn ${noteText ? 'has-note' : ''}" id="note-btn-${idx}" onclick="toggleNoteBox(${idx})" title="Ghi chú mẹo nhớ cá nhân">
+                ${ICONS.note}<span>Ghi chú</span>
+              </button>
               <button class="done-btn ${isDone ? 'is-done' : ''}" onclick='toggleDoneItem(${JSON.stringify(item.id)})' title="Đánh dấu đã học xong câu này">
                 ${ICONS.check}<span>${isDone ? "Đã học" : "Xong"}</span>
               </button>
@@ -1703,6 +1867,11 @@ function renderCurrentView(preserveScroll = false) {
           ${item.promptHtml ? `<button class="btn toggle-ans-btn" onclick="toggleOneAns(this)">${ICONS.eye}<span>Hiện / Ẩn đáp án</span></button>` : ""}
           <div class="q-answer">${item.answerHtml}</div>
         </div>
+        ${item.type === "question" ? `
+          <div class="note-box ${noteText ? 'open' : ''}" id="note-box-${idx}">
+            <textarea class="note-textarea" placeholder="Ghi chú cá nhân / mẹo nhớ Kanji (tự đồng bộ theo tài khoản Gmail)..." oninput='updateQuestionNote(${JSON.stringify(item.id)}, this.value, "note-btn-${idx}")'>${escapeHtml(noteText)}</textarea>
+          </div>
+        ` : ""}
       </article>
     `;
   });
@@ -1800,7 +1969,7 @@ function jumpToBookmarkedItem(id) {
       const s = document.getElementById("searchInput");
       if (s) s.value = "";
       currentTab = t;
-      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
+      document.querySelectorAll(".tab-btn, .bnav-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
       renderCurrentView();
       setTimeout(() => scrollToStudyItem(idx), 60);
       return;
@@ -2494,9 +2663,14 @@ function initFirebase() {
           const mergedHist = [...(examHistory || []), ...(data.examHistory || [])]
             .filter(h => h && h.ts && !seenTs.has(h.ts) && seenTs.add(h.ts))
             .sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 15);
+          const mergedNotes = Object.assign({}, data.notes || {}, notesMap);
+          Object.entries(data.notes || {}).forEach(([k, v]) => {
+            const loc = notesMap[k];
+            if (!loc || ((v?.updatedAt || "") > (loc?.updatedAt || ""))) mergedNotes[k] = v;
+          });
           isApplyingRemote = true;
-          bmState = merged; wrongIds = mergedWrong; doneIds = mergedDone; masteredIds = mergedMastered; examHistory = mergedHist;
-          saveBookmarksLocal(); saveWrongIds(true); saveDoneIds(true); saveMasteredIds(true); saveExamHistory(true);
+          bmState = merged; wrongIds = mergedWrong; doneIds = mergedDone; masteredIds = mergedMastered; examHistory = mergedHist; notesMap = mergedNotes;
+          saveBookmarksLocal(); saveWrongIds(true); saveDoneIds(true); saveMasteredIds(true); saveExamHistory(true); saveNotesMap(true);
           syncBookmarkBadgesOnly();
           if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderCurrentView(true);
           else if (currentTab === "exam" && !examSession) renderExamView();
@@ -2554,7 +2728,8 @@ async function pushUserCloudState(manual = false) {
       wrongIds: [...wrongIds],
       doneIds: [...doneIds],
       masteredIds: [...masteredIds],
-      examHistory: examHistory.slice(0, 15)
+      examHistory: examHistory.slice(0, 15),
+      notes: notesMap
     }, { merge: true });
     const t = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
     document.getElementById("bmSyncInfo").textContent = `Đã đồng bộ (${t})`;
@@ -2591,10 +2766,11 @@ function loadLocalMarkdownFiles(event) {
 // ==================== UI ACTIONS & SHORTCUTS ====================
 function switchTab(tabId) {
   currentTab = tabId;
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
+  document.querySelectorAll(".tab-btn, .bnav-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
   if (tabId === "flashcard") buildFlashcardDeck();
   renderCurrentView();
   document.getElementById("stageScroll").scrollTop = 0;
+  if (window.innerWidth <= 960) window.scrollTo({ top: 0 });
 }
 function toggleQuizMode() {
   quizHideMode = !quizHideMode;
@@ -2618,6 +2794,7 @@ function openSettings() {
   } else {
     box.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;"><div><div style="font-weight:700;">Chưa đăng nhập Gmail</div><div style="font-size:12px;color:var(--muted);">Đăng nhập để đồng bộ Bookmark &amp; Câu hay sai giữa PC và Điện thoại.</div></div><button class="btn btn-primary" onclick="signInWithGmail()">Đăng nhập Gmail</button></div>`;
   }
+  syncPreferencePills();
   document.getElementById("settingsModal").classList.add("open");
   document.getElementById("settingsBackdrop").classList.add("open");
 }
@@ -2676,6 +2853,7 @@ document.addEventListener("keydown", (e) => {
 
 // ==================== BOOTSTRAP ====================
 initTheme();
+document.documentElement.style.setProperty("--font-scale", String(fontScale));
 loadBookmarksLocal();
 try {
   const cachedMd = JSON.parse(localStorage.getItem(KEYS.MD_CACHE) || "null");
@@ -2688,6 +2866,10 @@ try {
 rebuildAllContent();
 initFirebase();
 fetchPublicMarkdownFiles(false);
+
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
 </script>
 </body>
 </html>
