@@ -2,225 +2,276 @@
 <html lang="vi" data-theme="light">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta name="theme-color" content="#4f46e5">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<meta name="theme-color" content="#F6F2EA">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="./manifest.json">
-<title>JLPT N1 Pro — Học, Flashcard, Bookmark & Thi Thử</title>
+<title>JLPT N1 — Washi Editorial Study Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <style>
   :root {
-    --bg: #f1f5f9;
-    --surface: #ffffff;
-    --surface-2: #f8fafc;
-    --surface-hover: #f1f5f9;
-    --text: #0f172a;
-    --text-2: #475569;
-    --muted: #64748b;
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --primary-soft: #eef2ff;
-    --primary-border: #c7d2fe;
-    --gold: #f59e0b;
-    --gold-soft: #fef3c7;
-    --gold-text: #92400e;
-    --green: #10b981;
-    --green-soft: #ecfdf5;
-    --green-text: #065f46;
-    --red: #ef4444;
-    --red-soft: #fef2f2;
-    --red-text: #991b1b;
-    --border: #e2e8f0;
-    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-    --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+    --bg: #F6F2EA;
+    --surface: #FFFDF9;
+    --surface-2: #EFE9DD;
+    --surface-hover: #EAE2D3;
+    --ink: #1C1917;
+    --ink-2: #44403C;
+    --muted: #6B655D;
+    --vermilion: #B83822;
+    --vermilion-hover: #9A2C19;
+    --vermilion-soft: rgba(184, 56, 34, 0.09);
+    --vermilion-border: rgba(184, 56, 34, 0.28);
+    --indigo: #1E3A5F;
+    --indigo-soft: rgba(30, 58, 95, 0.07);
+    --matcha: #2D6A4F;
+    --matcha-soft: rgba(45, 106, 79, 0.11);
+    --gold: #B45309;
+    --gold-soft: rgba(180, 83, 9, 0.11);
+    --gold-border: rgba(180, 83, 9, 0.35);
+    --border: #E5DEC9;
+    --border-strong: #D6CCBA;
     --topbar-h: 54px;
-    --sidebar-w: 295px;
-    --radius: 12px;
+    --sidebar-w: 288px;
+    --font-serif: "Shippori Mincho", "Yu Mincho", Georgia, serif;
+    --font-sans: "Be Vietnam Pro", "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   [data-theme="dark"] {
-    --bg: #0b1120;
-    --surface: #111827;
-    --surface-2: #1e293b;
-    --surface-hover: #1f2937;
-    --text: #f1f5f9;
-    --text-2: #cbd5e1;
-    --muted: #94a3b8;
-    --primary: #6366f1;
-    --primary-hover: #818cf8;
-    --primary-soft: rgba(99, 102, 241, 0.16);
-    --primary-border: rgba(99, 102, 241, 0.35);
-    --gold: #fbbf24;
-    --gold-soft: rgba(251, 191, 36, 0.15);
-    --gold-text: #fcd34d;
-    --green: #34d399;
-    --green-soft: rgba(16, 185, 129, 0.15);
-    --green-text: #6ee7b7;
-    --red: #f87171;
-    --red-soft: rgba(239, 68, 68, 0.15);
-    --red-text: #fca5a5;
-    --border: #1e293b;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --bg: #141210;
+    --surface: #1C1916;
+    --surface-2: #25211D;
+    --surface-hover: #2E2924;
+    --ink: #F3EFE6;
+    --ink-2: #D6CFC3;
+    --muted: #9C9488;
+    --vermilion: #E05A43;
+    --vermilion-hover: #EB6E58;
+    --vermilion-soft: rgba(224, 90, 67, 0.16);
+    --vermilion-border: rgba(224, 90, 67, 0.4);
+    --indigo: #7BA3D1;
+    --indigo-soft: rgba(123, 163, 209, 0.12);
+    --matcha: #52B788;
+    --matcha-soft: rgba(82, 183, 136, 0.15);
+    --gold: #F59E0B;
+    --gold-soft: rgba(245, 158, 11, 0.16);
+    --gold-border: rgba(245, 158, 11, 0.4);
+    --border: #2E2924;
+    --border-strong: #3F3831;
   }
 
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body {
-    font-family: "Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: var(--font-sans);
     background: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
+    color: var(--ink);
+    line-height: 1.68;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Custom scrollbars */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  }
+
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
 
-  /* ==================== TOPBAR (SINGLE COMPACT ROW - 54px) ==================== */
+  .ico {
+    width: 15px;
+    height: 15px;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    flex-shrink: 0;
+  }
+  .ico-fill { fill: currentColor; }
+
+  /* ==================== EDITORIAL HEADER (54px) ==================== */
   .topbar {
     height: var(--topbar-h);
     min-height: var(--topbar-h);
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 0 14px;
+    padding: 0 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 12px;
     z-index: 60;
-    box-shadow: var(--shadow-sm);
   }
   .top-left, .top-center, .top-right {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
   .brand {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-weight: 800;
-    font-size: 15px;
-    letter-spacing: -0.3px;
-    color: var(--text);
+    gap: 9px;
+    text-decoration: none;
+    color: var(--ink);
     white-space: nowrap;
   }
-  .brand-badge {
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
-    color: #fff;
-    font-size: 11px;
+  /* Traditional Japanese Hanko Seal */
+  .hanko {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--vermilion);
+    border-radius: 5px;
+    color: var(--vermilion);
+    font-family: var(--font-serif);
     font-weight: 800;
-    padding: 3px 7px;
-    border-radius: 7px;
-    letter-spacing: 0.4px;
+    font-size: 12.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: -0.5px;
+    background: var(--vermilion-soft);
+  }
+  .brand-title {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.2px;
   }
   .mobile-menu-btn { display: none; }
 
-  .nav-pills {
+  .nav-tabs {
     display: flex;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    padding: 3px;
-    border-radius: 10px;
+    align-items: center;
     gap: 2px;
+    border-bottom: none;
   }
   .tab-btn {
     border: none;
     background: transparent;
-    color: var(--text-2);
-    padding: 5px 11px;
-    border-radius: 7px;
-    font-size: 12.5px;
+    color: var(--muted);
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+    position: relative;
+    transition: color 0.16s, background 0.16s;
   }
-  .tab-btn:hover { color: var(--text); background: var(--surface-hover); }
+  .tab-btn:hover { color: var(--ink); background: var(--surface-2); }
   .tab-btn.active {
-    background: var(--surface);
-    color: var(--primary);
-    box-shadow: var(--shadow-sm);
+    color: var(--vermilion);
+    background: var(--vermilion-soft);
   }
-  .tab-btn.exam-tab.active { color: #7c3aed; }
-  .tab-btn.fc-tab.active { color: #d97706; }
+  .tab-btn.active::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: -9px;
+    height: 2px;
+    background: var(--vermilion);
+  }
 
   .btn {
     cursor: pointer;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     background: var(--surface);
-    color: var(--text);
-    padding: 5px 10px;
-    border-radius: 8px;
+    color: var(--ink);
+    padding: 6px 11px;
+    border-radius: 6px;
     font-size: 12.5px;
     font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     white-space: nowrap;
-    transition: all 0.15s;
     font-family: inherit;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
-  .btn:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--muted); }
-  .btn:active:not(:disabled) { transform: scale(0.97); }
-  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-  .btn-icon { padding: 5px 8px; }
+  .btn:hover:not(:disabled) { background: var(--surface-2); border-color: var(--muted); }
+  .btn:focus-visible, .tab-btn:focus-visible, .nav-item:focus-visible, .exam-opt-btn:focus-visible {
+    outline: 2px solid var(--vermilion);
+    outline-offset: 2px;
+  }
+  .btn:disabled { opacity: 0.42; cursor: not-allowed; }
+  .btn-icon { padding: 6px 8px; }
   .btn-primary {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
+    background: var(--vermilion);
+    border-color: var(--vermilion);
+    color: #FFFDF9;
   }
-  .btn-primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
-  .btn-gold {
+  .btn-primary:hover:not(:disabled) {
+    background: var(--vermilion-hover);
+    border-color: var(--vermilion-hover);
+  }
+  .btn-indigo {
+    background: var(--indigo);
+    border-color: var(--indigo);
+    color: #FFFDF9;
+  }
+  .btn-gold-soft {
     background: var(--gold-soft);
-    border-color: var(--gold);
-    color: var(--gold-text);
+    border-color: var(--gold-border);
+    color: var(--gold);
   }
-  .btn-active-green {
-    background: var(--green);
-    color: #fff;
-    border-color: var(--green);
+  .btn-active-matcha {
+    background: var(--matcha);
+    border-color: var(--matcha);
+    color: #FFFDF9;
   }
   .btn-active-gold {
     background: var(--gold);
-    color: #fff;
     border-color: var(--gold);
+    color: #FFFDF9;
   }
 
   .sync-pill {
     font-size: 11.5px;
     font-weight: 600;
-    padding: 4px 9px;
-    border-radius: 999px;
+    padding: 4px 10px;
+    border-radius: 99px;
     background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--muted);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     white-space: nowrap;
+    font-family: inherit;
   }
-  .sync-pill.ok { background: var(--green-soft); color: var(--green-text); border-color: transparent; }
-  .sync-pill.syncing { background: var(--primary-soft); color: var(--primary); border-color: transparent; }
-  .sync-pill.warn { background: var(--gold-soft); color: var(--gold-text); border-color: transparent; }
-  .sync-pill.err { background: var(--red-soft); color: var(--red-text); border-color: transparent; }
+  .sync-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .sync-pill.ok { color: var(--matcha); border-color: rgba(45,106,79,0.28); background: var(--matcha-soft); }
+  .sync-pill.ok .sync-dot { background: var(--matcha); }
+  .sync-pill.syncing { color: var(--indigo); background: var(--indigo-soft); }
+  .sync-pill.syncing .sync-dot { background: var(--indigo); }
+  .sync-pill.warn { color: var(--gold); background: var(--gold-soft); }
+  .sync-pill.warn .sync-dot { background: var(--gold); }
+  .sync-pill.err { color: var(--vermilion); background: var(--vermilion-soft); }
+  .sync-pill.err .sync-dot { background: var(--vermilion); }
 
-  /* ==================== MAIN WORKSPACE (100vh - 54px) ==================== */
+  /* ==================== WORKSPACE (2-PANE VERTICAL SCROLL) ==================== */
   .workspace {
     flex: 1;
     display: flex;
@@ -229,7 +280,7 @@
     position: relative;
   }
 
-  /* LEFT SIDEBAR (Master Navigation) */
+  /* LEFT INDEX SIDEBAR */
   .sidebar {
     width: var(--sidebar-w);
     min-width: var(--sidebar-w);
@@ -243,47 +294,57 @@
   }
   .sidebar.hidden-mode { display: none; }
   .sidebar-top {
-    padding: 10px 10px 8px;
+    padding: 12px 12px 10px;
     border-bottom: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 8px;
+  }
+  .search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .search-wrap .ico {
+    position: absolute;
+    left: 10px;
+    color: var(--muted);
+    pointer-events: none;
   }
   .search-box {
     width: 100%;
-    padding: 7px 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface-2);
-    color: var(--text);
+    padding: 7px 10px 7px 31px;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--ink);
     font-size: 12.5px;
     font-family: inherit;
     outline: none;
   }
-  .search-box:focus { border-color: var(--primary); background: var(--surface); }
+  .search-box:focus { border-color: var(--vermilion); background: var(--surface); }
   .sidebar-filters {
-    display: flex;
-    gap: 5px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
   }
   .mini-chip {
-    flex: 1;
     justify-content: center;
-    font-size: 11.5px;
-    padding: 4px 7px;
+    font-size: 12px;
+    padding: 5px 8px;
   }
   .sidebar-list {
     flex: 1;
     overflow-y: auto;
-    padding: 6px;
+    padding: 8px;
   }
   .sess-group-title {
-    font-size: 10.5px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
+    font-size: 11px;
+    font-weight: 700;
     color: var(--muted);
-    padding: 10px 8px 4px;
+    padding: 12px 8px 5px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
     position: sticky;
     top: 0;
     background: var(--surface);
@@ -294,20 +355,20 @@
     align-items: center;
     justify-content: space-between;
     gap: 6px;
-    padding: 7px 9px;
-    border-radius: 8px;
+    padding: 6px 9px;
+    border-radius: 5px;
     cursor: pointer;
     font-size: 12.5px;
-    color: var(--text-2);
+    color: var(--ink-2);
     margin-bottom: 2px;
-    border: 1px solid transparent;
-    transition: all 0.12s;
+    border-left: 2px solid transparent;
+    transition: background 0.12s, color 0.12s;
   }
-  .nav-item:hover { background: var(--surface-hover); color: var(--text); }
+  .nav-item:hover { background: var(--surface-2); color: var(--ink); }
   .nav-item.active {
-    background: var(--primary-soft);
-    color: var(--primary);
-    border-color: var(--primary-border);
+    background: var(--vermilion-soft);
+    color: var(--vermilion);
+    border-left-color: var(--vermilion);
     font-weight: 600;
   }
   .nav-item-text {
@@ -316,57 +377,65 @@
     white-space: nowrap;
     flex: 1;
   }
-  .nav-item-badges {
+  .nav-badges {
     display: flex;
     align-items: center;
-    gap: 3px;
-    font-size: 11px;
+    gap: 4px;
     flex-shrink: 0;
   }
+  .dot-wrong-mini {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--vermilion);
+    display: inline-block;
+  }
 
-  /* RIGHT MAIN STAGE */
+  /* RIGHT CONTINUOUS SCROLL STAGE */
   .stage {
     flex: 1;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-  }
-  .stage-toolbar {
-    background: var(--surface-2);
-    border-bottom: 1px solid var(--border);
-    padding: 7px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
-    font-size: 12.5px;
-  }
-  .stage-scroll {
-    flex: 1;
     overflow-y: auto;
-    padding: 14px 18px 24px;
+    padding: 20px 28px 64px;
+    scroll-behavior: smooth;
   }
   .stage-inner {
-    max-width: 960px;
+    max-width: 820px;
     margin: 0 auto;
   }
+  .stage-inner.wide { max-width: 1080px; }
 
-  /* FOCUS MODE (1 QUESTION PER 14-INCH SCREEN) */
-  .focus-card {
+  /* EDITORIAL SESSION DIVIDER */
+  .session-heading {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 28px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--ink);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .session-heading:first-child { margin-top: 4px; }
+
+  /* EDITORIAL STUDY SHEET CARD */
+  .study-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 8px;
     padding: 18px 22px;
-    box-shadow: var(--shadow-sm);
+    margin-bottom: 16px;
+    scroll-margin-top: 16px;
+    transition: border-color 0.15s;
   }
-  .focus-card.is-bookmarked {
-    border-color: var(--gold);
-    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.16);
+  .study-card.is-bookmarked {
+    border-color: var(--gold-border);
+    box-shadow: inset 3px 0 0 var(--gold);
   }
-  .focus-header {
+  .card-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -376,121 +445,107 @@
     border-bottom: 1px solid var(--border);
     flex-wrap: wrap;
   }
-  .focus-title-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .focus-title {
+  .card-title {
     margin: 0;
+    font-family: var(--font-serif);
     font-size: 16px;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--indigo);
   }
-  .session-pill {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 99px;
-    background: var(--surface-2);
-    color: var(--muted);
-    border: 1px solid var(--border);
-  }
-  .focus-prompt {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: 15.5px;
-    line-height: 1.75;
-    margin-bottom: 12px;
-  }
-  .focus-prompt p { margin: 4px 0; }
-  .focus-prompt u {
-    text-decoration: underline;
-    text-decoration-color: var(--primary);
-    text-decoration-thickness: 2.5px;
-    text-underline-offset: 4px;
-    background: var(--primary-soft);
-    color: var(--primary);
-    padding: 1px 5px;
-    border-radius: 5px;
-  }
-  .focus-footer {
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
+  .card-actions {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .kbd-hints {
-    font-size: 11.5px;
-    color: var(--muted);
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  kbd {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-size: 11px;
-    font-family: inherit;
-    font-weight: 600;
+    gap: 6px;
   }
 
-  /* MARKDOWN CONTENT STYLING */
+  /* JAPANESE TEXTBOOK PROMPT BOX */
+  .jp-prompt {
+    background: var(--surface-2);
+    border-left: 3px solid var(--vermilion);
+    border-radius: 0 6px 6px 0;
+    padding: 13px 16px;
+    margin-bottom: 12px;
+    font-family: var(--font-serif);
+    font-size: 16.5px;
+    line-height: 1.85;
+    color: var(--ink);
+  }
+  .jp-prompt p { margin: 4px 0; }
+  .jp-prompt u {
+    text-decoration: underline;
+    text-decoration-color: var(--vermilion);
+    text-decoration-thickness: 2.5px;
+    text-underline-offset: 5px;
+    background: var(--vermilion-soft);
+    color: var(--vermilion);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .jp-prompt code {
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin: 2px 1px;
+  }
+
+  /* ANSWER & EXPLANATION */
   blockquote {
-    border-left: 4px solid var(--primary);
-    background: var(--primary-soft);
-    padding: 10px 14px;
-    margin: 8px 0;
-    border-radius: 0 10px 10px 0;
-    font-size: 14px;
+    border-left: 3px solid var(--indigo);
+    background: var(--indigo-soft);
+    padding: 11px 15px;
+    margin: 10px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 14.5px;
   }
   blockquote p { margin: 4px 0; }
-  ul, ol { margin: 6px 0; padding-left: 20px; font-size: 14px; }
-  li { margin: 3px 0; }
+  ul, ol { margin: 6px 0; padding-left: 20px; font-size: 14.5px; color: var(--ink-2); }
+  li { margin: 4px 0; }
+  strong { color: var(--ink); }
+
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table {
     border-collapse: collapse;
     width: 100%;
     margin: 8px 0;
-    font-size: 13.5px;
+    font-size: 14px;
   }
   th, td {
     border: 1px solid var(--border);
-    padding: 7px 10px;
+    padding: 8px 10px;
     text-align: left;
     vertical-align: top;
   }
-  th { background: var(--surface-2); font-weight: 700; font-size: 12.5px; }
+  th {
+    background: var(--surface-2);
+    font-weight: 700;
+    font-size: 12.5px;
+    color: var(--ink);
+  }
   tr.is-bookmarked { background: var(--gold-soft); }
-  .bm-cell { width: 42px; text-align: center; }
+  .bm-cell { width: 44px; text-align: center; }
 
   code {
     background: var(--surface-2);
     border: 1px solid var(--border);
     padding: 1px 6px;
-    border-radius: 5px;
+    border-radius: 4px;
     font-family: "Noto Sans JP", Consolas, monospace;
     font-size: 0.92em;
   }
   code.jp-pill {
     cursor: pointer;
-    transition: all 0.12s;
+    transition: border-color 0.14s, background 0.14s;
   }
   code.jp-pill:hover { border-color: var(--gold); background: var(--gold-soft); }
-  code.jp-pill .pill-star { margin-left: 3px; font-size: 11px; color: var(--muted); }
+  code.jp-pill .pill-star { margin-left: 4px; font-size: 11px; color: var(--muted); }
   code.jp-pill.bookmarked {
     background: var(--gold-soft);
-    border-color: var(--gold);
-    color: var(--gold-text);
+    border-color: var(--gold-border);
+    color: var(--gold);
     font-weight: 700;
   }
   code.jp-pill.bookmarked .pill-star { color: var(--gold); }
@@ -498,173 +553,218 @@
   .bm-btn {
     font-size: 12px;
     padding: 4px 10px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
+    border-radius: 99px;
+    border: 1px solid var(--border-strong);
     background: var(--surface);
     color: var(--muted);
     cursor: pointer;
     font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: inherit;
     white-space: nowrap;
   }
+  .bm-btn:hover { border-color: var(--gold); color: var(--gold); }
   .bm-btn.bookmarked {
     background: var(--gold-soft);
-    border-color: var(--gold);
-    color: var(--gold-text);
+    border-color: var(--gold-border);
+    color: var(--gold);
   }
   .tts-btn {
     font-size: 12px;
     padding: 4px 9px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
+    border-radius: 99px;
+    border: 1px solid var(--border-strong);
     background: var(--surface);
-    color: var(--text-2);
+    color: var(--ink-2);
     cursor: pointer;
     font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: inherit;
   }
-  .tts-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .tts-btn:hover { border-color: var(--indigo); color: var(--indigo); }
 
   .toggle-ans-btn { display: none; margin: 6px 0; }
   body.quiz-mode .toggle-ans-btn { display: inline-flex; }
   body.quiz-mode .q-answer { display: none; }
   body.quiz-mode .q-answer.revealed { display: block; }
 
-  /* LIST VIEW CARDS */
-  .list-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 15px 18px;
-    margin-bottom: 12px;
+  /* ==================== FLASHCARD (EDITORIAL PAPER CARD) ==================== */
+  .fc-wrap {
+    max-width: 780px;
+    margin: 0 auto;
   }
-  .list-card.is-bookmarked { border-color: var(--gold); }
-  .session-heading {
+  .fc-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .fc-card {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-top: 3px solid var(--vermilion);
+    border-radius: 10px;
+    padding: 28px 28px;
+    min-height: 290px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: border-color 0.16s, background 0.16s;
+  }
+  .fc-card:hover { border-color: var(--vermilion); }
+  .fc-word {
+    font-family: var(--font-serif);
+    font-size: 34px;
+    font-weight: 700;
+    color: var(--ink);
+    text-align: center;
+    margin: 10px 0;
+  }
+  .fc-reading {
     font-size: 17px;
-    font-weight: 800;
-    color: var(--primary);
-    margin: 20px 0 10px;
-    padding-bottom: 5px;
-    border-bottom: 2px solid var(--primary-border);
+    font-weight: 600;
+    color: var(--vermilion);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .fc-meaning {
+    font-size: 15.5px;
+    color: var(--ink-2);
+    text-align: center;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .fc-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 
-  /* ==================== EXAM MODE (2-COLUMN 14-INCH FIT) ==================== */
-  .exam-shell {
-    max-width: 1120px;
-    margin: 0 auto;
-    height: 100%;
-  }
+  /* ==================== EXAM MODE (2-COLUMN EDITORIAL) ==================== */
   .exam-setup-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 22px 24px;
-    box-shadow: var(--shadow-sm);
-    max-width: 880px;
-    margin: 8px auto;
+    border-top: 3px solid var(--vermilion);
+    border-radius: 10px;
+    padding: 24px 26px;
+    max-width: 860px;
+    margin: 6px auto;
   }
   .exam-grid-setup {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    gap: 12px;
-    margin: 16px 0;
+    gap: 14px;
+    margin: 18px 0;
   }
   .exam-field {
-    background: var(--surface-2);
+    background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px;
+    border-radius: 8px;
+    padding: 13px;
   }
   .exam-field label {
     display: block;
-    font-size: 11px;
-    font-weight: 800;
+    font-size: 12px;
+    font-weight: 700;
     color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    margin-bottom: 8px;
+    margin-bottom: 9px;
   }
   .pill-group { display: flex; flex-wrap: wrap; gap: 6px; }
   .choice-pill {
     padding: 5px 11px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
+    border-radius: 5px;
+    border: 1px solid var(--border-strong);
     background: var(--surface);
-    color: var(--text-2);
+    color: var(--ink-2);
     font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
+    font-family: inherit;
   }
-  .choice-pill.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+  .choice-pill.active {
+    background: var(--vermilion);
+    color: #FFFDF9;
+    border-color: var(--vermilion);
+  }
   .custom-count-input {
-    width: 76px;
+    width: 78px;
     padding: 5px 8px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
     background: var(--surface);
-    color: var(--text);
+    color: var(--ink);
     font-size: 12.5px;
+    font-family: inherit;
   }
 
   .exam-2col {
     display: grid;
-    grid-template-columns: 1fr 250px;
-    gap: 14px;
+    grid-template-columns: 1fr 255px;
+    gap: 16px;
     align-items: start;
   }
   .exam-main-card, .exam-side-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px 18px;
-    box-shadow: var(--shadow-sm);
+    border-radius: 8px;
+    padding: 18px 20px;
   }
   .exam-side-card { position: sticky; top: 0; }
   .exam-progress-track {
     width: 100%;
-    height: 6px;
+    height: 5px;
     background: var(--surface-2);
     border-radius: 99px;
     overflow: hidden;
-    margin: 8px 0 12px;
+    margin: 10px 0 14px;
   }
   .exam-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #7c3aed, #4f46e5);
+    background: var(--vermilion);
     transition: width 0.2s;
   }
   .exam-options-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 9px;
-    margin: 12px 0;
+    gap: 10px;
+    margin: 14px 0;
   }
   .exam-options-grid.single-col { grid-template-columns: 1fr; }
   .exam-opt-btn {
     width: 100%;
     text-align: left;
-    justify-content: flex-start;
-    padding: 10px 13px;
-    font-size: 14.5px;
-    border-radius: 10px;
-    border: 2px solid var(--border);
+    padding: 11px 14px;
+    font-size: 15px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border-strong);
     background: var(--surface);
-    color: var(--text);
-    line-height: 1.45;
+    color: var(--ink);
+    line-height: 1.5;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 9px;
-    font-family: inherit;
-    transition: all 0.12s;
+    gap: 10px;
+    font-family: var(--font-sans);
+    transition: border-color 0.14s, background 0.14s;
   }
-  .exam-opt-btn:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-soft); }
-  .exam-opt-btn.selected { border-color: #7c3aed; background: var(--primary-soft); font-weight: 700; }
-  .exam-opt-btn.correct { border-color: var(--green); background: var(--green-soft); color: var(--green-text); font-weight: 700; }
-  .exam-opt-btn.wrong { border-color: var(--red); background: var(--red-soft); color: var(--red-text); }
+  .exam-opt-btn:hover:not(:disabled) { border-color: var(--indigo); background: var(--indigo-soft); }
+  .exam-opt-btn.selected { border-color: var(--indigo); background: var(--indigo-soft); font-weight: 700; }
+  .exam-opt-btn.correct { border-color: var(--matcha); background: var(--matcha-soft); color: var(--matcha); font-weight: 700; }
+  .exam-opt-btn.wrong { border-color: var(--vermilion); background: var(--vermilion-soft); color: var(--vermilion); }
   .exam-opt-num {
     min-width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: var(--surface-2);
+    border: 1.5px solid var(--border-strong);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -672,82 +772,58 @@
     font-size: 12px;
     flex-shrink: 0;
   }
-  .exam-opt-btn.selected .exam-opt-num { background: #7c3aed; color: #fff; }
-  .exam-opt-btn.correct .exam-opt-num { background: var(--green); color: #fff; }
-  .exam-opt-btn.wrong .exam-opt-num { background: var(--red); color: #fff; }
+  .exam-opt-btn.selected .exam-opt-num { background: var(--indigo); border-color: var(--indigo); color: #FFFDF9; }
+  .exam-opt-btn.correct .exam-opt-num { background: var(--matcha); border-color: var(--matcha); color: #FFFDF9; }
+  .exam-opt-btn.wrong .exam-opt-num { background: var(--vermilion); border-color: var(--vermilion); color: #FFFDF9; }
 
   .exam-dots-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 5px;
+    gap: 6px;
     margin: 10px 0 14px;
   }
   .exam-dot {
     height: 30px;
-    border-radius: 7px;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--text-2);
+    border-radius: 5px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg);
+    color: var(--ink-2);
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
+    font-family: inherit;
   }
-  .exam-dot.current { border: 2px solid #7c3aed; color: #7c3aed; }
-  .exam-dot.answered { background: var(--primary-soft); border-color: var(--primary-border); color: var(--primary); }
-  .exam-dot.dot-correct { background: var(--green); border-color: var(--green); color: #fff; }
-  .exam-dot.dot-wrong { background: var(--red); border-color: var(--red); color: #fff; }
+  .exam-dot.current { border: 2px solid var(--vermilion); color: var(--vermilion); }
+  .exam-dot.answered { background: var(--indigo-soft); border-color: var(--indigo); color: var(--indigo); }
+  .exam-dot.dot-correct { background: var(--matcha); border-color: var(--matcha); color: #FFFDF9; }
+  .exam-dot.dot-wrong { background: var(--vermilion); border-color: var(--vermilion); color: #FFFDF9; }
 
   .exam-score-box {
     text-align: center;
-    padding: 18px;
-    background: var(--primary-soft);
-    border-radius: 14px;
-    margin-bottom: 16px;
+    padding: 22px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--vermilion);
+    border-radius: 10px;
+    margin-bottom: 18px;
   }
-  .exam-score-big { font-size: 38px; font-weight: 800; color: var(--primary); }
+  .exam-score-big { font-family: var(--font-serif); font-size: 40px; font-weight: 800; color: var(--vermilion); }
   .review-item {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 13px 15px;
-    margin-bottom: 10px;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
   }
-  .review-item.is-wrong { border-left: 4px solid var(--red); }
-  .review-item.is-right { border-left: 4px solid var(--green); }
-
-  /* ==================== FLASHCARD MODE ==================== */
-  .fc-wrap {
-    max-width: 680px;
-    margin: 6px auto;
-    text-align: center;
-  }
-  .fc-card {
-    background: var(--surface);
-    border: 2px solid var(--border);
-    border-radius: 18px;
-    padding: 34px 26px;
-    min-height: 270px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    box-shadow: var(--shadow-md);
-    transition: transform 0.15s, border-color 0.15s;
-    margin: 14px 0;
-  }
-  .fc-card:hover { border-color: var(--primary); }
-  .fc-front-word { font-size: 30px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
-  .fc-sub { font-size: 16px; color: var(--primary); font-weight: 600; margin-bottom: 8px; }
-  .fc-note { font-size: 15px; color: var(--text-2); max-width: 540px; }
+  .review-item.is-wrong { border-left: 3px solid var(--vermilion); }
+  .review-item.is-right { border-left: 3px solid var(--matcha); }
 
   /* ==================== DRAWER & MODALS ==================== */
   .backdrop {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.45);
-    backdrop-filter: blur(2px);
+    background: rgba(28, 25, 23, 0.45);
     z-index: 90;
   }
   .backdrop.open { display: block; }
@@ -759,21 +835,21 @@
     max-width: 95vw;
     height: 100vh;
     background: var(--surface);
+    border-left: 1px solid var(--border);
     z-index: 100;
-    box-shadow: -8px 0 30px rgba(0,0,0,0.2);
     display: flex;
     flex-direction: column;
     transition: right 0.22s ease;
   }
   .drawer.open { right: 0; }
   .drawer-header, .modal-header {
-    padding: 13px 16px;
+    padding: 14px 16px;
     border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  .drawer-body { flex: 1; overflow-y: auto; padding: 12px 14px; }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 14px; }
   .drawer-footer {
     padding: 10px 14px;
     border-top: 1px solid var(--border);
@@ -787,98 +863,103 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 510px;
+    width: 500px;
     max-width: 94vw;
     max-height: 90vh;
     overflow-y: auto;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
     z-index: 110;
-    box-shadow: var(--shadow-md);
   }
   .modal.open { display: block; }
   .modal-body { padding: 16px; }
-  .form-group { margin-bottom: 12px; }
-  .form-group label { display: block; font-size: 12px; font-weight: 700; color: var(--text-2); margin-bottom: 4px; }
-  .form-group input {
-    width: 100%;
-    padding: 8px 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface-2);
-    color: var(--text);
-    font-size: 13px;
-    font-family: inherit;
-  }
   .bm-item {
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 9px 11px;
+    border-radius: 7px;
+    padding: 10px 12px;
     margin-bottom: 8px;
-    background: var(--surface-2);
+    background: var(--bg);
   }
   .bm-item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-  .bm-item-title { font-weight: 700; font-size: 14px; }
-  .bm-item-sub { font-size: 12.5px; color: var(--text-2); margin-top: 2px; }
-  .bm-item-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .bm-item-title { font-weight: 700; font-size: 14px; color: var(--ink); }
+  .bm-item-sub { font-size: 12.5px; color: var(--ink-2); margin-top: 3px; }
+  .bm-item-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
   .quick-add {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    background: var(--surface-2);
+    gap: 7px;
+    background: var(--bg);
     padding: 10px;
-    border-radius: 10px;
+    border-radius: 8px;
     margin-bottom: 10px;
     border: 1px solid var(--border);
   }
   .quick-add input {
-    padding: 6px 9px;
-    border: 1px solid var(--border);
-    border-radius: 7px;
+    padding: 7px 9px;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
     background: var(--surface);
-    color: var(--text);
+    color: var(--ink);
     font-size: 12.5px;
+    font-family: inherit;
   }
 
   .empty-state {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 10px;
     padding: 36px 24px;
     text-align: center;
     max-width: 560px;
-    margin: 24px auto;
-    box-shadow: var(--shadow-sm);
+    margin: 28px auto;
   }
 
   .toast {
     position: fixed;
-    bottom: 18px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%) translateY(80px);
-    background: #0f172a;
-    color: #fff;
-    padding: 9px 16px;
-    border-radius: 999px;
+    background: var(--ink);
+    color: var(--bg);
+    padding: 9px 18px;
+    border-radius: 99px;
     font-size: 12.5px;
     font-weight: 600;
     z-index: 200;
     opacity: 0;
-    transition: all 0.25s ease;
+    transition: transform 0.22s ease, opacity 0.22s ease;
     pointer-events: none;
     max-width: 92vw;
     text-align: center;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
   }
   .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  .tag-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--indigo-soft);
+    color: var(--indigo);
+  }
+  .tag-pill.word { background: var(--gold-soft); color: var(--gold); }
 
   /* ==================== RESPONSIVE (MOBILE & TABLET) ==================== */
   @media (max-width: 960px) {
     body { overflow: auto; height: auto; min-height: 100%; }
-    .topbar { position: sticky; top: 0; height: auto; padding: 8px 10px; flex-wrap: wrap; }
-    .mobile-menu-btn { display: inline-flex; }
-    .brand-text { display: none; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      height: auto;
+      padding: 8px 10px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .mobile-menu-btn { display: inline-flex; min-width: 38px; min-height: 38px; justify-content: center; }
+    .brand-title { display: none; }
+    .top-center { order: 3; width: 100%; overflow-x: auto; padding-bottom: 2px; }
+    .tab-btn.active::after { display: none; }
     .workspace { overflow: visible; }
     .sidebar {
       position: fixed;
@@ -886,16 +967,15 @@
       left: 0;
       height: 100vh;
       transform: translateX(-105%);
-      box-shadow: 4px 0 24px rgba(0,0,0,0.25);
       z-index: 95;
     }
     .sidebar.mobile-open { transform: translateX(0); }
-    .stage { overflow: visible; }
-    .stage-scroll { overflow: visible; padding: 10px 10px 40px; }
+    .stage { overflow: visible; padding: 12px 12px 48px; }
+    .study-card { padding: 14px 14px; }
+    .jp-prompt { font-size: 15.5px; padding: 11px 13px; }
     .exam-2col { grid-template-columns: 1fr; }
     .exam-options-grid { grid-template-columns: 1fr; }
-    .kbd-hints { display: none; }
-    .focus-card { padding: 14px 14px; }
+    .btn, .tab-btn, .bm-btn, .tts-btn { min-height: 36px; }
   }
 </style>
 </head>
@@ -903,93 +983,120 @@
 
 <header class="topbar">
   <div class="top-left">
-    <button class="btn btn-icon mobile-menu-btn" onclick="toggleMobileSidebar()" title="Mục lục câu hỏi">☰</button>
+    <button class="btn btn-icon mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Mở mục lục">
+      <svg class="ico" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
     <div class="brand">
-      <span class="brand-badge">N1</span>
-      <span class="brand-text">JLPT Pro</span>
+      <span class="hanko">N1</span>
+      <span class="brand-title">JLPT N1</span>
     </div>
     <button class="sync-pill" id="syncPill" onclick="fetchPublicMarkdownFiles(true)" title="Tải lại 3 file .md mới nhất từ Google Drive">
-      <span id="syncDot">⏳</span><span id="syncLabel">Đang tải...</span>
+      <span class="sync-dot"></span><span id="syncLabel">Đang tải</span>
     </button>
   </div>
 
-  <div class="top-center">
-    <div class="nav-pills">
-      <button class="tab-btn active" data-tab="tuvung" onclick="switchTab('tuvung')">📘 Từ vựng</button>
-      <button class="tab-btn" data-tab="nguphap" onclick="switchTab('nguphap')">📗 Ngữ pháp</button>
-      <button class="tab-btn" data-tab="dochieu" onclick="switchTab('dochieu')">📙 Đọc hiểu</button>
-      <button class="tab-btn fc-tab" data-tab="flashcard" onclick="switchTab('flashcard')">🃏 Flashcard</button>
-      <button class="tab-btn exam-tab" data-tab="exam" onclick="switchTab('exam')">📝 Thi thử</button>
+  <nav class="top-center" aria-label="Chuyển mục học">
+    <div class="nav-tabs">
+      <button class="tab-btn active" data-tab="tuvung" onclick="switchTab('tuvung')">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span>Từ vựng</span>
+      </button>
+      <button class="tab-btn" data-tab="nguphap" onclick="switchTab('nguphap')">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        <span>Ngữ pháp</span>
+      </button>
+      <button class="tab-btn" data-tab="dochieu" onclick="switchTab('dochieu')">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span>Đọc hiểu</span>
+      </button>
+      <button class="tab-btn" data-tab="flashcard" onclick="switchTab('flashcard')">
+        <svg class="ico" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        <span>Flashcard</span>
+      </button>
+      <button class="tab-btn" data-tab="exam" onclick="switchTab('exam')">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Thi thử</span>
+      </button>
     </div>
-  </div>
+  </nav>
 
   <div class="top-right">
-    <button class="btn btn-primary" id="authBtn" onclick="handleAuthClick()" title="Đăng nhập Gmail để đồng bộ Bookmark & Câu hay sai riêng">🔐 Gmail</button>
-    <button class="btn btn-gold" onclick="openDrawer()" title="Mở Sổ Bookmark">★ <span id="bmCount">0</span></button>
-    <button class="btn btn-icon" id="themeBtn" onclick="toggleTheme()" title="Chế độ Sáng / Tối">🌙</button>
-    <button class="btn btn-icon" onclick="openSettings()" title="Cài đặt & Dữ liệu">⚙️</button>
+    <button class="btn btn-primary" id="authBtn" onclick="handleAuthClick()" title="Đăng nhập Gmail để đồng bộ dữ liệu riêng">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Đăng nhập</span>
+    </button>
+    <button class="btn btn-gold-soft" onclick="openDrawer()" aria-label="Mở sổ Bookmark">
+      <svg class="ico ico-fill" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span id="bmCount">0</span>
+    </button>
+    <button class="btn btn-icon" id="themeBtn" onclick="toggleTheme()" aria-label="Đổi giao diện Sáng/Tối">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <button class="btn btn-icon" onclick="openSettings()" aria-label="Cài đặt">
+      <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.85 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
   </div>
 </header>
 
 <div class="workspace">
-  <!-- LEFT SIDEBAR -->
+  <!-- LEFT INDEX SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
-      <input class="search-box" id="searchInput" type="text" placeholder="🔍 Tìm từ, nghĩa, câu..." oninput="onSearchOrFilterChange()">
+      <div class="search-wrap">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-box" id="searchInput" type="text" placeholder="Tìm từ, nghĩa, câu..." oninput="renderCurrentView()">
+      </div>
       <div class="sidebar-filters">
-        <button class="btn mini-chip" id="filterBmBtn" onclick="toggleFilterBookmarked()">★ Bookmark</button>
-        <button class="btn mini-chip" id="quizBtn" onclick="toggleQuizMode()">🧠 Tự nhẩm</button>
-        <button class="btn mini-chip" id="viewModeBtn" onclick="toggleStudyViewMode()" title="Đổi giữa 1 câu/màn hình và Danh sách cuộn">🎯 1 câu</button>
+        <button class="btn mini-chip" id="filterBmBtn" onclick="toggleFilterBookmarked()">
+          <svg class="ico" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>Bookmark</span>
+        </button>
+        <button class="btn mini-chip" id="quizBtn" onclick="toggleQuizMode()">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Tự nhẩm</span>
+        </button>
       </div>
     </div>
     <div class="sidebar-list" id="sidebarList"></div>
   </aside>
 
-  <!-- RIGHT MAIN STAGE -->
-  <main class="stage">
-    <div class="stage-toolbar" id="stageToolbar">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span id="stageCounter" style="font-weight:700;color:var(--text);">Sẵn sàng</span>
-        <span id="stageMeta" style="color:var(--muted);font-size:12px;"></span>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <button class="btn" id="prevItemBtn" onclick="stepItem(-1)">← Trước</button>
-        <button class="btn btn-primary" id="nextItemBtn" onclick="stepItem(1)">Tiếp →</button>
-      </div>
-    </div>
-    <div class="stage-scroll" id="stageScroll">
-      <div class="stage-inner" id="stageRoot"></div>
-    </div>
+  <!-- RIGHT CONTINUOUS VERTICAL SCROLL STAGE -->
+  <main class="stage" id="stageScroll">
+    <div class="stage-inner" id="stageRoot"></div>
   </main>
 </div>
 
-<!-- Mobile Sidebar Backdrop -->
 <div class="backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
 
 <!-- Bookmark Drawer -->
 <div class="backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
 <aside class="drawer" id="drawer">
   <div class="drawer-header">
-    <strong>📑 Sổ tay Bookmark (<span id="bmCountDrawer">0</span>)</strong>
-    <button class="btn btn-icon" onclick="closeDrawer()">✕</button>
+    <strong style="font-family:var(--font-serif);font-size:16px;">Sổ tay Bookmark (<span id="bmCountDrawer">0</span>)</strong>
+    <button class="btn btn-icon" onclick="closeDrawer()" aria-label="Đóng">
+      <svg class="ico" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
   </div>
   <div class="drawer-body">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:11.5px;color:var(--muted);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:11.5px;color:var(--muted);">
       <span id="bmSyncInfo">Lưu trên máy (Đăng nhập Gmail để đồng bộ)</span>
-      <button class="btn" onclick="pushUserCloudState(true)" style="padding:3px 8px;font-size:11.5px;">☁️ Đồng bộ</button>
+      <button class="btn" onclick="pushUserCloudState(true)" style="padding:3px 9px;font-size:11.5px;">Đồng bộ</button>
     </div>
     <div class="quick-add">
-      <input id="customWord" type="text" placeholder="➕ Thêm từ mới (VD: 肝に銘じる)">
+      <input id="customWord" type="text" placeholder="Thêm từ mới (VD: 肝に銘じる)">
       <input id="customNote" type="text" placeholder="Cách đọc / Nghĩa (VD: きもにめいじる - khắc cốt ghi tâm)">
       <button class="btn btn-primary" onclick="addCustomBookmark()" style="justify-content:center;">Lưu vào Bookmark</button>
     </div>
-    <input id="bmDrawerSearch" type="text" class="search-box" placeholder="🔍 Lọc trong sổ Bookmark..." oninput="renderDrawerList()" style="margin-bottom:8px;">
+    <div class="search-wrap" style="margin-bottom:10px;">
+      <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="bmDrawerSearch" type="text" class="search-box" placeholder="Lọc trong sổ Bookmark..." oninput="renderDrawerList()">
+    </div>
     <div id="bmList"></div>
   </div>
   <div class="drawer-footer">
-    <button class="btn" onclick="exportMarkdown()">⬇️ Xuất .MD</button>
-    <button class="btn" onclick="exportJson()">💾 Backup JSON</button>
-    <button class="btn" onclick="document.getElementById('importFile').click()">📂 Khôi phục</button>
+    <button class="btn" onclick="exportMarkdown()">Xuất .MD</button>
+    <button class="btn" onclick="exportJson()">Sao lưu JSON</button>
+    <button class="btn" onclick="document.getElementById('importFile').click()">Khôi phục</button>
     <input id="importFile" type="file" accept=".json" style="display:none" onchange="importJson(event)">
   </div>
 </aside>
@@ -998,22 +1105,24 @@
 <div class="backdrop" id="settingsBackdrop" onclick="closeSettings()"></div>
 <div class="modal" id="settingsModal">
   <div class="modal-header">
-    <strong>⚙️ Tài khoản &amp; Dữ liệu học tập</strong>
-    <button class="btn btn-icon" onclick="closeSettings()">✕</button>
+    <strong style="font-family:var(--font-serif);font-size:16px;">Tài khoản &amp; Dữ liệu</strong>
+    <button class="btn btn-icon" onclick="closeSettings()" aria-label="Đóng">
+      <svg class="ico" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
   </div>
   <div class="modal-body">
-    <div id="accountInfoBox" style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;"></div>
-    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12.5px;color:var(--text-2);margin-bottom:14px;">
-      <strong>📚 Nguồn bài học (3 file .md từ Google Drive):</strong>
-      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="fetchPublicMarkdownFiles(true);closeSettings();">🔄 Tải lại 3 file .md mới nhất</button>
-        <button class="btn" onclick="document.getElementById('localMdInput').click()">📂 Nạp file .md từ máy (Offline)</button>
+    <div id="accountInfoBox" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;"></div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12.5px;color:var(--ink-2);margin-bottom:14px;">
+      <strong style="color:var(--ink);">Nguồn bài học (Google Drive)</strong>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="fetchPublicMarkdownFiles(true);closeSettings();">Tải lại 3 file .md</button>
+        <button class="btn" onclick="document.getElementById('localMdInput').click()">Nạp file .md từ máy</button>
         <input id="localMdInput" type="file" accept=".md,.txt" multiple style="display:none" onchange="loadLocalMarkdownFiles(event)">
-        <button class="btn" onclick="clearLocalCache()" style="color:var(--red);">🗑️ Xóa cache .md</button>
+        <button class="btn" onclick="clearLocalCache()" style="color:var(--vermilion);">Xóa cache</button>
       </div>
     </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn btn-primary" onclick="closeSettings()">Đóng</button>
+    <div style="display:flex;justify-content:flex-end;">
+      <button class="btn" onclick="closeSettings()">Đóng</button>
     </div>
   </div>
 </div>
@@ -1021,7 +1130,21 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ==================== CONFIGURATION (FIREBASE + PUBLIC DRIVE) ====================
+// ==================== SVG ICON HELPERS ====================
+const ICONS = {
+  star: '<svg class="ico" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  starFill: '<svg class="ico ico-fill" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  volume: '<svg class="ico" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
+  eye: '<svg class="ico" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  close: '<svg class="ico" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  moon: '<svg class="ico" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+  sun: '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+  user: '<svg class="ico" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  shuffle: '<svg class="ico" viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>',
+  refresh: '<svg class="ico" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>'
+};
+
+// ==================== CONFIGURATION ====================
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyApN00WWVr-l-NPCu9ylxToky99ErH9Bz0",
   authDomain: "mythical-mason-515501-r0.firebaseapp.com",
@@ -1043,39 +1166,29 @@ const KEYS = {
   MD_CACHE: "jlpt_n1_md_cache_v1",
   LAST_SYNC: "jlpt_n1_last_sync_v1",
   WRONG_IDS: "jlpt_n1_wrong_ids_v1",
-  THEME: "jlpt_n1_theme_v1",
-  VIEW_MODE: "jlpt_n1_view_mode_v1"
+  THEME: "jlpt_n1_theme_v1"
 };
 
-let fbAuth = null;
-let fbDb = null;
-let currentUser = null;
-let unsubFirestore = null;
-let pushTimer = null;
+let fbAuth = null, fbDb = null, currentUser = null, unsubFirestore = null, pushTimer = null;
 let isApplyingRemote = false;
+let lastFetchError = "";
 
 let bmState = { items: {}, deleted: {} };
 let wrongIds = loadWrongIds();
 let mdStore = { tuvung: "", nguphap: "", dochieu: "" };
-
-// Parsed study items per tab for Master-Detail Focus View & List View
 let tabItems = { tuvung: [], nguphap: [], dochieu: [] };
-let activeItemIdx = { tuvung: 0, nguphap: 0, dochieu: 0 };
 let parsedQuizBank = [];
 let cheatWordsBank = [];
 
 let currentTab = "tuvung";
-let studyViewMode = localStorage.getItem(KEYS.VIEW_MODE) || "focus"; // "focus" | "list"
 let onlyBookmarked = false;
 let quizHideMode = false;
 
-// Exam state
 let examConfig = { source: "all", count: 10, mode: "instant" };
 let examSession = null;
 let examTimerInterval = null;
 
-// Flashcard state
-let fcConfig = { source: "bookmarks" }; // "bookmarks" | "cheatsheet"
+let fcConfig = { source: "bookmarks" };
 let fcDeck = [];
 let fcIdx = 0;
 let fcFlipped = false;
@@ -1086,40 +1199,29 @@ const JP_RE = /[\u3040-\u30ff\u4e00-\u9fff]/;
 function escapeHtml(s) {
   return String(s || "").replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
-
-function showToast(msg, ms = 2600) {
+function showToast(msg, ms = 2800) {
   const el = document.getElementById("toast");
   el.textContent = msg;
   el.classList.add("show");
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove("show"), ms);
 }
-
-function setSyncStatus(dot, label, cls = "") {
+function setSyncStatus(label, cls = "") {
   const pill = document.getElementById("syncPill");
-  document.getElementById("syncDot").textContent = dot;
   document.getElementById("syncLabel").textContent = label;
   pill.className = "sync-pill" + (cls ? " " + cls : "");
 }
-
 function loadWrongIds() {
   try { return new Set(JSON.parse(localStorage.getItem(KEYS.WRONG_IDS) || "[]")); }
   catch { return new Set(); }
 }
-
 function saveWrongIds(skipCloud = false) {
   localStorage.setItem(KEYS.WRONG_IDS, JSON.stringify([...wrongIds]));
-  if (!skipCloud && currentUser && !isApplyingRemote) {
-    scheduleCloudPush();
-  }
+  if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
 }
-
 function speakJapanese(text) {
-  if (!("speechSynthesis" in window)) {
-    showToast("Trình duyệt không hỗ trợ đọc tiếng Nhật (TTS).");
-    return;
-  }
-  const clean = String(text || "").replace(/（[^）]*）|\([^)]*\)|[★☆①②③④＿＿＿\s]+/g, " ").trim();
+  if (!("speechSynthesis" in window)) { showToast("Trình duyệt không hỗ trợ đọc tiếng Nhật."); return; }
+  const clean = String(text || "").replace(/<[^>]+>/g, "").replace(/（[^）]*）|\([^)]*\)|[★☆①②③④＿＿＿\s]+/g, " ").trim();
   if (!clean) return;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(clean);
@@ -1132,42 +1234,34 @@ function speakJapanese(text) {
 function initTheme() {
   const saved = localStorage.getItem(KEYS.THEME) || "light";
   document.documentElement.setAttribute("data-theme", saved);
-  document.getElementById("themeBtn").textContent = saved === "dark" ? "☀️" : "🌙";
+  document.getElementById("themeBtn").innerHTML = saved === "dark" ? ICONS.sun : ICONS.moon;
 }
 function toggleTheme() {
   const cur = document.documentElement.getAttribute("data-theme");
   const next = cur === "dark" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", next);
   localStorage.setItem(KEYS.THEME, next);
-  document.getElementById("themeBtn").textContent = next === "dark" ? "☀️" : "🌙";
+  document.getElementById("themeBtn").innerHTML = next === "dark" ? ICONS.sun : ICONS.moon;
 }
 
-// ==================== MARKDOWN PARSER (MẪU 2) ====================
+// ==================== MARKDOWN PARSER ====================
 function renderMdFragment(mdText) {
   if (!mdText) return "";
-  if (window.marked) {
-    marked.setOptions({ gfm: true, breaks: false });
-    return marked.parse(mdText);
-  }
+  if (window.marked) { marked.setOptions({ gfm: true, breaks: false }); return marked.parse(mdText); }
   return "<pre>" + escapeHtml(mdText) + "</pre>";
 }
 
 function parseMarkdownToSections(mdText) {
   const lines = mdText.replace(/\r\n/g, "\n").split("\n");
   const sessions = [];
-  let curSession = null;
-  let curBlockLines = [];
-  let curBlockTitle = null;
-  let curBlockType = "intro";
+  let curSession = null, curBlockLines = [], curBlockTitle = null, curBlockType = "intro";
 
   function flushBlock() {
     if (!curSession) return;
     const bodyMd = curBlockLines.join("\n").trim();
     if (!bodyMd && !curBlockTitle) { curBlockLines = []; return; }
     curSession.blocks.push({ type: curBlockType, title: curBlockTitle || "", body_md: bodyMd });
-    curBlockLines = [];
-    curBlockTitle = null;
-    curBlockType = "section";
+    curBlockLines = []; curBlockTitle = null; curBlockType = "section";
   }
 
   for (const line of lines) {
@@ -1181,15 +1275,12 @@ function parseMarkdownToSections(mdText) {
       sessions.push(curSession);
       curBlockLines.push(line);
     } else if (line.startsWith("### ")) {
-      flushBlock();
-      curBlockTitle = line.slice(4).trim();
-      curBlockType = "question";
-      curBlockLines = [];
+      flushBlock(); curBlockTitle = line.slice(4).trim(); curBlockType = "question"; curBlockLines = [];
     } else if (line.startsWith("## ")) {
       flushBlock();
-      const h2Title = line.slice(3).trim();
-      curBlockTitle = h2Title;
-      const u = h2Title.toUpperCase();
+      const h2 = line.slice(3).trim();
+      curBlockTitle = h2;
+      const u = h2.toUpperCase();
       curBlockType = (u.includes("CHEAT SHEET") || u.includes("BẢNG TỔNG KẾT")) ? "cheatsheet" : "section";
       curBlockLines = [];
     } else {
@@ -1207,7 +1298,7 @@ function enhanceCheatsheetTable(htmlStr, sessionTitle, tabId, collectWords = fal
     const theadRow = table.querySelector("thead tr");
     if (theadRow) {
       const th = document.createElement("th");
-      th.textContent = "★";
+      th.textContent = "Lưu";
       theadRow.insertBefore(th, theadRow.firstChild);
     }
     table.querySelectorAll("tbody tr").forEach(tr => {
@@ -1220,7 +1311,7 @@ function enhanceCheatsheetTable(htmlStr, sessionTitle, tabId, collectWords = fal
       tr.dataset.bmRow = itemId;
 
       if (collectWords && wordText && JP_RE.test(wordText)) {
-        cheatWordsBank.push({ id: itemId, title: wordText, sub: readingText, note: meaningText, session: sessionTitle });
+        cheatWordsBank.push({ id: itemId, kind: "word", title: wordText, sub: readingText, note: meaningText, session: sessionTitle });
       }
 
       const td = document.createElement("td");
@@ -1233,7 +1324,7 @@ function enhanceCheatsheetTable(htmlStr, sessionTitle, tabId, collectWords = fal
       btn.dataset.bmSub = readingText;
       btn.dataset.bmNote = meaningText;
       btn.dataset.bmSession = sessionTitle;
-      btn.textContent = "☆";
+      btn.innerHTML = ICONS.star;
       td.appendChild(btn);
       tr.insertBefore(td, tr.firstChild);
     });
@@ -1261,7 +1352,7 @@ function makeCodePillsClickable(htmlStr, sessionTitle) {
     codeEl.dataset.bmSub = "";
     codeEl.dataset.bmNote = `Từ mở rộng (${sessionTitle})`;
     codeEl.dataset.bmSession = sessionTitle;
-    codeEl.title = "Click để Bookmark từ này";
+    codeEl.title = "Bấm để Bookmark từ này";
     const star = document.createElement("span");
     star.className = "pill-star";
     star.textContent = "☆";
@@ -1274,17 +1365,15 @@ function buildTabItems(tabId, mdText) {
   if (!mdText || !mdText.trim()) return [];
   const sessions = parseMarkdownToSections(mdText);
   const items = [];
-
   sessions.forEach((sess, sIdx) => {
     const sTitle = sess.title;
     sess.blocks.forEach((blk, bIdx) => {
       const bMd = blk.body_md;
-      const bTitle = blk.title || (blk.type === "intro" ? "Giới thiệu buổi học" : `Mục ${bIdx + 1}`);
+      const bTitle = blk.title || (blk.type === "intro" ? "Tổng quan buổi học" : `Mục ${bIdx + 1}`);
       if (blk.type === "intro" && !bMd.replace(/[-*_]/g, "").trim()) return;
 
       if (blk.type === "question") {
-        const sepRe = /\n?\*\(Khoảng trống tự nhẩm đáp án\)\*\n?/;
-        const parts = bMd.split(sepRe);
+        const parts = bMd.split(/\n?\*\(Khoảng trống tự nhẩm đáp án\)\*\n?/);
         let promptHtml = "", answerHtml = "", promptPlain = "";
         if (parts.length >= 2) {
           promptHtml = renderMdFragment(parts[0]);
@@ -1297,51 +1386,32 @@ function buildTabItems(tabId, mdText) {
         const qId = `q::${tabId}::${sIdx}::${blk.title}`;
         const jpSentence = (promptPlain.split("\n").find(l => JP_RE.test(l)) || "").trim();
         items.push({
-          id: qId,
-          tabId,
-          type: "question",
-          sessionTitle: sTitle,
-          title: blk.title,
+          id: qId, tabId, type: "question", sessionTitle: sTitle, title: blk.title,
           shortLabel: blk.title.replace(/`\[[^\]]+\]`/g, "").trim(),
           preview: jpSentence || promptPlain.slice(0, 120),
-          jpText: jpSentence,
-          promptHtml,
-          answerHtml,
+          jpText: jpSentence, promptHtml, answerHtml,
           searchText: (sTitle + " " + blk.title + " " + bMd).toLowerCase()
         });
       } else if (blk.type === "cheatsheet") {
         let html = enhanceCheatsheetTable(renderMdFragment(bMd), sTitle, tabId, true);
         html = makeCodePillsClickable(html, sTitle);
         items.push({
-          id: `cs::${tabId}::${sIdx}::${bIdx}`,
-          type: "cheatsheet",
-          sessionTitle: sTitle,
-          title: bTitle,
-          shortLabel: "📋 " + bTitle,
-          preview: "",
-          jpText: "",
-          promptHtml: "",
-          answerHtml: html,
+          id: `cs::${tabId}::${sIdx}::${bIdx}`, tabId, type: "cheatsheet", sessionTitle: sTitle,
+          title: bTitle, shortLabel: bTitle, preview: "", jpText: "",
+          promptHtml: "", answerHtml: html,
           searchText: (sTitle + " " + bTitle + " " + bMd).toLowerCase()
         });
       } else {
         const html = makeCodePillsClickable(renderMdFragment(bMd), sTitle);
         items.push({
-          id: `sec::${tabId}::${sIdx}::${bIdx}`,
-          type: "section",
-          sessionTitle: sTitle,
-          title: bTitle,
-          shortLabel: "📄 " + bTitle,
-          preview: "",
-          jpText: "",
-          promptHtml: "",
-          answerHtml: html,
+          id: `sec::${tabId}::${sIdx}::${bIdx}`, tabId, type: "section", sessionTitle: sTitle,
+          title: bTitle, shortLabel: bTitle, preview: "", jpText: "",
+          promptHtml: "", answerHtml: html,
           searchText: (sTitle + " " + bTitle + " " + bMd).toLowerCase()
         });
       }
     });
   });
-
   return items;
 }
 
@@ -1360,8 +1430,7 @@ function extractQuizQuestions(tabId, mdText) {
       if (!ansMatch) return;
       const correctNum = parseInt(ansMatch[1], 10);
 
-      let options = [];
-      let cleanPromptMd = promptMd;
+      let options = [], cleanPromptMd = promptMd;
       const btMatches = [...promptMd.matchAll(/`([1-4])\.\s*([^`]+)`/g)];
       if (btMatches.length >= 4) {
         const byNum = {};
@@ -1385,25 +1454,29 @@ function extractQuizQuestions(tabId, mdText) {
       }
       if (options.length !== 4) return;
       const qId = `q::${tabId}::${sIdx}::${blk.title}`;
-      const firstLine = (cleanPromptMd.split("\n")[0] || "").replace(/[`*#>]/g, "").trim();
-      const longOpts = options.some(o => o.length > 22);
+      const firstLine = (cleanPromptMd.split("\n")[0] || "").replace(/<[^>]+>/g, "").replace(/[`*#>]/g, "").trim();
 
       questions.push({
-        id: qId,
-        tabId,
-        categoryLabel: tabId === "tuvung" ? "📘 Từ vựng" : "📗 Ngữ pháp",
-        sessionTitle: sess.title,
-        title: blk.title,
+        id: qId, tabId,
+        categoryLabel: tabId === "tuvung" ? "Từ vựng" : "Ngữ pháp",
+        sessionTitle: sess.title, title: blk.title,
         promptHtml: renderMdFragment(cleanPromptMd),
         promptPlain: firstLine,
-        options,
-        longOpts,
+        options, longOpts: options.some(o => o.length > 22),
         correct: correctNum,
         explanationHtml: renderMdFragment(answerMd)
       });
     });
   });
   return questions;
+}
+
+function findStudyItemById(id) {
+  for (const t of ["tuvung", "nguphap", "dochieu"]) {
+    const f = (tabItems[t] || []).find(it => it.id === id);
+    if (f) return f;
+  }
+  return null;
 }
 
 function rebuildAllContent() {
@@ -1419,7 +1492,7 @@ function rebuildAllContent() {
   syncBookmarkBadgesOnly();
 }
 
-// ==================== STUDY VIEW RENDERER (FOCUS 1-SCREEN & LIST) ====================
+// ==================== CONTINUOUS VERTICAL SCROLL STUDY VIEW ====================
 function getFilteredItems(tabId) {
   const q = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
   return (tabItems[tabId] || []).filter(item => {
@@ -1437,81 +1510,31 @@ function isItemBookmarked(item) {
   return false;
 }
 
-function isMobileViewport() {
-  return window.innerWidth <= 960;
-}
-
-function getEffectiveViewMode() {
-  // Trên điện thoại luôn mặc định kéo cuộn dọc liên tục từ câu này sang câu khác
-  if (isMobileViewport()) return "list";
-  return studyViewMode;
-}
-
-function findStudyItemById(id) {
-  for (const t of ["tuvung", "nguphap", "dochieu"]) {
-    const found = (tabItems[t] || []).find(it => it.id === id);
-    if (found) return found;
-  }
-  return null;
-}
-
-function jumpToBookmarkedItem(id) {
-  for (const t of ["tuvung", "nguphap", "dochieu"]) {
-    const idx = (tabItems[t] || []).findIndex(it => it.id === id);
-    if (idx !== -1) {
-      closeDrawer();
-      onlyBookmarked = false;
-      document.getElementById("filterBmBtn").classList.remove("btn-active-gold");
-      const searchEl = document.getElementById("searchInput");
-      if (searchEl) searchEl.value = "";
-      currentTab = t;
-      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
-      activeItemIdx[t] = idx;
-      renderCurrentView();
-      if (getEffectiveViewMode() === "list") {
-        setTimeout(() => {
-          const card = document.getElementById("list-item-" + idx);
-          if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 60);
-      }
-      return;
-    }
-  }
-}
-
 function renderCurrentView() {
   const isStudyTab = ["tuvung", "nguphap", "dochieu"].includes(currentTab);
-  const effMode = getEffectiveViewMode();
   document.getElementById("sidebar").classList.toggle("hidden-mode", !isStudyTab);
-  document.getElementById("stageToolbar").style.display = (isStudyTab && !isMobileViewport()) ? "flex" : "none";
+  const root = document.getElementById("stageRoot");
+  root.classList.toggle("wide", currentTab === "exam");
 
-  if (currentTab === "exam") {
-    renderExamView();
-    return;
-  }
-  if (currentTab === "flashcard") {
-    renderFlashcardView();
-    return;
-  }
+  if (currentTab === "exam") { renderExamView(); return; }
+  if (currentTab === "flashcard") { renderFlashcardView(); return; }
 
   const list = getFilteredItems(currentTab);
   const hasAnyData = (tabItems[currentTab] || []).length > 0;
   renderSidebar(list);
 
-  const root = document.getElementById("stageRoot");
   if (!hasAnyData) {
-    document.getElementById("stageCounter").textContent = "Chưa có dữ liệu";
-    document.getElementById("stageMeta").textContent = "";
     root.innerHTML = `
       <div class="empty-state">
-        <div style="font-size:38px;margin-bottom:8px;">📚</div>
-        <h2 style="margin:0 0 8px;">Đang tải bài học JLPT N1...</h2>
-        <p style="color:var(--text-2);font-size:13.5px;margin:0 0 18px;">
-          Web tự động tải 3 file <code>.md</code> mới nhất không cần đăng nhập. Anh có thể bấm nút bên dưới nếu muốn tải lại ngay.
+        <h2 style="font-family:var(--font-serif);margin:0 0 8px;">${lastFetchError ? "Không tải được dữ liệu từ Google Drive" : "Đang tải bài học JLPT N1..."}</h2>
+        <p style="color:var(--muted);font-size:13.5px;margin:0 0 16px;">
+          ${lastFetchError
+            ? `Chi tiết lỗi: <code>${escapeHtml(lastFetchError)}</code><br>Kiểm tra kết nối mạng hoặc tiện ích chặn quảng cáo (AdBlock) đang chặn <code>googleapis.com</code>.`
+            : "Tự động tải 3 file Markdown mới nhất từ Google Drive (không cần đăng nhập)."}
         </p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="fetchPublicMarkdownFiles(true)" style="padding:9px 18px;font-size:13.5px;">🔄 Tải lại 3 file .md</button>
-          <button class="btn" onclick="document.getElementById('localMdInput').click()" style="padding:9px 14px;">📂 Nạp file .md từ máy</button>
+          <button class="btn btn-primary" onclick="fetchPublicMarkdownFiles(true)">${ICONS.refresh} Tải lại 3 file .md</button>
+          <button class="btn" onclick="document.getElementById('localMdInput').click()">Nạp file .md từ máy</button>
         </div>
       </div>
     `;
@@ -1519,20 +1542,43 @@ function renderCurrentView() {
   }
 
   if (!list.length) {
-    document.getElementById("stageCounter").textContent = "0 kết quả";
-    document.getElementById("stageMeta").textContent = "";
-    root.innerHTML = `<div class="empty-state"><h3>Không tìm thấy mục nào khớp bộ lọc</h3><p style="color:var(--muted);font-size:13px;">Thử xóa từ khóa tìm kiếm hoặc tắt lọc ★ Bookmark.</p></div>`;
+    root.innerHTML = `<div class="empty-state"><h3 style="font-family:var(--font-serif);margin:0 0 6px;">Không tìm thấy mục nào khớp bộ lọc</h3><p style="color:var(--muted);font-size:13px;margin:0;">Thử xóa từ khóa tìm kiếm hoặc tắt lọc Bookmark.</p></div>`;
     return;
   }
 
-  if (activeItemIdx[currentTab] >= list.length) activeItemIdx[currentTab] = 0;
-  if (activeItemIdx[currentTab] < 0) activeItemIdx[currentTab] = 0;
-
-  if (effMode === "focus") {
-    renderFocusCard(list, activeItemIdx[currentTab]);
-  } else {
-    renderListCards(list);
-  }
+  let html = "";
+  let lastSess = "";
+  list.forEach((item, idx) => {
+    if (item.sessionTitle !== lastSess) {
+      lastSess = item.sessionTitle;
+      html += `<h1 class="session-heading">${escapeHtml(lastSess)}</h1>`;
+    }
+    const isBm = !!bmState.items[item.id];
+    html += `
+      <article class="study-card ${isBm ? 'is-bookmarked' : ''}" id="list-item-${idx}" data-bm-card="${escapeHtml(item.id)}">
+        <div class="card-head">
+          <h2 class="card-title">${escapeHtml(item.shortLabel || item.title)}</h2>
+          <div class="card-actions">
+            ${item.jpText ? `<button class="tts-btn" onclick='speakJapanese(${JSON.stringify(item.jpText)})' title="Nghe đọc tiếng Nhật">${ICONS.volume}<span>Nghe</span></button>` : ""}
+            ${item.type === "question" ? `
+              <button class="bm-btn bm-btn-card ${isBm ? 'bookmarked' : ''}" data-bm-id="${escapeHtml(item.id)}"
+                data-bm-kind="question" data-bm-title="${escapeHtml(item.shortLabel)}"
+                data-bm-sub="${escapeHtml(item.preview)}" data-bm-note=""
+                data-bm-session="${escapeHtml(item.sessionTitle)}">
+                ${isBm ? ICONS.starFill : ICONS.star}<span>${isBm ? "Đã lưu" : "Bookmark"}</span>
+              </button>
+            ` : ""}
+          </div>
+        </div>
+        ${item.promptHtml ? `<div class="jp-prompt">${item.promptHtml}</div>` : ""}
+        <div class="q-answer-wrap">
+          ${item.promptHtml ? `<button class="btn toggle-ans-btn" onclick="toggleOneAns(this)">${ICONS.eye}<span>Hiện / Ẩn đáp án</span></button>` : ""}
+          <div class="q-answer">${item.answerHtml}</div>
+        </div>
+      </article>
+    `;
+  });
+  root.innerHTML = html;
   syncBookmarkBadgesOnly();
 }
 
@@ -1542,24 +1588,20 @@ function renderSidebar(list) {
     el.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted);font-size:12.5px;">Không có mục nào</div>`;
     return;
   }
-  let html = "";
-  let lastSess = "";
-  const curIdx = activeItemIdx[currentTab] || 0;
-
+  let html = "", lastSess = "";
   list.forEach((item, idx) => {
     if (item.sessionTitle !== lastSess) {
       lastSess = item.sessionTitle;
       html += `<div class="sess-group-title">${escapeHtml(lastSess)}</div>`;
     }
-    const isAct = studyViewMode === "focus" && idx === curIdx;
     const isBm = !!bmState.items[item.id];
     const isWrong = wrongIds.has(item.id);
     html += `
-      <div class="nav-item ${isAct ? 'active' : ''}" onclick="selectStudyItem(${idx})" id="nav-item-${idx}">
+      <div class="nav-item" onclick="scrollToStudyItem(${idx})" id="nav-item-${idx}">
         <span class="nav-item-text">${escapeHtml(item.shortLabel)}</span>
-        <span class="nav-item-badges">
-          ${isWrong ? '<span title="Từng làm sai">🔴</span>' : ''}
-          ${isBm ? '<span style="color:var(--gold);">★</span>' : ''}
+        <span class="nav-badges">
+          ${isWrong ? '<span class="dot-wrong-mini" title="Từng làm sai"></span>' : ''}
+          ${isBm ? `<span style="color:var(--gold);display:inline-flex;">${ICONS.starFill}</span>` : ''}
         </span>
       </div>
     `;
@@ -1567,143 +1609,40 @@ function renderSidebar(list) {
   el.innerHTML = html;
 }
 
-function renderFocusCard(list, idx) {
-  const item = list[idx];
-  const isBm = !!bmState.items[item.id];
-  document.getElementById("stageCounter").textContent = `${idx + 1} / ${list.length}`;
-  document.getElementById("stageMeta").textContent = item.sessionTitle;
-  document.getElementById("prevItemBtn").disabled = idx <= 0;
-  document.getElementById("nextItemBtn").disabled = idx >= list.length - 1;
-  document.getElementById("prevItemBtn").style.display = "inline-flex";
-  document.getElementById("nextItemBtn").style.display = "inline-flex";
-
-  const root = document.getElementById("stageRoot");
-  root.innerHTML = `
-    <article class="focus-card ${isBm ? 'is-bookmarked' : ''}" data-bm-card="${escapeHtml(item.id)}">
-      <div class="focus-header">
-        <div class="focus-title-wrap">
-          <h2 class="focus-title">${escapeHtml(item.title)}</h2>
-          <span class="session-pill">${escapeHtml(item.sessionTitle.slice(0, 42))}</span>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          ${item.jpText ? `<button class="tts-btn" onclick='speakJapanese(${JSON.stringify(item.jpText)})' title="Nghe đọc tiếng Nhật">🔊 Nghe</button>` : ""}
-          ${item.type === "question" ? `
-            <button class="bm-btn bm-btn-card ${isBm ? 'bookmarked' : ''}" data-bm-id="${escapeHtml(item.id)}"
-              data-bm-kind="question" data-bm-title="${escapeHtml(item.title)}"
-              data-bm-sub="${escapeHtml(item.preview)}" data-bm-note=""
-              data-bm-session="${escapeHtml(item.sessionTitle)}">
-              ${isBm ? "★ Đã bookmark" : "☆ Bookmark"}
-            </button>
-          ` : ""}
-        </div>
-      </div>
-
-      ${item.promptHtml ? `<div class="focus-prompt">${item.promptHtml}</div>` : ""}
-
-      <div class="q-answer-wrap">
-        ${item.promptHtml ? `<button class="btn toggle-ans-btn" id="focusRevealBtn" onclick="toggleOneAns(this)">👁️ Hiện / Ẩn đáp án (Space)</button>` : ""}
-        <div class="q-answer">${item.answerHtml}</div>
-      </div>
-
-      <div class="focus-footer">
-        <div class="kbd-hints">
-          <span><kbd>←</kbd> <kbd>→</kbd> Chuyển câu</span>
-          <span><kbd>Space</kbd> Ẩn/Hiện đáp án</span>
-          <span><kbd>B</kbd> Bookmark</span>
-        </div>
-        <div style="display:flex;gap:6px;">
-          <button class="btn" onclick="stepItem(-1)" ${idx <= 0 ? "disabled" : ""}>← Câu trước</button>
-          <button class="btn btn-primary" onclick="stepItem(1)" ${idx >= list.length - 1 ? "disabled" : ""}>Câu tiếp →</button>
-        </div>
-      </div>
-    </article>
-  `;
-  document.getElementById("stageScroll").scrollTop = 0;
-}
-
-function renderListCards(list) {
-  document.getElementById("stageCounter").textContent = `${list.length} mục (Chế độ cuộn)`;
-  document.getElementById("stageMeta").textContent = "";
-  document.getElementById("prevItemBtn").style.display = "none";
-  document.getElementById("nextItemBtn").style.display = "none";
-
-  let html = "";
-  let lastSess = "";
-  list.forEach((item, idx) => {
-    if (item.sessionTitle !== lastSess) {
-      lastSess = item.sessionTitle;
-      html += `<div class="session-heading">${escapeHtml(lastSess)}</div>`;
-    }
-    const isBm = !!bmState.items[item.id];
-    html += `
-      <article class="list-card ${isBm ? 'is-bookmarked' : ''}" id="list-item-${idx}" data-bm-card="${escapeHtml(item.id)}">
-        <div class="focus-header" style="margin-bottom:8px;padding-bottom:8px;">
-          <h3 class="focus-title" style="font-size:15px;">${escapeHtml(item.title)}</h3>
-          <div style="display:flex;gap:6px;">
-            ${item.jpText ? `<button class="tts-btn" onclick='speakJapanese(${JSON.stringify(item.jpText)})'>🔊</button>` : ""}
-            ${item.type === "question" ? `
-              <button class="bm-btn bm-btn-card ${isBm ? 'bookmarked' : ''}" data-bm-id="${escapeHtml(item.id)}"
-                data-bm-kind="question" data-bm-title="${escapeHtml(item.title)}"
-                data-bm-sub="${escapeHtml(item.preview)}" data-bm-note=""
-                data-bm-session="${escapeHtml(item.sessionTitle)}">
-                ${isBm ? "★ Đã bookmark" : "☆ Bookmark"}
-              </button>
-            ` : ""}
-          </div>
-        </div>
-        ${item.promptHtml ? `<div class="focus-prompt" style="padding:10px 13px;font-size:14.5px;">${item.promptHtml}</div>` : ""}
-        <div class="q-answer-wrap">
-          ${item.promptHtml ? `<button class="btn toggle-ans-btn" onclick="toggleOneAns(this)">👁️ Hiện / Ẩn đáp án</button>` : ""}
-          <div class="q-answer">${item.answerHtml}</div>
-        </div>
-      </article>
-    `;
-  });
-  document.getElementById("stageRoot").innerHTML = html;
-}
-
-function selectStudyItem(idx) {
-  activeItemIdx[currentTab] = idx;
+function scrollToStudyItem(idx) {
   closeMobileSidebar();
-  if (getEffectiveViewMode() === "focus") {
-    renderCurrentView();
-    const navEl = document.getElementById("nav-item-" + idx);
-    if (navEl) navEl.scrollIntoView({ block: "nearest" });
-  } else {
-    const card = document.getElementById("list-item-" + idx);
-    if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+  document.querySelectorAll(".nav-item.active").forEach(el => el.classList.remove("active"));
+  document.getElementById("nav-item-" + idx)?.classList.add("active");
+  const card = document.getElementById("list-item-" + idx);
+  if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function jumpToBookmarkedItem(id) {
+  for (const t of ["tuvung", "nguphap", "dochieu"]) {
+    const idx = (tabItems[t] || []).findIndex(it => it.id === id);
+    if (idx !== -1) {
+      closeDrawer();
+      onlyBookmarked = false;
+      document.getElementById("filterBmBtn").classList.remove("btn-active-gold");
+      const s = document.getElementById("searchInput");
+      if (s) s.value = "";
+      currentTab = t;
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
+      renderCurrentView();
+      setTimeout(() => scrollToStudyItem(idx), 60);
+      return;
+    }
   }
 }
 
-function stepItem(delta) {
-  const list = getFilteredItems(currentTab);
-  const next = (activeItemIdx[currentTab] || 0) + delta;
-  if (next >= 0 && next < list.length) {
-    selectStudyItem(next);
-  }
-}
-
-function toggleStudyViewMode() {
-  studyViewMode = studyViewMode === "focus" ? "list" : "focus";
-  localStorage.setItem(KEYS.VIEW_MODE, studyViewMode);
-  document.getElementById("viewModeBtn").textContent = studyViewMode === "focus" ? "🎯 1 câu" : "📜 Cuộn";
-  renderCurrentView();
-}
-
-// ==================== FLASHCARD ENGINE (SEPARATE VOCAB vs QUESTION) ====================
+// ==================== FLASHCARD ENGINE ====================
 function buildFlashcardDeck() {
   const allBms = Object.values(bmState.items);
-  if (fcConfig.source === "bookmarks") {
-    fcDeck = allBms.map(it => ({ ...it }));
-  } else if (fcConfig.source === "bm_words") {
-    fcDeck = allBms.filter(it => it.kind !== "question").map(it => ({ ...it }));
-  } else if (fcConfig.source === "bm_questions") {
-    fcDeck = allBms.filter(it => it.kind === "question").map(it => ({ ...it }));
-  } else {
-    fcDeck = cheatWordsBank.map(w => ({ ...w, kind: "word" }));
-  }
-  fcIdx = 0;
-  fcFlipped = false;
+  if (fcConfig.source === "bookmarks") fcDeck = allBms.map(it => ({ ...it }));
+  else if (fcConfig.source === "bm_words") fcDeck = allBms.filter(it => it.kind !== "question").map(it => ({ ...it }));
+  else if (fcConfig.source === "bm_questions") fcDeck = allBms.filter(it => it.kind === "question").map(it => ({ ...it }));
+  else fcDeck = cheatWordsBank.map(w => ({ ...w, kind: "word" }));
+  fcIdx = 0; fcFlipped = false;
 }
 
 function renderFlashcardView() {
@@ -1714,104 +1653,80 @@ function renderFlashcardView() {
   const csCnt = cheatWordsBank.length;
 
   const filterBar = `
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+    <div class="fc-toolbar">
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn ${fcConfig.source==='bookmarks'?'btn-primary':''}" onclick="switchFlashcardSource('bookmarks')">★ Tất cả BM (${allBms.length})</button>
-        <button class="btn ${fcConfig.source==='bm_words'?'btn-primary':''}" onclick="switchFlashcardSource('bm_words')">🔤 Từ vựng (${bmWordsCnt})</button>
-        <button class="btn ${fcConfig.source==='bm_questions'?'btn-primary':''}" onclick="switchFlashcardSource('bm_questions')">📝 Bài tập (${bmQsCnt})</button>
-        <button class="btn ${fcConfig.source==='cheatsheet'?'btn-primary':''}" onclick="switchFlashcardSource('cheatsheet')">📋 Cheat Sheet (${csCnt})</button>
+        <button class="btn ${fcConfig.source==='bookmarks'?'btn-primary':''}" onclick="switchFlashcardSource('bookmarks')">Tất cả BM (${allBms.length})</button>
+        <button class="btn ${fcConfig.source==='bm_words'?'btn-primary':''}" onclick="switchFlashcardSource('bm_words')">Từ vựng (${bmWordsCnt})</button>
+        <button class="btn ${fcConfig.source==='bm_questions'?'btn-primary':''}" onclick="switchFlashcardSource('bm_questions')">Bài tập (${bmQsCnt})</button>
+        <button class="btn ${fcConfig.source==='cheatsheet'?'btn-primary':''}" onclick="switchFlashcardSource('cheatsheet')">Cheat Sheet (${csCnt})</button>
       </div>
       ${fcDeck.length ? `
-        <div style="display:flex;gap:6px;align-items:center;">
+        <div style="display:flex;gap:8px;align-items:center;">
           <span style="font-size:13px;font-weight:700;color:var(--muted);">Thẻ ${fcIdx + 1} / ${fcDeck.length}</span>
-          <button class="btn" onclick="shuffleFlashcards()">🔀 Xáo trộn</button>
+          <button class="btn" onclick="shuffleFlashcards()">${ICONS.shuffle}<span>Xáo trộn</span></button>
         </div>
       ` : ""}
     </div>
   `;
 
   if (!fcDeck.length) {
-    root.innerHTML = `
-      <div class="fc-wrap" style="max-width:780px;">
-        ${filterBar}
-        <div class="empty-state">
-          <h2>🃏 Chưa có thẻ trong mục này</h2>
-          <p style="color:var(--muted);font-size:13.5px;">Hãy bấm ★ Bookmark từ vựng / câu hỏi khó hoặc chuyển sang nguồn <strong>Cheat Sheet (${csCnt} từ)</strong>!</p>
-        </div>
-      </div>
-    `;
+    root.innerHTML = `<div class="fc-wrap">${filterBar}<div class="empty-state"><h2 style="font-family:var(--font-serif);margin:0 0 6px;">Chưa có thẻ nào</h2><p style="color:var(--muted);font-size:13.5px;margin:0;">Hãy đánh dấu Bookmark từ vựng hoặc câu hỏi khó, hoặc chọn nguồn Cheat Sheet (${csCnt} từ).</p></div></div>`;
     return;
   }
 
   const card = fcDeck[fcIdx];
-  const isQuestion = card.kind === "question";
-  const fullQ = isQuestion ? findStudyItemById(card.id) : null;
-  const speakText = isQuestion ? (fullQ?.jpText || card.sub || "") : card.title;
+  const isQ = card.kind === "question";
+  const fullQ = isQ ? findStudyItemById(card.id) : null;
+  const speakText = isQ ? (fullQ?.jpText || card.sub || "") : card.title;
 
-  let cardBodyHtml = "";
-  if (isQuestion && fullQ) {
-    // BÀI TẬP: Mặt trước = Toàn bộ Đề bài & 4 đáp án | Mặt sau = Đáp án & Giải thích đầy đủ
-    cardBodyHtml = `
-      <div style="display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
-        <span class="session-pill" style="background:var(--primary-soft);color:var(--primary);border:none;">📝 BÀI TẬP · ${escapeHtml(fullQ.shortLabel)}</span>
-        <span style="font-size:11.5px;font-weight:700;color:var(--muted);">${fcFlipped ? "MẶT SAU · ĐÁP ÁN & GIẢI THÍCH" : "MẶT TRƯỚC · BẤM HOẶC SPACE ĐỂ XEM ĐÁP ÁN"}</span>
+  let bodyHtml = "";
+  if (isQ && fullQ) {
+    bodyHtml = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+        <span class="tag-pill">BÀI TẬP · ${escapeHtml(fullQ.shortLabel)}</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:600;">${fcFlipped ? "Mặt sau — Đáp án & phân tích" : "Mặt trước — Bấm thẻ hoặc Space để xem đáp án"}</span>
       </div>
-      <div class="focus-prompt" style="width:100%;text-align:left;margin-bottom:8px;">${fullQ.promptHtml}</div>
-      ${fcFlipped ? `
-        <div style="width:100%;text-align:left;margin-top:8px;padding-top:10px;border-top:1px dashed var(--border);">${fullQ.answerHtml}</div>
-      ` : `<div style="font-size:13px;color:var(--muted);margin-top:10px;">(Tự chọn đáp án 1–4 rồi bấm vào thẻ hoặc Space để xem lời giải chi tiết)</div>`}
+      <div class="jp-prompt" style="margin-bottom:8px;">${fullQ.promptHtml}</div>
+      ${fcFlipped
+        ? `<div style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--border-strong);">${fullQ.answerHtml}</div>`
+        : `<div style="font-size:13px;color:var(--muted);text-align:center;margin-top:12px;">Tự chọn đáp án 1–4 rồi bấm vào thẻ để kiểm tra lời giải</div>`}
     `;
   } else {
-    // TỪ VỰNG: Mặt trước = Từ tiếng Nhật | Mặt sau = Cách đọc & Nghĩa đầy đủ
     const cleanSub = (card.sub || "").replace(/<[^>]+>/g, "");
     const cleanNote = (card.note || "").replace(/<[^>]+>/g, "");
-    cardBodyHtml = `
-      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;font-weight:700;">
-        ${fcFlipped ? "MẶT SAU · CÁCH ĐỌC & NGHĨA" : "MẶT TRƯỚC · TỪ VỰNG (BẤM HOẶC SPACE ĐỂ LẬT)"}
+    bodyHtml = `
+      <div style="text-align:center;margin-bottom:8px;">
+        <span class="tag-pill word">${fcFlipped ? "Mặt sau — Cách đọc & nghĩa" : "Từ vựng — Bấm thẻ để lật"}</span>
       </div>
-      <div class="fc-front-word">${escapeHtml(card.title)}</div>
+      <div class="fc-word">${escapeHtml(card.title)}</div>
       ${fcFlipped ? `
-        ${cleanSub ? `<div class="fc-sub">${escapeHtml(cleanSub)}</div>` : ""}
-        ${cleanNote ? `<div class="fc-note">${escapeHtml(cleanNote)}</div>` : ""}
-        <div style="font-size:11.5px;color:var(--muted);margin-top:14px;">${escapeHtml(card.session || "")}</div>
-      ` : `<div style="font-size:13px;color:var(--muted);margin-top:8px;">(Tự nhẩm cách đọc &amp; nghĩa rồi bấm để kiểm tra)</div>`}
+        ${cleanSub ? `<div class="fc-reading">${escapeHtml(cleanSub)}</div>` : ""}
+        ${cleanNote ? `<div class="fc-meaning">${escapeHtml(cleanNote)}</div>` : ""}
+        <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:16px;">${escapeHtml(card.session || "")}</div>
+      ` : `<div style="font-size:13px;color:var(--muted);text-align:center;margin-top:6px;">Tự nhẩm cách đọc và nghĩa tiếng Việt</div>`}
     `;
   }
 
   root.innerHTML = `
-    <div class="fc-wrap" style="max-width:780px;">
+    <div class="fc-wrap">
       ${filterBar}
-      <div class="fc-card" onclick="flipFlashcard()" style="align-items:${isQuestion && fullQ ? 'stretch' : 'center'};padding:${isQuestion && fullQ ? '20px 22px' : '34px 26px'};">
-        ${cardBodyHtml}
-      </div>
-      <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
-        <button class="btn" onclick="stepFlashcard(-1)" ${fcIdx <= 0 ? "disabled" : ""}>← Thẻ trước</button>
-        ${speakText ? `<button class="btn" onclick='speakJapanese(${JSON.stringify(speakText)})'>🔊 Nghe đọc</button>` : ""}
-        <button class="btn btn-primary" onclick="flipFlashcard()">🔄 ${fcFlipped ? "Úp thẻ" : "Lật xem đáp án"}</button>
-        <button class="btn" onclick="stepFlashcard(1)" ${fcIdx >= fcDeck.length - 1 ? "disabled" : ""}>Thẻ tiếp →</button>
+      <div class="fc-card" onclick="flipFlashcard()">${bodyHtml}</div>
+      <div class="fc-controls">
+        <button class="btn" onclick="stepFlashcard(-1)" ${fcIdx <= 0 ? "disabled" : ""}>Thẻ trước</button>
+        ${speakText ? `<button class="btn" onclick='speakJapanese(${JSON.stringify(speakText)})'>${ICONS.volume}<span>Nghe đọc</span></button>` : ""}
+        <button class="btn btn-primary" onclick="flipFlashcard()">${fcFlipped ? "Úp thẻ" : "Lật xem đáp án"}</button>
+        <button class="btn" onclick="stepFlashcard(1)" ${fcIdx >= fcDeck.length - 1 ? "disabled" : ""}>Thẻ tiếp</button>
       </div>
     </div>
   `;
 }
 
-function switchFlashcardSource(src) {
-  fcConfig.source = src;
-  buildFlashcardDeck();
-  renderFlashcardView();
-}
+function switchFlashcardSource(s) { fcConfig.source = s; buildFlashcardDeck(); renderFlashcardView(); }
 function flipFlashcard() { fcFlipped = !fcFlipped; renderFlashcardView(); }
-function stepFlashcard(d) {
-  const n = fcIdx + d;
-  if (n >= 0 && n < fcDeck.length) { fcIdx = n; fcFlipped = false; renderFlashcardView(); }
-}
-function shuffleFlashcards() {
-  fcDeck = shuffleArray(fcDeck);
-  fcIdx = 0; fcFlipped = false;
-  renderFlashcardView();
-  showToast("🔀 Đã xáo trộn bộ thẻ!");
-}
+function stepFlashcard(d) { const n = fcIdx + d; if (n >= 0 && n < fcDeck.length) { fcIdx = n; fcFlipped = false; renderFlashcardView(); } }
+function shuffleFlashcards() { fcDeck = shuffleArray(fcDeck); fcIdx = 0; fcFlipped = false; renderFlashcardView(); showToast("Đã xáo trộn bộ thẻ"); }
 
-// ==================== EXAM ENGINE (2-COLUMN 14-INCH FIT) ====================
+// ==================== EXAM ENGINE ====================
 function getFilteredExamPool(source) {
   if (source === "tuvung") return parsedQuizBank.filter(q => q.tabId === "tuvung");
   if (source === "nguphap") return parsedQuizBank.filter(q => q.tabId === "nguphap");
@@ -1823,7 +1738,7 @@ function getFilteredExamPool(source) {
 function renderExamView() {
   const root = document.getElementById("stageRoot");
   if (!parsedQuizBank.length) {
-    root.innerHTML = `<div class="empty-state"><h2>📝 Thi thử JLPT N1</h2><p style="color:var(--muted);">Đang tải ngân hàng câu hỏi Từ vựng &amp; Ngữ pháp từ Google Drive...</p><button class="btn btn-primary" onclick="fetchPublicMarkdownFiles(true)">🔄 Tải lại 3 file .md</button></div>`;
+    root.innerHTML = `<div class="empty-state"><h2 style="font-family:var(--font-serif);">Thi thử JLPT N1</h2><p style="color:var(--muted);">Đang tải ngân hàng câu hỏi Từ vựng &amp; Ngữ pháp...</p><button class="btn btn-primary" onclick="fetchPublicMarkdownFiles(true)">Tải lại 3 file .md</button></div>`;
     return;
   }
   if (examSession) {
@@ -1841,29 +1756,27 @@ function renderExamView() {
 
   root.innerHTML = `
     <div class="exam-setup-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-        <h2 style="margin:0;color:var(--primary);">📝 Thi thử Từ vựng &amp; Ngữ pháp N1</h2>
-        <span class="session-pill">Ngân hàng: <strong>${parsedQuizBank.length} câu</strong> (${vocabCnt} TV · ${gramCnt} NP)</span>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--border);padding-bottom:12px;">
+        <h2 style="font-family:var(--font-serif);margin:0;font-size:21px;">Tạo đề thi thử JLPT N1</h2>
+        <span style="font-size:12.5px;color:var(--muted);">Ngân hàng hiện có <strong>${parsedQuizBank.length} câu</strong> (${vocabCnt} Từ vựng · ${gramCnt} Ngữ pháp)</span>
       </div>
 
       <div class="exam-grid-setup">
         <div class="exam-field">
-          <label>1. Chọn nguồn câu hỏi</label>
+          <label>1. Nguồn câu hỏi</label>
           <div class="pill-group">
             <button class="choice-pill ${examConfig.source==='all'?'active':''}" onclick="setExamConfig('source','all')">Tất cả (${parsedQuizBank.length})</button>
-            <button class="choice-pill ${examConfig.source==='tuvung'?'active':''}" onclick="setExamConfig('source','tuvung')">📘 Từ vựng (${vocabCnt})</button>
-            <button class="choice-pill ${examConfig.source==='nguphap'?'active':''}" onclick="setExamConfig('source','nguphap')">📗 Ngữ pháp (${gramCnt})</button>
-            <button class="choice-pill ${examConfig.source==='bookmarked'?'active':''}" onclick="setExamConfig('source','bookmarked')">★ Bookmark (${bmCnt})</button>
-            <button class="choice-pill ${examConfig.source==='wrong'?'active':''}" onclick="setExamConfig('source','wrong')">🔴 Hay sai (${wrongCnt})</button>
+            <button class="choice-pill ${examConfig.source==='tuvung'?'active':''}" onclick="setExamConfig('source','tuvung')">Từ vựng (${vocabCnt})</button>
+            <button class="choice-pill ${examConfig.source==='nguphap'?'active':''}" onclick="setExamConfig('source','nguphap')">Ngữ pháp (${gramCnt})</button>
+            <button class="choice-pill ${examConfig.source==='bookmarked'?'active':''}" onclick="setExamConfig('source','bookmarked')">Đã Bookmark (${bmCnt})</button>
+            <button class="choice-pill ${examConfig.source==='wrong'?'active':''}" onclick="setExamConfig('source','wrong')">Câu hay sai (${wrongCnt})</button>
           </div>
         </div>
 
         <div class="exam-field">
           <label>2. Số câu ngẫu nhiên (tối đa ${poolSize})</label>
           <div class="pill-group" style="align-items:center;">
-            ${[5, 10, 20, 30].map(n =>
-              `<button class="choice-pill ${examConfig.count===n?'active':''}" onclick="setExamConfig('count',${n})">${n}</button>`
-            ).join("")}
+            ${[5, 10, 20, 30].map(n => `<button class="choice-pill ${examConfig.count===n?'active':''}" onclick="setExamConfig('count',${n})">${n}</button>`).join("")}
             <button class="choice-pill ${examConfig.count==='all'?'active':''}" onclick="setExamConfig('count','all')">Tất cả</button>
             <input class="custom-count-input" type="number" min="1" max="${Math.max(1, poolSize)}" placeholder="Tùy ý"
               value="${typeof examConfig.count==='number' && ![5,10,20,30].includes(examConfig.count) ? examConfig.count : ''}"
@@ -1874,15 +1787,15 @@ function renderExamView() {
         <div class="exam-field">
           <label>3. Chế độ chấm điểm</label>
           <div class="pill-group">
-            <button class="choice-pill ${examConfig.mode==='instant'?'active':''}" onclick="setExamConfig('mode','instant')">⚡ Chấm ngay từng câu</button>
-            <button class="choice-pill ${examConfig.mode==='submit'?'active':''}" onclick="setExamConfig('mode','submit')">🎯 Nộp bài mới chấm</button>
+            <button class="choice-pill ${examConfig.mode==='instant'?'active':''}" onclick="setExamConfig('mode','instant')">Chấm ngay từng câu</button>
+            <button class="choice-pill ${examConfig.mode==='submit'?'active':''}" onclick="setExamConfig('mode','submit')">Nộp bài mới chấm</button>
           </div>
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:16px;">
-        <button class="btn btn-primary" onclick="startExam()" ${poolSize === 0 ? "disabled" : ""} style="padding:10px 26px;font-size:14.5px;">
-          🚀 Bắt đầu làm bài (${targetCnt} câu)
+      <div style="text-align:center;margin-top:18px;">
+        <button class="btn btn-primary" onclick="startExam()" ${poolSize === 0 ? "disabled" : ""} style="padding:10px 28px;font-size:14.5px;">
+          Bắt đầu làm bài (${targetCnt} câu)
         </button>
       </div>
     </div>
@@ -1896,23 +1809,13 @@ function shuffleArray(arr) {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
-function formatDuration(sec) {
-  return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
-}
+function formatDuration(sec) { return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`; }
 
 function startExam(customList = null) {
   const pool = customList || getFilteredExamPool(examConfig.source);
-  if (!pool.length) { showToast("Không có câu hỏi nào!"); return; }
+  if (!pool.length) { showToast("Không có câu hỏi nào."); return; }
   const desired = customList ? pool.length : (examConfig.count === "all" ? pool.length : Math.min(Number(examConfig.count) || 10, pool.length));
-  examSession = {
-    questions: shuffleArray(pool).slice(0, desired),
-    answers: {},
-    currentIdx: 0,
-    mode: examConfig.mode,
-    startedAt: Date.now(),
-    elapsedSec: 0,
-    finished: false
-  };
+  examSession = { questions: shuffleArray(pool).slice(0, desired), answers: {}, currentIdx: 0, mode: examConfig.mode, startedAt: Date.now(), elapsedSec: 0, finished: false };
   clearInterval(examTimerInterval);
   examTimerInterval = setInterval(() => {
     if (!examSession || examSession.finished) return;
@@ -1924,9 +1827,7 @@ function startExam(customList = null) {
 }
 
 function renderExamActive(root) {
-  const s = examSession;
-  const q = s.questions[s.currentIdx];
-  const total = s.questions.length;
+  const s = examSession, q = s.questions[s.currentIdx], total = s.questions.length;
   const userAns = s.answers[s.currentIdx];
   const showFeedback = s.mode === "instant" && userAns !== undefined;
   const answeredCount = Object.keys(s.answers).length;
@@ -1934,81 +1835,73 @@ function renderExamActive(root) {
   const isBm = !!bmState.items[q.id];
 
   root.innerHTML = `
-    <div class="exam-shell">
-      <div class="exam-2col">
-        <!-- LEFT: QUESTION & OPTIONS -->
-        <div class="exam-main-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <div style="display:flex;gap:6px;align-items:center;">
-              <span class="session-pill" style="background:var(--primary-soft);color:var(--primary);border:none;">${q.categoryLabel}</span>
-              <strong style="font-size:14px;">Câu ${s.currentIdx + 1} / ${total}</strong>
-              <span style="font-size:12px;color:var(--muted);">${escapeHtml(q.title)}</span>
-            </div>
-            <div style="display:flex;gap:6px;">
-              <button class="tts-btn" onclick='speakJapanese(${JSON.stringify(q.promptPlain)})'>🔊</button>
-              <button class="bm-btn ${isBm?'bookmarked':''}" onclick="toggleExamQuestionBookmark(${s.currentIdx})">${isBm ? "★ Đã lưu" : "☆ Bookmark"}</button>
-            </div>
+    <div class="exam-2col">
+      <div class="exam-main-card">
+        <div class="card-head">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="tag-pill">${q.categoryLabel}</span>
+            <strong style="font-family:var(--font-serif);font-size:15.5px;">Câu ${s.currentIdx + 1} / ${total}</strong>
+            <span style="font-size:12px;color:var(--muted);">${escapeHtml(q.title.replace(/`\[[^\]]+\]`/g, ""))}</span>
           </div>
-
-          <div class="focus-prompt" style="margin-bottom:12px;">${q.promptHtml}</div>
-
-          <div class="exam-options-grid ${q.longOpts ? 'single-col' : ''}">
-            ${q.options.map((opt, idx) => {
-              const num = idx + 1;
-              let cls = "exam-opt-btn";
-              if (showFeedback) {
-                if (num === q.correct) cls += " correct";
-                else if (num === userAns) cls += " wrong";
-              } else if (num === userAns) cls += " selected";
-              return `<button class="${cls}" ${showFeedback ? "disabled" : ""} onclick="selectExamOption(${num})">
-                <span class="exam-opt-num">${num}</span>
-                <span>${escapeHtml(opt)}</span>
-              </button>`;
-            }).join("")}
-          </div>
-
-          ${showFeedback ? `
-            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
-              <div style="font-weight:700;font-size:13.5px;margin-bottom:4px;color:${userAns===q.correct?'var(--green-text)':'var(--red-text)'};">
-                ${userAns === q.correct ? "✅ Chính xác!" : `❌ Chưa đúng! Đáp án đúng là số ${q.correct}.`}
-              </div>
-              <div style="font-size:13.5px;">${q.explanationHtml}</div>
-            </div>
-          ` : ""}
-
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--border);">
-            <button class="btn" onclick="moveExamQuestion(-1)" ${s.currentIdx === 0 ? "disabled" : ""}>← Câu trước</button>
-            <span class="kbd-hints"><kbd>1</kbd>-<kbd>4</kbd> Chọn · <kbd>←</kbd><kbd>→</kbd> Chuyển</span>
-            ${s.currentIdx < total - 1
-              ? `<button class="btn btn-primary" onclick="moveExamQuestion(1)">Câu tiếp →</button>`
-              : `<button class="btn btn-active-green" onclick="finishExam()">🏁 Nộp bài</button>`
-            }
+          <div class="card-actions">
+            <button class="tts-btn" onclick='speakJapanese(${JSON.stringify(q.promptPlain)})'>${ICONS.volume}<span>Nghe</span></button>
+            <button class="bm-btn ${isBm?'bookmarked':''}" onclick="toggleExamQuestionBookmark(${s.currentIdx})">${isBm ? ICONS.starFill : ICONS.star}<span>${isBm ? "Đã lưu" : "Bookmark"}</span></button>
           </div>
         </div>
 
-        <!-- RIGHT: COMPACT NAVIGATOR & TIMER -->
-        <div class="exam-side-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
-            <strong>⏱️ <span id="examTimer">${formatDuration(s.elapsedSec)}</span></strong>
-            <span style="color:var(--muted);">${answeredCount}/${total} câu</span>
+        <div class="jp-prompt">${q.promptHtml}</div>
+
+        <div class="exam-options-grid ${q.longOpts ? 'single-col' : ''}">
+          ${q.options.map((opt, idx) => {
+            const num = idx + 1;
+            let cls = "exam-opt-btn";
+            if (showFeedback) {
+              if (num === q.correct) cls += " correct";
+              else if (num === userAns) cls += " wrong";
+            } else if (num === userAns) cls += " selected";
+            return `<button class="${cls}" ${showFeedback ? "disabled" : ""} onclick="selectExamOption(${num})"><span class="exam-opt-num">${num}</span><span>${escapeHtml(opt)}</span></button>`;
+          }).join("")}
+        </div>
+
+        ${showFeedback ? `
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+            <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:${userAns===q.correct?'var(--matcha)':'var(--vermilion)'};">
+              ${userAns === q.correct ? "Chính xác" : `Chưa đúng — Đáp án đúng là số ${q.correct}`}
+            </div>
+            <div>${q.explanationHtml}</div>
           </div>
-          <div class="exam-progress-track"><div class="exam-progress-fill" style="width:${pct}%"></div></div>
-          <div class="exam-dots-grid">
-            ${s.questions.map((item, i) => {
-              const a = s.answers[i];
-              let dCls = "exam-dot";
-              if (i === s.currentIdx) dCls += " current";
-              if (a !== undefined) {
-                if (s.mode === "instant") dCls += (a === item.correct ? " dot-correct" : " dot-wrong");
-                else dCls += " answered";
-              }
-              return `<button class="${dCls}" onclick="goToExamQuestion(${i})">${i + 1}</button>`;
-            }).join("")}
-          </div>
-          <div style="display:flex;flex-direction:column;gap:7px;">
-            <button class="btn btn-active-green" onclick="finishExam()" style="justify-content:center;padding:8px;">✅ Nộp bài &amp; Chấm điểm</button>
-            <button class="btn" onclick="exitExam()" style="justify-content:center;">✕ Thoát bài thi</button>
-          </div>
+        ` : ""}
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+          <button class="btn" onclick="moveExamQuestion(-1)" ${s.currentIdx === 0 ? "disabled" : ""}>Câu trước</button>
+          <span style="font-size:12px;color:var(--muted);">Phím 1–4 chọn đáp án · ← → chuyển câu</span>
+          ${s.currentIdx < total - 1
+            ? `<button class="btn btn-primary" onclick="moveExamQuestion(1)">Câu tiếp</button>`
+            : `<button class="btn btn-active-matcha" onclick="finishExam()">Nộp bài</button>`}
+        </div>
+      </div>
+
+      <div class="exam-side-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+          <strong style="font-family:var(--font-serif);font-size:16px;" id="examTimer">${formatDuration(s.elapsedSec)}</strong>
+          <span style="color:var(--muted);">${answeredCount} / ${total} câu</span>
+        </div>
+        <div class="exam-progress-track"><div class="exam-progress-fill" style="width:${pct}%"></div></div>
+        <div class="exam-dots-grid">
+          ${s.questions.map((item, i) => {
+            const a = s.answers[i];
+            let dCls = "exam-dot";
+            if (i === s.currentIdx) dCls += " current";
+            if (a !== undefined) {
+              if (s.mode === "instant") dCls += (a === item.correct ? " dot-correct" : " dot-wrong");
+              else dCls += " answered";
+            }
+            return `<button class="${dCls}" onclick="goToExamQuestion(${i})">${i + 1}</button>`;
+          }).join("")}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-active-matcha" onclick="finishExam()" style="justify-content:center;padding:8px;">Nộp bài &amp; Chấm điểm</button>
+          <button class="btn" onclick="exitExam()" style="justify-content:center;">Thoát bài thi</button>
         </div>
       </div>
     </div>
@@ -2024,17 +1917,11 @@ function selectExamOption(num) {
   saveWrongIds();
   renderExamView();
 }
-
-function moveExamQuestion(d) {
-  if (!examSession) return;
-  const n = examSession.currentIdx + d;
-  if (n >= 0 && n < examSession.questions.length) { examSession.currentIdx = n; renderExamView(); }
-}
-function goToExamQuestion(i) { if (examSession) { examSession.currentIdx = i; renderExamView(); } }
+function moveExamQuestion(d) { const n = examSession.currentIdx + d; if (n >= 0 && n < examSession.questions.length) { examSession.currentIdx = n; renderExamView(); } }
+function goToExamQuestion(i) { examSession.currentIdx = i; renderExamView(); }
 function toggleExamQuestionBookmark(idx) {
-  const q = examSession?.questions[idx];
-  if (!q) return;
-  toggleBookmarkByData({ id: q.id, kind: "question", title: q.title, sub: q.promptPlain.slice(0, 90), note: "", session: q.sessionTitle });
+  const q = examSession?.questions[idx]; if (!q) return;
+  toggleBookmarkByData({ id: q.id, kind: "question", title: q.title, sub: q.promptPlain.slice(0, 100), note: "", session: q.sessionTitle });
   renderExamView();
 }
 function finishExam() {
@@ -2052,7 +1939,7 @@ function finishExam() {
 function exitExam() { clearInterval(examTimerInterval); examSession = null; renderExamView(); }
 function retryWrongExam() {
   const wrongQs = examSession.questions.filter((q, i) => examSession.answers[i] !== q.correct);
-  if (!wrongQs.length) { showToast("🎉 Bạn đã đúng 100%!"); return; }
+  if (!wrongQs.length) { showToast("Bạn đã đúng 100%"); return; }
   startExam(wrongQs);
 }
 function bookmarkAllWrongExam() {
@@ -2061,56 +1948,53 @@ function bookmarkAllWrongExam() {
   const now = new Date().toISOString();
   wrongQs.forEach(q => {
     delete bmState.deleted[q.id];
-    bmState.items[q.id] = { id: q.id, kind: "question", title: q.title, sub: q.promptPlain.slice(0, 90), note: "Sai khi làm bài thi", session: q.sessionTitle, addedAt: now, updatedAt: now };
+    bmState.items[q.id] = { id: q.id, kind: "question", title: q.title, sub: q.promptPlain.slice(0, 100), note: "Sai khi làm bài thi", session: q.sessionTitle, addedAt: now, updatedAt: now };
   });
   onBookmarksChanged();
   renderExamView();
-  showToast(`★ Đã Bookmark ${wrongQs.length} câu làm sai!`);
+  showToast(`Đã lưu ${wrongQs.length} câu làm sai vào Bookmark`);
 }
 
 function renderExamResult(root) {
-  const s = examSession;
-  const total = s.questions.length;
+  const s = examSession, total = s.questions.length;
   let correctCnt = 0;
   s.questions.forEach((q, i) => { if (s.answers[i] === q.correct) correctCnt++; });
   const wrongCnt = total - correctCnt;
   const pct = Math.round((correctCnt / total) * 100);
 
   root.innerHTML = `
-    <div style="max-width:860px;margin:0 auto;">
+    <div style="max-width:840px;margin:0 auto;">
       <div class="exam-score-box">
         <div style="font-size:12px;font-weight:700;color:var(--muted);">KẾT QUẢ BÀI THI JLPT N1</div>
         <div class="exam-score-big">${correctCnt} / ${total} (${pct}%)</div>
-        <div style="font-size:13px;color:var(--text-2);margin-top:4px;">
-          ⏱️ ${formatDuration(s.elapsedSec)} · ✅ Đúng: ${correctCnt} · ❌ Sai/Bỏ trống: ${wrongCnt}
+        <div style="font-size:13.5px;color:var(--ink-2);margin-top:4px;">
+          Thời gian: ${formatDuration(s.elapsedSec)} · Đúng: ${correctCnt} · Sai/Bỏ trống: ${wrongCnt}
         </div>
-        <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px;">
-          <button class="btn btn-primary" onclick="exitExam()">🔄 Tạo đề thi mới</button>
-          ${wrongCnt > 0 ? `<button class="btn" onclick="retryWrongExam()">🔁 Làm lại ${wrongCnt} câu sai</button>` : ""}
-          ${wrongCnt > 0 ? `<button class="btn btn-gold" onclick="bookmarkAllWrongExam()">★ Bookmark tất cả câu sai</button>` : ""}
+        <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:16px;">
+          <button class="btn btn-primary" onclick="exitExam()">Tạo đề thi mới</button>
+          ${wrongCnt > 0 ? `<button class="btn" onclick="retryWrongExam()">Làm lại ${wrongCnt} câu sai</button>` : ""}
+          ${wrongCnt > 0 ? `<button class="btn btn-gold-soft" onclick="bookmarkAllWrongExam()">Bookmark tất cả câu sai</button>` : ""}
         </div>
       </div>
 
       ${s.questions.map((q, i) => {
-        const u = s.answers[i];
-        const ok = u === q.correct;
-        const isBm = !!bmState.items[q.id];
+        const u = s.answers[i], ok = u === q.correct, isBm = !!bmState.items[q.id];
         return `
           <div class="review-item ${ok ? 'is-right' : 'is-wrong'}">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-              <div><strong>Câu ${i + 1}:</strong> ${ok ? "✅ Đúng" : `❌ Sai (Chọn: ${u || "Bỏ trống"} · Đáp án: ${q.correct})`}</div>
-              <button class="bm-btn ${isBm?'bookmarked':''}" onclick="toggleExamQuestionBookmark(${i})">${isBm ? "★ Đã lưu" : "☆ Bookmark"}</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+              <div><strong>Câu ${i + 1}:</strong> <span style="color:${ok?'var(--matcha)':'var(--vermilion)'};font-weight:700;">${ok ? "Đúng" : `Sai (Chọn ${u || "trống"} · Đáp án ${q.correct})`}</span></div>
+              <button class="bm-btn ${isBm?'bookmarked':''}" onclick="toggleExamQuestionBookmark(${i})">${isBm ? ICONS.starFill : ICONS.star}<span>${isBm ? "Đã lưu" : "Bookmark"}</span></button>
             </div>
-            <div style="margin-bottom:6px;font-size:14.5px;">${q.promptHtml}</div>
-            <div style="font-size:13px;margin-bottom:6px;">
+            <div class="jp-prompt" style="font-size:15px;padding:10px 13px;">${q.promptHtml}</div>
+            <div style="font-size:13.5px;margin-bottom:8px;">
               ${q.options.map((o, oi) => {
                 const n = oi + 1;
-                const st = n === q.correct ? "color:var(--green-text);font-weight:700;" : (n === u ? "color:var(--red-text);text-decoration:line-through;" : "color:var(--text-2);");
-                return `<div style="${st}">${n === q.correct ? "✅" : (n === u ? "❌" : "•")} ${n}. ${escapeHtml(o)}</div>`;
+                const st = n === q.correct ? "color:var(--matcha);font-weight:700;" : (n === u ? "color:var(--vermilion);text-decoration:line-through;" : "color:var(--ink-2);");
+                return `<div style="${st}">${n}. ${escapeHtml(o)}</div>`;
               }).join("")}
             </div>
             <details ${ok ? "" : "open"}>
-              <summary style="cursor:pointer;font-size:12.5px;color:var(--primary);font-weight:600;">Xem giải thích chi tiết</summary>
+              <summary style="cursor:pointer;font-size:13px;color:var(--indigo);font-weight:600;">Xem giải thích chi tiết</summary>
               <div style="margin-top:6px;">${q.explanationHtml}</div>
             </details>
           </div>
@@ -2120,7 +2004,7 @@ function renderExamResult(root) {
   `;
 }
 
-// ==================== BOOKMARKS & GOOGLE DRIVE SYNC ====================
+// ==================== BOOKMARKS & FIRESTORE SYNC ====================
 function loadBookmarksLocal() {
   try {
     const raw = localStorage.getItem(KEYS.BOOKMARKS);
@@ -2133,10 +2017,7 @@ function saveBookmarksLocal() { localStorage.setItem(KEYS.BOOKMARKS, JSON.string
 
 function mergeBookmarkStates(local, remote) {
   const merged = { items: {}, deleted: {} };
-  const allIds = new Set([
-    ...Object.keys(local.items || {}), ...Object.keys(local.deleted || {}),
-    ...Object.keys(remote.items || {}), ...Object.keys(remote.deleted || {})
-  ]);
+  const allIds = new Set([...Object.keys(local.items || {}), ...Object.keys(local.deleted || {}), ...Object.keys(remote.items || {}), ...Object.keys(remote.deleted || {})]);
   allIds.forEach(id => {
     const lItem = local.items?.[id], rItem = remote.items?.[id];
     const lDel = local.deleted?.[id] || "", rDel = remote.deleted?.[id] || "";
@@ -2154,11 +2035,9 @@ function mergeBookmarkStates(local, remote) {
 function onBookmarksChanged() {
   saveBookmarksLocal();
   syncBookmarkBadgesOnly();
-  if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) {
-    renderSidebar(getFilteredItems(currentTab));
-  }
+  if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderSidebar(getFilteredItems(currentTab));
   if (currentUser && !isApplyingRemote) {
-    document.getElementById("bmSyncInfo").textContent = "⏳ Đang đồng bộ lên tài khoản Gmail...";
+    document.getElementById("bmSyncInfo").textContent = "Đang đồng bộ lên Gmail...";
     scheduleCloudPush();
   }
 }
@@ -2166,16 +2045,10 @@ function onBookmarksChanged() {
 function toggleBookmarkByData(data) {
   if (!data.id) return;
   const now = new Date().toISOString();
-  if (bmState.items[data.id]) {
-    delete bmState.items[data.id];
-    bmState.deleted[data.id] = now;
-  } else {
+  if (bmState.items[data.id]) { delete bmState.items[data.id]; bmState.deleted[data.id] = now; }
+  else {
     delete bmState.deleted[data.id];
-    bmState.items[data.id] = {
-      id: data.id, kind: data.kind || "term", title: data.title || data.id,
-      sub: data.sub || "", note: data.note || "", session: data.session || "",
-      addedAt: now, updatedAt: now
-    };
+    bmState.items[data.id] = { id: data.id, kind: data.kind || "term", title: data.title || data.id, sub: data.sub || "", note: data.note || "", session: data.session || "", addedAt: now, updatedAt: now };
   }
   onBookmarksChanged();
 }
@@ -2184,44 +2057,31 @@ function addCustomBookmark() {
   const w = document.getElementById("customWord").value.trim();
   const n = document.getElementById("customNote").value.trim();
   if (!w) return;
-  const now = new Date().toISOString();
-  const id = "custom::" + w;
+  const now = new Date().toISOString(), id = "custom::" + w;
   delete bmState.deleted[id];
   bmState.items[id] = { id, kind: "custom", title: w, sub: "", note: n, session: "Tự thêm", addedAt: now, updatedAt: now };
   document.getElementById("customWord").value = "";
   document.getElementById("customNote").value = "";
   onBookmarksChanged();
-  showToast("★ Đã lưu vào Bookmark");
+  showToast("Đã lưu vào Bookmark");
 }
 
-function removeBookmark(id) {
-  delete bmState.items[id];
-  bmState.deleted[id] = new Date().toISOString();
-  onBookmarksChanged();
-}
+function removeBookmark(id) { delete bmState.items[id]; bmState.deleted[id] = new Date().toISOString(); onBookmarksChanged(); }
 
 function syncBookmarkBadgesOnly() {
-  const items = bmState.items;
-  const count = Object.keys(items).length;
+  const items = bmState.items, count = Object.keys(items).length;
   document.getElementById("bmCount").textContent = count;
   document.getElementById("bmCountDrawer").textContent = count;
 
   document.querySelectorAll("[data-bm-id]").forEach(el => {
     const isBm = !!items[el.dataset.bmId];
     el.classList.toggle("bookmarked", isBm);
-    if (el.classList.contains("bm-btn-card")) el.textContent = isBm ? "★ Đã bookmark" : "☆ Bookmark";
-    else if (el.classList.contains("bm-btn")) el.textContent = isBm ? "★" : "☆";
-    else if (el.classList.contains("jp-pill")) {
-      const star = el.querySelector(".pill-star");
-      if (star) star.textContent = isBm ? "★" : "☆";
-    }
+    if (el.classList.contains("bm-btn-card")) el.innerHTML = `${isBm ? ICONS.starFill : ICONS.star}<span>${isBm ? "Đã lưu" : "Bookmark"}</span>`;
+    else if (el.classList.contains("bm-btn")) el.innerHTML = isBm ? ICONS.starFill : ICONS.star;
+    else if (el.classList.contains("jp-pill")) { const s = el.querySelector(".pill-star"); if (s) s.textContent = isBm ? "★" : "☆"; }
   });
-  document.querySelectorAll("[data-bm-card]").forEach(card => {
-    card.classList.toggle("is-bookmarked", !!items[card.dataset.bmCard] || !!card.querySelector(".bookmarked"));
-  });
-  document.querySelectorAll("[data-bm-row]").forEach(row => {
-    row.classList.toggle("is-bookmarked", !!items[row.dataset.bmRow]);
-  });
+  document.querySelectorAll("[data-bm-card]").forEach(c => c.classList.toggle("is-bookmarked", !!items[c.dataset.bmCard] || !!c.querySelector(".bookmarked")));
+  document.querySelectorAll("[data-bm-row]").forEach(r => r.classList.toggle("is-bookmarked", !!items[r.dataset.bmRow]));
   renderDrawerList();
 }
 
@@ -2246,7 +2106,7 @@ function renderDrawerList() {
         <div class="bm-item-top">
           <div style="min-width:0;flex:1;">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-              <span style="font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px;background:${isQ?'var(--primary-soft)':'var(--gold-soft)'};color:${isQ?'var(--primary)':'var(--gold-text)'};">${isQ ? "BÀI TẬP" : "TỪ VỰNG"}</span>
+              <span class="tag-pill ${isQ?'':'word'}">${isQ ? "Bài tập" : "Từ vựng"}</span>
               <span class="bm-item-title">${escapeHtml(cleanTitle)}</span>
             </div>
             ${cleanSub ? `<div class="bm-item-sub">${escapeHtml(cleanSub)}</div>` : ""}
@@ -2254,9 +2114,9 @@ function renderDrawerList() {
             <div class="bm-item-meta">${escapeHtml(item.session)}</div>
           </div>
           <div style="display:flex;gap:4px;flex-shrink:0;">
-            ${isQ && fullQ ? `<button class="btn btn-icon" onclick='jumpToBookmarkedItem(${JSON.stringify(item.id)})' title="Mở câu hỏi đầy đủ">👁️</button>` : ""}
-            ${speakTxt ? `<button class="btn btn-icon" onclick='speakJapanese(${JSON.stringify(speakTxt)})' title="Nghe">🔊</button>` : ""}
-            <button class="btn btn-icon" onclick='removeBookmark(${JSON.stringify(item.id)})' title="Xóa">✕</button>
+            ${isQ && fullQ ? `<button class="btn btn-icon" onclick='jumpToBookmarkedItem(${JSON.stringify(item.id)})' title="Xem câu đầy đủ">${ICONS.eye}</button>` : ""}
+            ${speakTxt ? `<button class="btn btn-icon" onclick='speakJapanese(${JSON.stringify(speakTxt)})' title="Nghe đọc">${ICONS.volume}</button>` : ""}
+            <button class="btn btn-icon" onclick='removeBookmark(${JSON.stringify(item.id)})' title="Xóa">${ICONS.close}</button>
           </div>
         </div>
       </div>
@@ -2264,31 +2124,30 @@ function renderDrawerList() {
   }).join("");
 }
 
-// ==================== PUBLIC DRIVE FETCH + FIREBASE AUTH & FIRESTORE ====================
+// ==================== PUBLIC DRIVE FETCH + FIREBASE ====================
 async function fetchPublicMarkdownFiles(manual = false) {
-  setSyncStatus("⏳", "Đang tải bài...", "syncing");
+  setSyncStatus("Đang tải...", "syncing");
+  lastFetchError = "";
   try {
     const key = encodeURIComponent(FIREBASE_CONFIG.apiKey);
     const cacheBust = Date.now();
     await Promise.all(Object.entries(DRIVE_FILES).map(async ([tabId, meta]) => {
-      const url = `https://www.googleapis.com/drive/v3/files/${meta.id}?alt=media&key=${key}&_=${cacheBust}`;
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(`Không tải được ${meta.name} (HTTP ${r.status})`);
+      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${meta.id}?alt=media&key=${key}&_=${cacheBust}`);
+      if (!r.ok) throw new Error(`${meta.name} (HTTP ${r.status})`);
       mdStore[tabId] = await r.text();
     }));
-
     localStorage.setItem(KEYS.MD_CACHE, JSON.stringify(mdStore));
     localStorage.setItem(KEYS.LAST_SYNC, new Date().toISOString());
     rebuildAllContent();
-
     const t = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-    setSyncStatus("🟢", `Mới nhất (${t})`, "ok");
-    if (manual) showToast(`✅ Đã tải 3 file .md mới nhất (${parsedQuizBank.length} câu thi)!`);
+    setSyncStatus(`Mới nhất (${t})`, "ok");
+    if (manual) showToast(`Đã tải 3 file .md mới nhất (${parsedQuizBank.length} câu thi)`);
   } catch (err) {
-    console.error("Fetch public md error:", err);
+    lastFetchError = err.message || String(err);
     const hasCache = !!(mdStore.tuvung || mdStore.nguphap || mdStore.dochieu);
-    setSyncStatus(hasCache ? "📦" : "🔴", hasCache ? "Đang dùng Cache" : "Lỗi tải bài", hasCache ? "warn" : "err");
-    if (manual) showToast("⚠️ Không tải được từ Drive: " + err.message, 3800);
+    setSyncStatus(hasCache ? "Đang dùng Cache" : "Lỗi tải bài", hasCache ? "warn" : "err");
+    if (!hasCache) renderCurrentView();
+    if (manual) showToast("Không tải được từ Drive: " + lastFetchError, 4000);
   }
 }
 
@@ -2302,9 +2161,8 @@ function initFirebase() {
     currentUser = user;
     updateAuthUI();
     if (unsubFirestore) { unsubFirestore(); unsubFirestore = null; }
-
     if (user) {
-      document.getElementById("bmSyncInfo").textContent = `☁️ Đồng bộ realtime (${user.email})`;
+      document.getElementById("bmSyncInfo").textContent = `Đồng bộ realtime (${user.email})`;
       const docRef = fbDb.collection("users").doc(user.uid);
       unsubFirestore = docRef.onSnapshot((snap) => {
         if (snap.exists) {
@@ -2312,32 +2170,18 @@ function initFirebase() {
           const remoteBm = data.bookmarks?.items ? data.bookmarks : { items: data.bookmarks || {}, deleted: {} };
           const merged = mergeBookmarkStates(bmState, remoteBm);
           const mergedWrong = new Set([...wrongIds, ...(data.wrongIds || [])]);
-
           isApplyingRemote = true;
-          bmState = merged;
-          wrongIds = mergedWrong;
-          saveBookmarksLocal();
-          saveWrongIds(true);
+          bmState = merged; wrongIds = mergedWrong;
+          saveBookmarksLocal(); saveWrongIds(true);
           syncBookmarkBadgesOnly();
-          if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) {
-            renderSidebar(getFilteredItems(currentTab));
-          } else if (currentTab === "exam" && !examSession) {
-            renderExamView();
-          }
+          if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderSidebar(getFilteredItems(currentTab));
+          else if (currentTab === "exam" && !examSession) renderExamView();
           isApplyingRemote = false;
-
-          // If local had items not yet on cloud, push merged result back
-          if (Object.keys(merged.items).length !== Object.keys(remoteBm.items || {}).length) {
-            scheduleCloudPush();
-          }
+          if (Object.keys(merged.items).length !== Object.keys(remoteBm.items || {}).length) scheduleCloudPush();
         } else {
-          // First time this Gmail signs in: push existing local bookmarks & wrongIds to their personal Firestore doc
           pushUserCloudState(false);
         }
-      }, (err) => {
-        console.error("Firestore snapshot error:", err);
-        document.getElementById("bmSyncInfo").textContent = "⚠️ Lỗi đồng bộ Firestore";
-      });
+      }, () => { document.getElementById("bmSyncInfo").textContent = "Lỗi đồng bộ đám mây"; });
     } else {
       document.getElementById("bmSyncInfo").textContent = "Lưu trên máy (Đăng nhập Gmail để đồng bộ)";
     }
@@ -2351,71 +2195,44 @@ function updateAuthUI() {
     const shortName = (currentUser.displayName || currentUser.email || "Gmail").split(" ")[0];
     const avatar = currentUser.photoURL
       ? `<img src="${escapeHtml(currentUser.photoURL)}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;">`
-      : "👤";
+      : ICONS.user;
     btn.className = "btn";
-    btn.innerHTML = `${avatar} <span>${escapeHtml(shortName)}</span>`;
-    btn.title = `Đang đăng nhập: ${currentUser.email} (Bấm để xem tài khoản / Đăng xuất)`;
+    btn.innerHTML = `${avatar}<span>${escapeHtml(shortName)}</span>`;
+    btn.title = `${currentUser.email} — Bấm để quản lý tài khoản`;
   } else {
     btn.className = "btn btn-primary";
-    btn.innerHTML = "🔐 Đăng nhập Gmail";
-    btn.title = "Đăng nhập Gmail để tự động đồng bộ Bookmark & Câu hay sai giữa PC và Điện thoại";
+    btn.innerHTML = `${ICONS.user}<span>Đăng nhập</span>`;
+    btn.title = "Đăng nhập Gmail để đồng bộ Bookmark & Câu hay sai";
   }
 }
 
-function handleAuthClick() {
-  if (currentUser) {
-    openSettings();
-  } else {
-    signInWithGmail();
-  }
-}
-
+function handleAuthClick() { if (currentUser) openSettings(); else signInWithGmail(); }
 async function signInWithGmail() {
-  if (!fbAuth) { showToast("⏳ Đang khởi tạo Firebase, thử lại sau 1 giây..."); return; }
+  if (!fbAuth) return;
   const provider = new firebase.auth.GoogleAuthProvider();
   try {
     await fbAuth.signInWithPopup(provider);
-    showToast("✅ Đã đăng nhập Gmail & bật đồng bộ tự động!");
+    showToast("Đã đăng nhập Gmail & bật đồng bộ tự động");
     closeSettings();
   } catch (err) {
-    if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") {
-      await fbAuth.signInWithRedirect(provider);
-    } else if (err.code !== "auth/popup-closed-by-user") {
-      showToast("❌ Lỗi đăng nhập: " + err.message, 4000);
-    }
+    if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") await fbAuth.signInWithRedirect(provider);
+    else if (err.code !== "auth/popup-closed-by-user") showToast("Lỗi đăng nhập: " + err.message, 4000);
   }
 }
-
-async function signOutGmail() {
-  if (!fbAuth) return;
-  await fbAuth.signOut();
-  closeSettings();
-  showToast("👋 Đã đăng xuất tài khoản Gmail.");
-}
-
-function scheduleCloudPush() {
-  clearTimeout(pushTimer);
-  pushTimer = setTimeout(() => pushUserCloudState(false), 500);
-}
-
+async function signOutGmail() { if (!fbAuth) return; await fbAuth.signOut(); closeSettings(); showToast("Đã đăng xuất tài khoản Gmail"); }
+function scheduleCloudPush() { clearTimeout(pushTimer); pushTimer = setTimeout(() => pushUserCloudState(false), 500); }
 async function pushUserCloudState(manual = false) {
-  if (!currentUser || !fbDb) {
-    if (manual) signInWithGmail();
-    return;
-  }
+  if (!currentUser || !fbDb) { if (manual) signInWithGmail(); return; }
   try {
     await fbDb.collection("users").doc(currentUser.uid).set({
-      email: currentUser.email || "",
-      updatedAt: new Date().toISOString(),
-      bookmarks: { items: bmState.items, deleted: bmState.deleted },
-      wrongIds: [...wrongIds]
+      email: currentUser.email || "", updatedAt: new Date().toISOString(),
+      bookmarks: { items: bmState.items, deleted: bmState.deleted }, wrongIds: [...wrongIds]
     }, { merge: true });
     const t = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-    document.getElementById("bmSyncInfo").textContent = `☁️ Đã đồng bộ (${t})`;
-    if (manual) showToast("☁️ Đã đồng bộ Bookmark & Câu hay sai lên Gmail!");
+    document.getElementById("bmSyncInfo").textContent = `Đã đồng bộ (${t})`;
+    if (manual) showToast("Đã đồng bộ dữ liệu lên tài khoản Gmail");
   } catch (err) {
-    console.error("Firestore push error:", err);
-    document.getElementById("bmSyncInfo").textContent = "⚠️ Lỗi lưu đám mây (đã lưu máy)";
+    document.getElementById("bmSyncInfo").textContent = "Lỗi đồng bộ (đã lưu máy)";
     if (manual) showToast("Lỗi đồng bộ: " + err.message);
   }
 }
@@ -2425,117 +2242,71 @@ function loadLocalMarkdownFiles(event) {
   if (!files.length) return;
   let loaded = 0;
   files.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = () => {
+    const r = new FileReader();
+    r.onload = () => {
       const n = file.name.toUpperCase();
-      if (n.includes("01") || n.includes("TU_VUNG")) mdStore.tuvung = reader.result;
-      else if (n.includes("02") || n.includes("NGU_PHAP")) mdStore.nguphap = reader.result;
-      else if (n.includes("03") || n.includes("DOC_HIEU")) mdStore.dochieu = reader.result;
-      else mdStore.tuvung = reader.result;
+      if (n.includes("01") || n.includes("TU_VUNG")) mdStore.tuvung = r.result;
+      else if (n.includes("02") || n.includes("NGU_PHAP")) mdStore.nguphap = r.result;
+      else if (n.includes("03") || n.includes("DOC_HIEU")) mdStore.dochieu = r.result;
+      else mdStore.tuvung = r.result;
       if (++loaded === files.length) {
         localStorage.setItem(KEYS.MD_CACHE, JSON.stringify(mdStore));
-        rebuildAllContent();
-        closeSettings();
-        setSyncStatus("📂", "File nội bộ", "warn");
-        showToast(`✅ Đã nạp ${loaded} file .md (${parsedQuizBank.length} câu thi)!`);
+        rebuildAllContent(); closeSettings();
+        setSyncStatus("File nội bộ", "warn");
+        showToast(`Đã nạp ${loaded} file .md (${parsedQuizBank.length} câu thi)`);
       }
     };
-    reader.readAsText(file, "utf-8");
+    r.readAsText(file, "utf-8");
   });
 }
 
-// ==================== UI ACTIONS & KEYBOARD SHORTCUTS ====================
+// ==================== UI ACTIONS & SHORTCUTS ====================
 function switchTab(tabId) {
   currentTab = tabId;
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
   if (tabId === "flashcard") buildFlashcardDeck();
   renderCurrentView();
+  document.getElementById("stageScroll").scrollTop = 0;
 }
-
-function onSearchOrFilterChange() {
-  activeItemIdx[currentTab] = 0;
-  renderCurrentView();
-}
-
 function toggleQuizMode() {
   quizHideMode = !quizHideMode;
   document.body.classList.toggle("quiz-mode", quizHideMode);
-  document.getElementById("quizBtn").classList.toggle("btn-active-green", quizHideMode);
+  document.getElementById("quizBtn").classList.toggle("btn-active-matcha", quizHideMode);
 }
-
-function toggleOneAns(btn) {
-  const ans = btn.nextElementSibling;
-  if (ans) ans.classList.toggle("revealed");
-}
-
+function toggleOneAns(btn) { const a = btn.nextElementSibling; if (a) a.classList.toggle("revealed"); }
 function toggleFilterBookmarked() {
   onlyBookmarked = !onlyBookmarked;
   document.getElementById("filterBmBtn").classList.toggle("btn-active-gold", onlyBookmarked);
-  onSearchOrFilterChange();
+  renderCurrentView();
 }
-
-function toggleMobileSidebar() {
-  document.getElementById("sidebar").classList.toggle("mobile-open");
-  document.getElementById("sidebarBackdrop").classList.toggle("open");
-}
-function closeMobileSidebar() {
-  document.getElementById("sidebar").classList.remove("mobile-open");
-  document.getElementById("sidebarBackdrop").classList.remove("open");
-}
+function toggleMobileSidebar() { document.getElementById("sidebar").classList.toggle("mobile-open"); document.getElementById("sidebarBackdrop").classList.toggle("open"); }
+function closeMobileSidebar() { document.getElementById("sidebar").classList.remove("mobile-open"); document.getElementById("sidebarBackdrop").classList.remove("open"); }
 function openDrawer() { document.getElementById("drawer").classList.add("open"); document.getElementById("drawerBackdrop").classList.add("open"); }
 function closeDrawer() { document.getElementById("drawer").classList.remove("open"); document.getElementById("drawerBackdrop").classList.remove("open"); }
-
 function openSettings() {
   const box = document.getElementById("accountInfoBox");
   if (currentUser) {
-    box.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          ${currentUser.photoURL ? `<img src="${escapeHtml(currentUser.photoURL)}" style="width:36px;height:36px;border-radius:50%;">` : ""}
-          <div>
-            <div style="font-weight:700;">${escapeHtml(currentUser.displayName || "Người dùng Gmail")}</div>
-            <div style="font-size:12px;color:var(--muted);">${escapeHtml(currentUser.email)} · ☁️ Đang đồng bộ realtime</div>
-          </div>
-        </div>
-        <button class="btn" onclick="signOutGmail()" style="color:var(--red);">Đăng xuất</button>
-      </div>
-    `;
+    box.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;"><div style="display:flex;align-items:center;gap:10px;">${currentUser.photoURL ? `<img src="${escapeHtml(currentUser.photoURL)}" style="width:36px;height:36px;border-radius:50%;">` : ""}<div><div style="font-weight:700;">${escapeHtml(currentUser.displayName || "Người dùng Gmail")}</div><div style="font-size:12px;color:var(--muted);">${escapeHtml(currentUser.email)} · Đang đồng bộ realtime</div></div></div><button class="btn" onclick="signOutGmail()" style="color:var(--vermilion);">Đăng xuất</button></div>`;
   } else {
-    box.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-        <div>
-          <div style="font-weight:700;">Chưa đăng nhập Gmail</div>
-          <div style="font-size:12px;color:var(--muted);">Đăng nhập để lưu &amp; đồng bộ Bookmark + Câu hay sai riêng theo tài khoản Gmail.</div>
-        </div>
-        <button class="btn btn-primary" onclick="signInWithGmail()">🔐 Đăng nhập Gmail</button>
-      </div>
-    `;
+    box.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;"><div><div style="font-weight:700;">Chưa đăng nhập Gmail</div><div style="font-size:12px;color:var(--muted);">Đăng nhập để đồng bộ Bookmark &amp; Câu hay sai giữa PC và Điện thoại.</div></div><button class="btn btn-primary" onclick="signInWithGmail()">Đăng nhập Gmail</button></div>`;
   }
   document.getElementById("settingsModal").classList.add("open");
   document.getElementById("settingsBackdrop").classList.add("open");
 }
 function closeSettings() { document.getElementById("settingsModal").classList.remove("open"); document.getElementById("settingsBackdrop").classList.remove("open"); }
-function clearLocalCache() {
-  localStorage.removeItem(KEYS.MD_CACHE);
-  mdStore = { tuvung: "", nguphap: "", dochieu: "" };
-  rebuildAllContent();
-  closeSettings();
-  showToast("🗑️ Đã xóa cache .md");
-}
+function clearLocalCache() { localStorage.removeItem(KEYS.MD_CACHE); mdStore = { tuvung: "", nguphap: "", dochieu: "" }; rebuildAllContent(); closeSettings(); showToast("Đã xóa cache .md"); }
 
 function exportMarkdown() {
   const items = Object.values(bmState.items);
-  if (!items.length) { showToast("Chưa có bookmark nào!"); return; }
+  if (!items.length) { showToast("Chưa có bookmark nào"); return; }
   let md = "# DANH SÁCH BOOKMARK JLPT N1\n\n| Mục | Ghi chú / Nghĩa | Nguồn |\n| :--- | :--- | :--- |\n";
   items.forEach(it => {
-    const note = [it.sub, it.note].filter(Boolean).join(" — ").replace(/\|/g, "/");
+    const note = [it.sub, it.note].filter(Boolean).join(" — ").replace(/<[^>]+>/g, "").replace(/\|/g, "/");
     md += `| **${it.title.replace(/\|/g, "/")}** | ${note} | ${it.session.replace(/\|/g, "/")} |\n`;
   });
   downloadFile("JLPT_N1_BOOKMARKS.md", md, "text/markdown;charset=utf-8");
 }
-function exportJson() {
-  downloadFile("jlpt_bookmarks.json", JSON.stringify({ version: 2, items: bmState.items, deleted: bmState.deleted }, null, 2), "application/json");
-}
+function exportJson() { downloadFile("jlpt_bookmarks.json", JSON.stringify({ version: 2, items: bmState.items, deleted: bmState.deleted }, null, 2), "application/json"); }
 function importJson(e) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
@@ -2543,82 +2314,46 @@ function importJson(e) {
     try {
       const p = JSON.parse(r.result);
       bmState = mergeBookmarkStates(bmState, p.items ? p : { items: p, deleted: {} });
-      onBookmarksChanged();
-      showToast("✅ Đã khôi phục Bookmark!");
-    } catch { showToast("❌ File JSON không hợp lệ."); }
+      onBookmarksChanged(); showToast("Đã khôi phục Bookmark");
+    } catch { showToast("File JSON không hợp lệ"); }
   };
   r.readAsText(f);
 }
-function downloadFile(name, content, mime) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
-  a.download = name; a.click();
-}
+function downloadFile(name, content, mime) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([content], { type: mime })); a.download = name; a.click(); }
 
-// Global click for [data-bm-id]
 document.addEventListener("click", (e) => {
   const t = e.target.closest("[data-bm-id]");
   if (t) {
     e.stopPropagation();
-    toggleBookmarkByData({
-      id: t.dataset.bmId, kind: t.dataset.bmKind, title: t.dataset.bmTitle,
-      sub: t.dataset.bmSub, note: t.dataset.bmNote, session: t.dataset.bmSession
-    });
+    toggleBookmarkByData({ id: t.dataset.bmId, kind: t.dataset.bmKind, title: t.dataset.bmTitle, sub: t.dataset.bmSub, note: t.dataset.bmNote, session: t.dataset.bmSession });
   }
 });
 
-// Keyboard shortcuts for ultra-fast PC study & exam
 document.addEventListener("keydown", (e) => {
   if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
-
   if (currentTab === "exam" && examSession && !examSession.finished) {
     if (["1", "2", "3", "4"].includes(e.key)) {
       const s = examSession;
-      if (!(s.mode === "instant" && s.answers[s.currentIdx] !== undefined)) {
-        selectExamOption(parseInt(e.key, 10));
-      }
+      if (!(s.mode === "instant" && s.answers[s.currentIdx] !== undefined)) selectExamOption(parseInt(e.key, 10));
     } else if (e.key === "ArrowRight") moveExamQuestion(1);
     else if (e.key === "ArrowLeft") moveExamQuestion(-1);
     return;
   }
-
   if (currentTab === "flashcard" && fcDeck.length) {
     if (e.key === " ") { e.preventDefault(); flipFlashcard(); }
     else if (e.key === "ArrowRight") stepFlashcard(1);
     else if (e.key === "ArrowLeft") stepFlashcard(-1);
-    return;
-  }
-
-  if (["tuvung", "nguphap", "dochieu"].includes(currentTab) && studyViewMode === "focus") {
-    if (e.key === "ArrowRight") stepItem(1);
-    else if (e.key === "ArrowLeft") stepItem(-1);
-    else if (e.key === " " && quizHideMode) {
-      e.preventDefault();
-      const btn = document.getElementById("focusRevealBtn");
-      if (btn) toggleOneAns(btn);
-    } else if (e.key.toLowerCase() === "b") {
-      const list = getFilteredItems(currentTab);
-      const item = list[activeItemIdx[currentTab]];
-      if (item && item.type === "question") {
-        toggleBookmarkByData({ id: item.id, kind: "question", title: item.title, sub: item.preview, note: "", session: item.sessionTitle });
-        renderCurrentView();
-      }
-    }
   }
 });
 
 // ==================== BOOTSTRAP ====================
 initTheme();
-document.getElementById("viewModeBtn").textContent = studyViewMode === "focus" ? "🎯 1 câu" : "📜 Cuộn";
 loadBookmarksLocal();
-
 try {
   const cachedMd = JSON.parse(localStorage.getItem(KEYS.MD_CACHE) || "null");
   if (cachedMd && (cachedMd.tuvung || cachedMd.nguphap || cachedMd.dochieu)) {
     mdStore = cachedMd;
-    const last = localStorage.getItem(KEYS.LAST_SYNC);
-    const label = last ? new Date(last).toLocaleDateString("vi-VN") : "Cache";
-    setSyncStatus("📦", `Cache (${label})`, "warn");
+    setSyncStatus("Đang dùng Cache", "warn");
   }
 } catch {}
 
