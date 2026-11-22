@@ -1,7 +1,9 @@
-const CACHE_NAME = "jlpt-n1-washi-v1";
+const CACHE_NAME = "jlpt-n1-washi-v2";
 const PRECACHE_URLS = [
   "./",
   "./index.html",
+  "./styles.css",
+  "./app.js",
   "./manifest.json",
   "https://cdn.jsdelivr.net/npm/marked/marked.min.js"
 ];
@@ -27,7 +29,6 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // Never intercept Firebase Auth/Firestore or Google Drive API calls
   if (
     url.hostname.includes("googleapis.com") ||
     url.hostname.includes("firebaseapp.com") ||
@@ -37,7 +38,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first for HTML/CSS/JS so updates arrive immediately, falling back to cache offline
   event.respondWith(
     fetch(req)
       .then((res) => {

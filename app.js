@@ -1,0 +1,1642 @@
+// ==================== SVG ICON HELPERS ====================
+const ICONS = {
+  star: '<svg class="ico" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  starFill: '<svg class="ico ico-fill" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  volume: '<svg class="ico" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
+  eye: '<svg class="ico" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  close: '<svg class="ico" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  moon: '<svg class="ico" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+  sun: '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+  user: '<svg class="ico" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  shuffle: '<svg class="ico" viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>',
+  refresh: '<svg class="ico" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
+  check: '<svg class="ico" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+  note: '<svg class="ico" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
+};
+
+// ==================== CONFIGURATION ====================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyApN00WWVr-l-NPCu9ylxToky99ErH9Bz0",
+  authDomain: "mythical-mason-515501-r0.firebaseapp.com",
+  projectId: "mythical-mason-515501-r0",
+  storageBucket: "mythical-mason-515501-r0.firebasestorage.app",
+  messagingSenderId: "45519602571",
+  appId: "1:45519602571:web:32f315924014fd99c1658e"
+};
+
+const DRIVE_FILES = {
+  tuvung: { name: "01_TU_VUNG_N1_GMN.md", id: "1QW3cPCy6GOAXRtvYbuvD-CukwqatJlqF" },
+  nguphap: { name: "02_NGU_PHAP_N1_GMN.md", id: "1rgAp3b6pfnQ81fmHesR2pvhGxLYuVha5" },
+  dochieu: { name: "03_DOC_HIEU_N1_GMN.md", id: "1u2xccVEuH2nWIrvc5_Eiv3HvCJVpXwgy" }
+};
+
+const KEYS = {
+  BOOKMARKS: "jlpt_n1_bookmarks_v2",
+  LEGACY_BM: "jlpt_n1_bookmarks_v1",
+  MD_CACHE: "jlpt_n1_md_cache_v1",
+  LAST_SYNC: "jlpt_n1_last_sync_v1",
+  WRONG_IDS: "jlpt_n1_wrong_ids_v1",
+  DONE_IDS: "jlpt_n1_done_ids_v1",
+  MASTERED_IDS: "jlpt_n1_mastered_ids_v1",
+  LAST_READ: "jlpt_n1_last_read_v1",
+  EXAM_HISTORY: "jlpt_n1_exam_history_v1",
+  NOTES: "jlpt_n1_notes_v1",
+  FONT_SCALE: "jlpt_n1_font_scale_v1",
+  TTS_RATE: "jlpt_n1_tts_rate_v1",
+  THEME: "jlpt_n1_theme_v1"
+};
+
+let fbAuth = null, fbDb = null, currentUser = null, unsubFirestore = null, pushTimer = null;
+let isApplyingRemote = false;
+let lastFetchError = "";
+
+let bmState = { items: {}, deleted: {} };
+let wrongIds = loadSetFromStorage(KEYS.WRONG_IDS);
+let doneIds = loadSetFromStorage(KEYS.DONE_IDS);
+let masteredIds = loadSetFromStorage(KEYS.MASTERED_IDS);
+let lastReadMap = loadJsonFromStorage(KEYS.LAST_READ, {});
+let examHistory = loadJsonFromStorage(KEYS.EXAM_HISTORY, []);
+let notesMap = loadJsonFromStorage(KEYS.NOTES, {});
+let ttsRate = parseFloat(localStorage.getItem(KEYS.TTS_RATE) || "0.95") || 0.95;
+let fontScale = parseFloat(localStorage.getItem(KEYS.FONT_SCALE) || "1") || 1;
+let mdStore = { tuvung: "", nguphap: "", dochieu: "" };
+let tabItems = { tuvung: [], nguphap: [], dochieu: [] };
+let parsedQuizBank = [];
+let cheatWordsBank = [];
+
+let currentTab = "tuvung";
+let onlyBookmarked = false;
+let quizHideMode = false;
+let scrollSpyBound = false;
+
+let examConfig = { source: "all", day: "all", count: 10, mode: "instant", timerMode: "up" };
+let examSession = null;
+let examTimerInterval = null;
+
+let fcConfig = { source: "bookmarks", showMastered: false };
+let fcDeck = [];
+let fcIdx = 0;
+let fcFlipped = false;
+
+const JP_RE = /[\u3040-\u30ff\u4e00-\u9fff]/;
+
+// ==================== UTILITIES ====================
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function showToast(msg, ms = 2800) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove("show"), ms);
+}
+function setSyncStatus(label, cls = "") {
+  const pill = document.getElementById("syncPill");
+  document.getElementById("syncLabel").textContent = label;
+  pill.className = "sync-pill" + (cls ? " " + cls : "");
+}
+function loadSetFromStorage(key) {
+  try { return new Set(JSON.parse(localStorage.getItem(key) || "[]")); }
+  catch { return new Set(); }
+}
+function loadJsonFromStorage(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key) || "null") || fallback; }
+  catch { return fallback; }
+}
+function saveWrongIds(skipCloud = false) {
+  localStorage.setItem(KEYS.WRONG_IDS, JSON.stringify([...wrongIds]));
+  if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
+}
+function saveDoneIds(skipCloud = false) {
+  localStorage.setItem(KEYS.DONE_IDS, JSON.stringify([...doneIds]));
+  if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
+}
+function saveMasteredIds(skipCloud = false) {
+  localStorage.setItem(KEYS.MASTERED_IDS, JSON.stringify([...masteredIds]));
+  if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
+}
+function saveExamHistory(skipCloud = false) {
+  examHistory = (examHistory || []).slice(0, 15);
+  localStorage.setItem(KEYS.EXAM_HISTORY, JSON.stringify(examHistory));
+  if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
+}
+function saveNotesMap(skipCloud = false) {
+  localStorage.setItem(KEYS.NOTES, JSON.stringify(notesMap));
+  if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
+}
+function toggleNoteBox(idx) {
+  const box = document.getElementById("note-box-" + idx);
+  if (box) {
+    box.classList.toggle("open");
+    if (box.classList.contains("open")) box.querySelector("textarea")?.focus();
+  }
+}
+function updateQuestionNote(id, text, btnId) {
+  const val = String(text || "").trim();
+  if (val) notesMap[id] = { text: val, updatedAt: new Date().toISOString() };
+  else delete notesMap[id];
+  saveNotesMap();
+  const btn = document.getElementById(btnId);
+  if (btn) btn.classList.toggle("has-note", !!val);
+}
+function setFontScale(scale) {
+  fontScale = Number(scale) || 1;
+  document.documentElement.style.setProperty("--font-scale", String(fontScale));
+  localStorage.setItem(KEYS.FONT_SCALE, String(fontScale));
+  syncPreferencePills();
+}
+function setTtsRate(rate) {
+  ttsRate = Number(rate) || 0.95;
+  localStorage.setItem(KEYS.TTS_RATE, String(ttsRate));
+  syncPreferencePills();
+}
+function syncPreferencePills() {
+  document.querySelectorAll("#fontScalePills .choice-pill").forEach(b => b.classList.toggle("active", Number(b.dataset.scale) === fontScale));
+  document.querySelectorAll("#ttsRatePills .choice-pill").forEach(b => b.classList.toggle("active", Number(b.dataset.rate) === ttsRate));
+}
+function toggleDoneItem(id) {
+  if (doneIds.has(id)) doneIds.delete(id);
+  else doneIds.add(id);
+  saveDoneIds();
+  renderCurrentView(true);
+}
+function speakJapanese(text) {
+  if (!("speechSynthesis" in window)) { showToast("Trình duyệt không hỗ trợ đọc tiếng Nhật."); return; }
+  const clean = String(text || "").replace(/<[^>]+>/g, "").replace(/（[^）]*）|\([^)]*\)|[★☆①②③④＿＿＿\s]+/g, " ").trim();
+  if (!clean) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = "ja-JP";
+  u.rate = ttsRate;
+  window.speechSynthesis.speak(u);
+}
+
+// ==================== THEME ====================
+function initTheme() {
+  const saved = localStorage.getItem(KEYS.THEME) || "light";
+  document.documentElement.setAttribute("data-theme", saved);
+  document.getElementById("themeBtn").innerHTML = saved === "dark" ? ICONS.sun : ICONS.moon;
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute("data-theme");
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem(KEYS.THEME, next);
+  document.getElementById("themeBtn").innerHTML = next === "dark" ? ICONS.sun : ICONS.moon;
+}
+
+// ==================== MARKDOWN PARSER ====================
+function renderMdFragment(mdText) {
+  if (!mdText) return "";
+  if (window.marked) { marked.setOptions({ gfm: true, breaks: false }); return marked.parse(mdText); }
+  return "<pre>" + escapeHtml(mdText) + "</pre>";
+}
+
+function parseMarkdownToSections(mdText) {
+  const lines = mdText.replace(/\r\n/g, "\n").split("\n");
+  const sessions = [];
+  let curSession = null, curBlockLines = [], curBlockTitle = null, curBlockType = "intro";
+
+  function flushBlock() {
+    if (!curSession) return;
+    const bodyMd = curBlockLines.join("\n").trim();
+    if (!bodyMd && !curBlockTitle) { curBlockLines = []; return; }
+    curSession.blocks.push({ type: curBlockType, title: curBlockTitle || "", body_md: bodyMd });
+    curBlockLines = []; curBlockTitle = null; curBlockType = "section";
+  }
+
+  for (const line of lines) {
+    if (line.startsWith("# ")) {
+      flushBlock();
+      curSession = { title: line.slice(2).trim(), blocks: [] };
+      sessions.push(curSession);
+      curBlockType = "intro"; curBlockTitle = null; curBlockLines = [];
+    } else if (!curSession) {
+      curSession = { title: "Tổng quan", blocks: [] };
+      sessions.push(curSession);
+      curBlockLines.push(line);
+    } else if (line.startsWith("### ")) {
+      flushBlock(); curBlockTitle = line.slice(4).trim(); curBlockType = "question"; curBlockLines = [];
+    } else if (line.startsWith("## ")) {
+      flushBlock();
+      const h2 = line.slice(3).trim();
+      curBlockTitle = h2;
+      const u = h2.toUpperCase();
+      curBlockType = (u.includes("CHEAT SHEET") || u.includes("BẢNG TỔNG KẾT")) ? "cheatsheet" : "section";
+      curBlockLines = [];
+    } else {
+      curBlockLines.push(line);
+    }
+  }
+  flushBlock();
+  return sessions;
+}
+
+function enhanceCheatsheetTable(htmlStr, sessionTitle, tabId, collectWords = false) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = htmlStr;
+  tmp.querySelectorAll("table").forEach(table => {
+    const theadRow = table.querySelector("thead tr");
+    if (theadRow) {
+      const th = document.createElement("th");
+      th.textContent = "Lưu";
+      theadRow.insertBefore(th, theadRow.firstChild);
+    }
+    table.querySelectorAll("tbody tr").forEach(tr => {
+      const cells = tr.querySelectorAll("td");
+      if (!cells.length) return;
+      const wordText = (cells[0]?.textContent || "").trim();
+      const readingText = (cells[1]?.textContent || "").trim();
+      const meaningText = (cells[2]?.textContent || "").trim();
+      const itemId = `word::${tabId}::${wordText}::${readingText}`;
+      tr.dataset.bmRow = itemId;
+
+      if (collectWords && wordText && JP_RE.test(wordText)) {
+        cheatWordsBank.push({ id: itemId, kind: "word", title: wordText, sub: readingText, note: meaningText, session: sessionTitle });
+      }
+
+      const td = document.createElement("td");
+      td.className = "bm-cell";
+      const btn = document.createElement("button");
+      btn.className = "bm-btn";
+      btn.dataset.bmId = itemId;
+      btn.dataset.bmKind = "word";
+      btn.dataset.bmTitle = wordText;
+      btn.dataset.bmSub = readingText;
+      btn.dataset.bmNote = meaningText;
+      btn.dataset.bmSession = sessionTitle;
+      btn.innerHTML = ICONS.star;
+      td.appendChild(btn);
+      tr.insertBefore(td, tr.firstChild);
+    });
+    const wrap = document.createElement("div");
+    wrap.className = "table-wrap";
+    table.parentNode.insertBefore(wrap, table);
+    wrap.appendChild(table);
+  });
+  return tmp.innerHTML;
+}
+
+function makeCodePillsClickable(htmlStr, sessionTitle) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = htmlStr;
+  tmp.querySelectorAll("code").forEach(codeEl => {
+    if (codeEl.closest("pre")) return;
+    const plain = (codeEl.textContent || "").trim();
+    if (!plain || !JP_RE.test(plain) || plain.length > 60) return;
+    if (/^[1-4１-４][.．]/.test(plain)) return;
+    const itemId = `term::${plain}`;
+    codeEl.classList.add("jp-pill");
+    codeEl.dataset.bmId = itemId;
+    codeEl.dataset.bmKind = "term";
+    codeEl.dataset.bmTitle = plain;
+    codeEl.dataset.bmSub = "";
+    codeEl.dataset.bmNote = `Từ mở rộng (${sessionTitle})`;
+    codeEl.dataset.bmSession = sessionTitle;
+    codeEl.title = "Bấm để Bookmark từ này";
+    const star = document.createElement("span");
+    star.className = "pill-star";
+    star.textContent = "☆";
+    codeEl.appendChild(star);
+  });
+  return tmp.innerHTML;
+}
+
+function buildTabItems(tabId, mdText) {
+  if (!mdText || !mdText.trim()) return [];
+  const sessions = parseMarkdownToSections(mdText);
+  const items = [];
+  sessions.forEach((sess, sIdx) => {
+    const sTitle = sess.title;
+    sess.blocks.forEach((blk, bIdx) => {
+      const bMd = blk.body_md;
+      const bTitle = blk.title || (blk.type === "intro" ? "Tổng quan buổi học" : `Mục ${bIdx + 1}`);
+      if (blk.type === "intro" && !bMd.replace(/[-*_]/g, "").trim()) return;
+
+      if (blk.type === "question") {
+        const parts = bMd.split(/\n?\*\(Khoảng trống tự nhẩm đáp án\)\*\n?/);
+        let promptHtml = "", answerHtml = "", promptPlain = "";
+        if (parts.length >= 2) {
+          promptHtml = renderMdFragment(parts[0]);
+          answerHtml = makeCodePillsClickable(renderMdFragment(parts.slice(1).join("\n")), sTitle);
+          promptPlain = parts[0].replace(/<[^>]+>/g, "").replace(/[`*#>]/g, "").trim();
+        } else {
+          answerHtml = makeCodePillsClickable(renderMdFragment(bMd), sTitle);
+          promptPlain = bMd.split("\n")[0].replace(/<[^>]+>/g, "").replace(/[`*#>]/g, "").trim();
+        }
+        const qId = `q::${tabId}::${sIdx}::${blk.title}`;
+        const jpSentence = (promptPlain.split("\n").find(l => JP_RE.test(l)) || "").trim();
+        items.push({
+          id: qId, tabId, type: "question", sessionTitle: sTitle, title: blk.title,
+          shortLabel: blk.title.replace(/`\[[^\]]+\]`/g, "").trim(),
+          preview: jpSentence || promptPlain.slice(0, 120),
+          jpText: jpSentence, promptHtml, answerHtml,
+          searchText: (sTitle + " " + blk.title + " " + bMd).toLowerCase()
+        });
+      } else if (blk.type === "cheatsheet") {
+        let html = enhanceCheatsheetTable(renderMdFragment(bMd), sTitle, tabId, true);
+        html = makeCodePillsClickable(html, sTitle);
+        items.push({
+          id: `cs::${tabId}::${sIdx}::${bIdx}`, tabId, type: "cheatsheet", sessionTitle: sTitle,
+          title: bTitle, shortLabel: bTitle, preview: "", jpText: "",
+          promptHtml: "", answerHtml: html,
+          searchText: (sTitle + " " + bTitle + " " + bMd).toLowerCase()
+        });
+      } else {
+        const html = makeCodePillsClickable(renderMdFragment(bMd), sTitle);
+        items.push({
+          id: `sec::${tabId}::${sIdx}::${bIdx}`, tabId, type: "section", sessionTitle: sTitle,
+          title: bTitle, shortLabel: bTitle, preview: "", jpText: "",
+          promptHtml: "", answerHtml: html,
+          searchText: (sTitle + " " + bTitle + " " + bMd).toLowerCase()
+        });
+      }
+    });
+  });
+  return items;
+}
+
+function extractQuizQuestions(tabId, mdText) {
+  if (!mdText) return [];
+  const sessions = parseMarkdownToSections(mdText);
+  const questions = [];
+  sessions.forEach((sess, sIdx) => {
+    sess.blocks.forEach(blk => {
+      if (blk.type !== "question") return;
+      const parts = blk.body_md.split(/\n?\*\(Khoảng trống tự nhẩm đáp án\)\*\n?/);
+      if (parts.length < 2) return;
+      const promptMd = parts[0].trim();
+      const answerMd = parts.slice(1).join("\n").trim();
+      const ansMatch = answerMd.match(/Đáp án(?:\s*\(★\))?:\**\s*`?([1-4])/);
+      if (!ansMatch) return;
+      const correctNum = parseInt(ansMatch[1], 10);
+
+      let options = [], cleanPromptMd = promptMd;
+      const btMatches = [...promptMd.matchAll(/`([1-4])\.\s*([^`]+)`/g)];
+      if (btMatches.length >= 4) {
+        const byNum = {};
+        btMatches.forEach(m => { byNum[m[1]] = m[2].trim(); });
+        if (byNum["1"] && byNum["2"] && byNum["3"] && byNum["4"]) {
+          options = [byNum["1"], byNum["2"], byNum["3"], byNum["4"]];
+          cleanPromptMd = promptMd.split("\n").filter(l => !/`[1-4]\./.test(l)).join("\n").trim();
+        }
+      }
+      if (options.length !== 4) {
+        const byNum = {}, kept = [];
+        promptMd.split("\n").forEach(line => {
+          const m = line.match(/^\s*([1-4])\.\s+(.+)$/);
+          if (m && !byNum[m[1]]) byNum[m[1]] = m[2].trim();
+          else kept.push(line);
+        });
+        if (byNum["1"] && byNum["2"] && byNum["3"] && byNum["4"]) {
+          options = [byNum["1"], byNum["2"], byNum["3"], byNum["4"]];
+          cleanPromptMd = kept.join("\n").trim();
+        }
+      }
+      if (options.length !== 4) return;
+      const qId = `q::${tabId}::${sIdx}::${blk.title}`;
+      const firstLine = (cleanPromptMd.split("\n")[0] || "").replace(/<[^>]+>/g, "").replace(/[`*#>]/g, "").trim();
+      const dayMatch = sess.title.match(/NGÀY\s*\d+/i);
+      const dayTag = dayMatch ? dayMatch[0].toUpperCase().replace(/\s+/, " ") : "KHÁC";
+      const isStar = blk.title.includes("★") || cleanPromptMd.includes("＿★＿");
+
+      questions.push({
+        id: qId, tabId, dayTag, isStar,
+        categoryLabel: tabId === "tuvung" ? "Từ vựng" : "Ngữ pháp",
+        sessionTitle: sess.title, title: blk.title,
+        promptHtml: renderMdFragment(cleanPromptMd),
+        promptPlain: firstLine,
+        options, longOpts: options.some(o => o.length > 22),
+        correct: correctNum,
+        explanationHtml: renderMdFragment(answerMd)
+      });
+    });
+  });
+  return questions;
+}
+
+
+function extractReadingQuestions(mdText) {
+  if (!mdText) return [];
+  const sessions = parseMarkdownToSections(mdText);
+  const questions = [];
+  sessions.forEach((sess, sIdx) => {
+    const dayMatch = sess.title.match(/NGÀY\s*\d+/i);
+    const dayTag = dayMatch ? dayMatch[0].toUpperCase().replace(/\s+/, " ") : "KHÁC";
+    sess.blocks.forEach((blk) => {
+      if (blk.type !== "question") return;
+      const body = blk.body_md;
+      const subParts = body.split(/\n(?=#### )/);
+      const chunks = subParts.length > 1
+        ? subParts.slice(1).map((sub, i) => ({
+            passageMd: subParts[0].trim(),
+            title: `${blk.title.replace(/`\[[^\]]+\]`/g, "").trim()} — ${sub.split("\n")[0].replace(/^####\s*/, "").trim()}`,
+            contentMd: sub.split("\n").slice(1).join("\n").trim(),
+            qId: `q::dochieu::${sIdx}::${blk.title}::${i}`
+          }))
+        : [{
+            passageMd: "",
+            title: blk.title.replace(/`\[[^\]]+\]`/g, "").trim(),
+            contentMd: body,
+            qId: `q::dochieu::${sIdx}::${blk.title}`
+          }];
+
+      chunks.forEach((ch) => {
+        const parts = ch.contentMd.split(/\n?\*\(Khoảng trống tự nhẩm đáp án\)\*\n?/);
+        if (parts.length < 2) return;
+        const promptMd = parts[0].trim();
+        const answerMd = parts.slice(1).join("\n").trim();
+        const ansMatch = answerMd.match(/Đáp án(?:\s*\(★\))?:\**\s*`?([1-4])/);
+        if (!ansMatch) return;
+        const correctNum = parseInt(ansMatch[1], 10);
+
+        const byNum = {}, kept = [];
+        promptMd.split("\n").forEach(line => {
+          const m = line.match(/^\s*(?:[-*]\s*)?`?([1-4])\.\s+(.+?)`?\s*$/);
+          if (m && !byNum[m[1]]) byNum[m[1]] = m[2].trim();
+          else kept.push(line);
+        });
+        let options = [];
+        if (byNum["1"] && byNum["2"] && byNum["3"] && byNum["4"]) {
+          options = [byNum["1"], byNum["2"], byNum["3"], byNum["4"]];
+        } else {
+          const btMatches = [...promptMd.matchAll(/`([1-4])\.\s*([^`]+)`/g)];
+          if (btMatches.length >= 4) {
+            const b = {};
+            btMatches.forEach(m => { b[m[1]] = m[2].trim(); });
+            if (b["1"] && b["2"] && b["3"] && b["4"]) options = [b["1"], b["2"], b["3"], b["4"]];
+          }
+        }
+        if (options.length !== 4) return;
+
+        const cleanPromptMd = kept.join("\n").trim();
+        const firstLine = (cleanPromptMd.split("\n")[0] || ch.title).replace(/<[^>]+>/g, "").replace(/[`*#>]/g, "").trim();
+        questions.push({
+          id: ch.qId,
+          tabId: "dochieu",
+          dayTag,
+          isStar: false,
+          categoryLabel: "Đọc hiểu",
+          sessionTitle: sess.title,
+          title: ch.title,
+          passageHtml: ch.passageMd ? renderMdFragment(ch.passageMd) : "",
+          promptHtml: renderMdFragment(cleanPromptMd),
+          promptPlain: firstLine,
+          options,
+          longOpts: true,
+          correct: correctNum,
+          explanationHtml: renderMdFragment(answerMd)
+        });
+      });
+    });
+  });
+  return questions;
+}
+
+function findStudyItemById(id) {
+  for (const t of ["tuvung", "nguphap", "dochieu"]) {
+    const f = (tabItems[t] || []).find(it => it.id === id);
+    if (f) return f;
+  }
+  return null;
+}
+
+function rebuildAllContent() {
+  cheatWordsBank = [];
+  tabItems.tuvung = buildTabItems("tuvung", mdStore.tuvung);
+  tabItems.nguphap = buildTabItems("nguphap", mdStore.nguphap);
+  tabItems.dochieu = buildTabItems("dochieu", mdStore.dochieu);
+  parsedQuizBank = [
+    ...extractQuizQuestions("tuvung", mdStore.tuvung),
+    ...extractQuizQuestions("nguphap", mdStore.nguphap),
+    ...extractReadingQuestions(mdStore.dochieu)
+  ];
+  renderCurrentView();
+  syncBookmarkBadgesOnly();
+}
+
+// ==================== CONTINUOUS VERTICAL SCROLL STUDY VIEW ====================
+function getFilteredItems(tabId) {
+  const q = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
+  return (tabItems[tabId] || []).filter(item => {
+    const matchQ = !q || item.searchText.includes(q);
+    const matchBm = !onlyBookmarked || isItemBookmarked(item);
+    return matchQ && matchBm;
+  });
+}
+
+function isItemBookmarked(item) {
+  if (bmState.items[item.id]) return true;
+  if (item.type === "cheatsheet") {
+    return Object.keys(bmState.items).some(k => k.startsWith("word::") && item.answerHtml.includes(escapeHtml(k)));
+  }
+  return false;
+}
+
+function renderCurrentView(preserveScroll = false) {
+  const scrollEl = document.getElementById("stageScroll");
+  const prevTop = preserveScroll ? scrollEl.scrollTop : 0;
+  const isStudyTab = ["tuvung", "nguphap", "dochieu"].includes(currentTab);
+  document.getElementById("sidebar").classList.toggle("hidden-mode", !isStudyTab);
+  const root = document.getElementById("stageRoot");
+  root.classList.toggle("wide", currentTab === "exam");
+
+  if (currentTab === "exam") { renderExamView(); return; }
+  if (currentTab === "flashcard") { renderFlashcardView(); return; }
+
+  const list = getFilteredItems(currentTab);
+  const hasAnyData = (tabItems[currentTab] || []).length > 0;
+  renderSidebar(list);
+
+  if (!hasAnyData) {
+    root.innerHTML = `
+      <div class="empty-state">
+        <h2 style="font-family:var(--font-serif);margin:0 0 8px;">${lastFetchError ? "Không tải được dữ liệu từ Google Drive" : "Đang tải bài học JLPT N1..."}</h2>
+        <p style="color:var(--muted);font-size:13.5px;margin:0 0 16px;">
+          ${lastFetchError
+            ? `Chi tiết lỗi: <code>${escapeHtml(lastFetchError)}</code><br>Kiểm tra kết nối mạng hoặc tiện ích chặn quảng cáo (AdBlock) đang chặn <code>googleapis.com</code>.`
+            : "Tự động tải 3 file Markdown mới nhất từ Google Drive (không cần đăng nhập)."}
+        </p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="fetchPublicMarkdownFiles(true)">${ICONS.refresh} Tải lại 3 file .md</button>
+          <button class="btn" onclick="document.getElementById('localMdInput').click()">Nạp file .md từ máy</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (!list.length) {
+    root.innerHTML = `<div class="empty-state"><h3 style="font-family:var(--font-serif);margin:0 0 6px;">Không tìm thấy mục nào khớp bộ lọc</h3><p style="color:var(--muted);font-size:13px;margin:0;">Thử xóa từ khóa tìm kiếm hoặc tắt lọc Bookmark.</p></div>`;
+    return;
+  }
+
+  // Precompute session progress (done / total questions)
+  const sessStats = {};
+  list.forEach(it => {
+    if (it.type !== "question") return;
+    if (!sessStats[it.sessionTitle]) sessStats[it.sessionTitle] = { total: 0, done: 0 };
+    sessStats[it.sessionTitle].total++;
+    if (doneIds.has(it.id)) sessStats[it.sessionTitle].done++;
+  });
+
+  // Resume last-read banner if user has saved position > 0 on this tab
+  const savedIdx = lastReadMap[currentTab];
+  let html = "";
+  if (!preserveScroll && savedIdx > 0 && savedIdx < list.length && !onlyBookmarked && !(document.getElementById("searchInput")?.value || "").trim()) {
+    const savedItem = list[savedIdx];
+    html += `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--indigo);border-radius:6px;padding:9px 14px;margin-bottom:14px;font-size:13px;">
+        <span>Đang học dở: <strong>${escapeHtml(savedItem.shortLabel)}</strong></span>
+        <button class="btn btn-indigo" onclick="scrollToStudyItem(${savedIdx})" style="padding:4px 11px;font-size:12px;">Tiếp tục học</button>
+      </div>
+    `;
+  }
+
+  let lastSess = "";
+  list.forEach((item, idx) => {
+    if (item.sessionTitle !== lastSess) {
+      lastSess = item.sessionTitle;
+      const st = sessStats[lastSess];
+      const progBadge = st && st.total ? `<span class="sess-prog">${st.done} / ${st.total} đã học</span>` : "";
+      html += `<h1 class="session-heading"><span>${escapeHtml(lastSess)}</span>${progBadge}</h1>`;
+    }
+    const isBm = !!bmState.items[item.id];
+    const isDone = doneIds.has(item.id);
+    const noteObj = notesMap[item.id];
+    const noteText = typeof noteObj === "string" ? noteObj : (noteObj?.text || "");
+    html += `
+      <article class="study-card ${isBm ? 'is-bookmarked' : ''} ${isDone ? 'is-done' : ''}" id="list-item-${idx}" data-idx="${idx}" data-bm-card="${escapeHtml(item.id)}">
+        <div class="card-head">
+          <h2 class="card-title">${escapeHtml(item.shortLabel || item.title)}</h2>
+          <div class="card-actions">
+            ${item.jpText ? `<button class="tts-btn" onclick='speakJapanese(${JSON.stringify(item.jpText)})' title="Nghe đọc tiếng Nhật">${ICONS.volume}<span>Nghe</span></button>` : ""}
+            ${item.type === "question" ? `
+              <button class="note-btn ${noteText ? 'has-note' : ''}" id="note-btn-${idx}" onclick="toggleNoteBox(${idx})" title="Ghi chú mẹo nhớ cá nhân">
+                ${ICONS.note}<span>Ghi chú</span>
+              </button>
+              <button class="done-btn ${isDone ? 'is-done' : ''}" onclick='toggleDoneItem(${JSON.stringify(item.id)})' title="Đánh dấu đã học xong câu này">
+                ${ICONS.check}<span>${isDone ? "Đã học" : "Xong"}</span>
+              </button>
+              <button class="bm-btn bm-btn-card ${isBm ? 'bookmarked' : ''}" data-bm-id="${escapeHtml(item.id)}"
+                data-bm-kind="question" data-bm-title="${escapeHtml(item.shortLabel)}"
+                data-bm-sub="${escapeHtml(item.preview)}" data-bm-note=""
+                data-bm-session="${escapeHtml(item.sessionTitle)}">
+                ${isBm ? ICONS.starFill : ICONS.star}<span>${isBm ? "Đã lưu" : "Bookmark"}</span>
+              </button>
+            ` : ""}
+          </div>
+        </div>
+        ${item.promptHtml ? `<div class="jp-prompt">${item.promptHtml}</div>` : ""}
+        <div class="q-answer-wrap">
+          ${item.promptHtml ? `<button class="btn toggle-ans-btn" onclick="toggleOneAns(this)">${ICONS.eye}<span>Hiện / Ẩn đáp án</span></button>` : ""}
+          <div class="q-answer">${item.answerHtml}</div>
+        </div>
+        ${item.type === "question" ? `
+          <div class="note-box ${noteText ? 'open' : ''}" id="note-box-${idx}">
+            <textarea class="note-textarea" placeholder="Ghi chú cá nhân / mẹo nhớ Kanji (tự đồng bộ theo tài khoản Gmail)..." oninput='updateQuestionNote(${JSON.stringify(item.id)}, this.value, "note-btn-${idx}")'>${escapeHtml(noteText)}</textarea>
+          </div>
+        ` : ""}
+      </article>
+    `;
+  });
+  root.innerHTML = html;
+  if (preserveScroll) scrollEl.scrollTop = prevTop;
+  syncBookmarkBadgesOnly();
+  bindScrollSpy();
+}
+
+function bindScrollSpy() {
+  if (scrollSpyBound) return;
+  scrollSpyBound = true;
+  let spyTimer = null;
+  const onScroll = () => {
+    const stageEl = document.getElementById("stageScroll");
+    const scrollY = window.innerWidth <= 960 ? window.scrollY : stageEl.scrollTop;
+    document.getElementById("scrollTopBtn").classList.toggle("show", scrollY > 360);
+
+    if (!["tuvung", "nguphap", "dochieu"].includes(currentTab)) return;
+    clearTimeout(spyTimer);
+    spyTimer = setTimeout(() => {
+      const cards = document.querySelectorAll("#stageRoot .study-card[data-idx]");
+      if (!cards.length) return;
+      const refTop = window.innerWidth <= 960 ? 110 : stageEl.getBoundingClientRect().top + 48;
+      let activeIdx = 0;
+      for (const c of cards) {
+        if (c.getBoundingClientRect().top <= refTop) activeIdx = parseInt(c.dataset.idx, 10);
+        else break;
+      }
+      document.querySelectorAll(".nav-item.active").forEach(el => el.classList.remove("active"));
+      const navEl = document.getElementById("nav-item-" + activeIdx);
+      if (navEl) {
+        navEl.classList.add("active");
+        if (window.innerWidth > 960) navEl.scrollIntoView({ block: "nearest" });
+      }
+      if (!onlyBookmarked && !(document.getElementById("searchInput")?.value || "").trim()) {
+        lastReadMap[currentTab] = activeIdx;
+        localStorage.setItem(KEYS.LAST_READ, JSON.stringify(lastReadMap));
+      }
+    }, 90);
+  };
+  document.getElementById("stageScroll").addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("scroll", onScroll, { passive: true });
+}
+
+function scrollStageToTop() {
+  if (window.innerWidth <= 960) window.scrollTo({ top: 0, behavior: "smooth" });
+  else document.getElementById("stageScroll").scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderSidebar(list) {
+  const el = document.getElementById("sidebarList");
+  if (!list.length) {
+    el.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted);font-size:12.5px;">Không có mục nào</div>`;
+    return;
+  }
+  let html = "", lastSess = "";
+  list.forEach((item, idx) => {
+    if (item.sessionTitle !== lastSess) {
+      lastSess = item.sessionTitle;
+      html += `<div class="sess-group-title">${escapeHtml(lastSess)}</div>`;
+    }
+    const isBm = !!bmState.items[item.id];
+    const isWrong = wrongIds.has(item.id);
+    const isDone = doneIds.has(item.id);
+    html += `
+      <div class="nav-item" onclick="scrollToStudyItem(${idx})" id="nav-item-${idx}">
+        <span class="nav-item-text">${escapeHtml(item.shortLabel)}</span>
+        <span class="nav-badges">
+          ${isDone ? '<span class="dot-done-mini" title="Đã học xong"></span>' : ''}
+          ${isWrong ? '<span class="dot-wrong-mini" title="Từng làm sai"></span>' : ''}
+          ${isBm ? `<span style="color:var(--gold);display:inline-flex;">${ICONS.starFill}</span>` : ''}
+        </span>
+      </div>
+    `;
+  });
+  el.innerHTML = html;
+}
+
+function scrollToStudyItem(idx) {
+  closeMobileSidebar();
+  document.querySelectorAll(".nav-item.active").forEach(el => el.classList.remove("active"));
+  document.getElementById("nav-item-" + idx)?.classList.add("active");
+  const card = document.getElementById("list-item-" + idx);
+  if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function jumpToBookmarkedItem(id) {
+  for (const t of ["tuvung", "nguphap", "dochieu"]) {
+    const idx = (tabItems[t] || []).findIndex(it => it.id === id);
+    if (idx !== -1) {
+      closeDrawer();
+      onlyBookmarked = false;
+      document.getElementById("filterBmBtn").classList.remove("btn-active-gold");
+      const s = document.getElementById("searchInput");
+      if (s) s.value = "";
+      currentTab = t;
+      document.querySelectorAll(".tab-btn, .bnav-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
+      renderCurrentView();
+      setTimeout(() => scrollToStudyItem(idx), 60);
+      return;
+    }
+  }
+}
+
+// ==================== FLASHCARD ENGINE (SRS: ĐÃ THUỘC / ÔN LẠI) ====================
+function getRawFlashcardSource() {
+  const allBms = Object.values(bmState.items);
+  if (fcConfig.source === "bookmarks") return allBms.map(it => ({ ...it }));
+  if (fcConfig.source === "bm_words") return allBms.filter(it => it.kind !== "question").map(it => ({ ...it }));
+  if (fcConfig.source === "bm_questions") return allBms.filter(it => it.kind === "question").map(it => ({ ...it }));
+  return cheatWordsBank.map(w => ({ ...w, kind: "word" }));
+}
+
+function buildFlashcardDeck() {
+  const raw = getRawFlashcardSource();
+  fcDeck = fcConfig.showMastered ? raw : raw.filter(c => !masteredIds.has(c.id));
+  fcIdx = 0; fcFlipped = false;
+}
+
+function renderFlashcardView() {
+  const root = document.getElementById("stageRoot");
+  const allBms = Object.values(bmState.items);
+  const bmWordsCnt = allBms.filter(it => it.kind !== "question").length;
+  const bmQsCnt = allBms.filter(it => it.kind === "question").length;
+  const csCnt = cheatWordsBank.length;
+  const rawTotal = getRawFlashcardSource();
+  const masteredInSource = rawTotal.filter(c => masteredIds.has(c.id)).length;
+
+  const filterBar = `
+    <div class="fc-toolbar">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn ${fcConfig.source==='bookmarks'?'btn-primary':''}" onclick="switchFlashcardSource('bookmarks')">Tất cả BM (${allBms.length})</button>
+        <button class="btn ${fcConfig.source==='bm_words'?'btn-primary':''}" onclick="switchFlashcardSource('bm_words')">Từ vựng (${bmWordsCnt})</button>
+        <button class="btn ${fcConfig.source==='bm_questions'?'btn-primary':''}" onclick="switchFlashcardSource('bm_questions')">Bài tập (${bmQsCnt})</button>
+        <button class="btn ${fcConfig.source==='cheatsheet'?'btn-primary':''}" onclick="switchFlashcardSource('cheatsheet')">Cheat Sheet (${csCnt})</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <span class="tag-pill done">Đã thuộc: ${masteredInSource}/${rawTotal.length}</span>
+        <button class="btn ${fcConfig.showMastered?'btn-active-matcha':''}" onclick="toggleShowMastered()" style="font-size:12px;padding:4px 9px;">${fcConfig.showMastered ? "Đang hiện cả đã thuộc" : "Ẩn đã thuộc"}</button>
+        ${fcDeck.length ? `<button class="btn" onclick="shuffleFlashcards()" style="font-size:12px;padding:4px 9px;">${ICONS.shuffle}<span>Xáo</span></button>` : ""}
+      </div>
+    </div>
+  `;
+
+  if (!fcDeck.length) {
+    const allDone = rawTotal.length > 0 && masteredInSource === rawTotal.length;
+    root.innerHTML = `<div class="fc-wrap">${filterBar}<div class="empty-state">
+      <h2 style="font-family:var(--font-serif);margin:0 0 8px;">${allDone ? "Xuất sắc — Bạn đã thuộc 100% thẻ trong mục này" : "Chưa có thẻ nào"}</h2>
+      <p style="color:var(--muted);font-size:13.5px;margin:0 0 16px;">${allDone ? "Anh có thể đặt lại trạng thái đã thuộc để ôn vòng mới hoặc chuyển sang nguồn thẻ khác." : `Hãy đánh dấu Bookmark từ vựng/câu hỏi khó, hoặc chọn nguồn Cheat Sheet (${csCnt} từ).`}</p>
+      ${allDone ? `<button class="btn btn-primary" onclick="resetMasteredInSource()">Ôn lại toàn bộ ${rawTotal.length} thẻ</button>` : ""}
+    </div></div>`;
+    return;
+  }
+
+  if (fcIdx >= fcDeck.length) fcIdx = 0;
+  const card = fcDeck[fcIdx];
+  const isQ = card.kind === "question";
+  const fullQ = isQ ? findStudyItemById(card.id) : null;
+  const speakText = isQ ? (fullQ?.jpText || card.sub || "") : card.title;
+  const isMastered = masteredIds.has(card.id);
+
+  let bodyHtml = "";
+  if (isQ && fullQ) {
+    bodyHtml = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+        <span class="tag-pill">BÀI TẬP · ${escapeHtml(fullQ.shortLabel)}</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:600;">Thẻ ${fcIdx + 1}/${fcDeck.length} · ${fcFlipped ? "Mặt sau" : "Bấm thẻ hoặc Space"}</span>
+      </div>
+      <div class="jp-prompt" style="margin-bottom:8px;">${fullQ.promptHtml}</div>
+      ${fcFlipped
+        ? `<div style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--border-strong);">${fullQ.answerHtml}</div>`
+        : `<div style="font-size:13px;color:var(--muted);text-align:center;margin-top:12px;">Tự chọn đáp án 1–4 rồi bấm vào thẻ để kiểm tra lời giải</div>`}
+    `;
+  } else {
+    const cleanSub = (card.sub || "").replace(/<[^>]+>/g, "");
+    const cleanNote = (card.note || "").replace(/<[^>]+>/g, "");
+    bodyHtml = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span class="tag-pill word">TỪ VỰNG</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:600;">Thẻ ${fcIdx + 1}/${fcDeck.length}</span>
+      </div>
+      <div class="fc-word">${escapeHtml(card.title)}</div>
+      ${fcFlipped ? `
+        ${cleanSub ? `<div class="fc-reading">${escapeHtml(cleanSub)}</div>` : ""}
+        ${cleanNote ? `<div class="fc-meaning">${escapeHtml(cleanNote)}</div>` : ""}
+        <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:16px;">${escapeHtml(card.session || "")}</div>
+      ` : `<div style="font-size:13px;color:var(--muted);text-align:center;margin-top:6px;">Tự nhẩm cách đọc và nghĩa tiếng Việt</div>`}
+    `;
+  }
+
+  root.innerHTML = `
+    <div class="fc-wrap">
+      ${filterBar}
+      <div class="fc-card" onclick="flipFlashcard()">${bodyHtml}</div>
+      <div class="fc-controls">
+        <button class="btn" onclick="stepFlashcard(-1)" ${fcIdx <= 0 ? "disabled" : ""}>Trước</button>
+        ${speakText ? `<button class="btn" onclick='speakJapanese(${JSON.stringify(speakText)})'>${ICONS.volume}<span>Nghe</span></button>` : ""}
+        <button class="btn btn-primary" onclick="flipFlashcard()">${fcFlipped ? "Úp thẻ" : "Lật xem đáp án"}</button>
+        <button class="btn" onclick="markFlashcardAgain()" style="border-color:var(--vermilion);color:var(--vermilion);" title="Đưa thẻ này lặp lại sau 3 thẻ">Chưa thuộc (lặp lại)</button>
+        <button class="btn btn-active-matcha" onclick="markFlashcardMastered()" title="Đánh dấu đã thuộc và ẩn khỏi vòng ôn">${ICONS.check}<span>${isMastered ? "Bỏ đã thuộc" : "Đã thuộc"}</span></button>
+        <button class="btn" onclick="stepFlashcard(1)" ${fcIdx >= fcDeck.length - 1 ? "disabled" : ""}>Tiếp</button>
+      </div>
+    </div>
+  `;
+}
+
+function toggleShowMastered() { fcConfig.showMastered = !fcConfig.showMastered; buildFlashcardDeck(); renderFlashcardView(); }
+function markFlashcardMastered() {
+  const card = fcDeck[fcIdx]; if (!card) return;
+  if (masteredIds.has(card.id)) {
+    masteredIds.delete(card.id);
+    saveMasteredIds();
+    showToast("Đã đưa thẻ trở lại danh sách cần ôn");
+  } else {
+    masteredIds.add(card.id);
+    saveMasteredIds();
+    if (!fcConfig.showMastered) fcDeck.splice(fcIdx, 1);
+    else fcIdx = Math.min(fcIdx + 1, fcDeck.length - 1);
+    showToast("Đã đánh dấu thuộc");
+  }
+  fcFlipped = false;
+  if (fcIdx >= fcDeck.length) fcIdx = Math.max(0, fcDeck.length - 1);
+  renderFlashcardView();
+}
+function markFlashcardAgain() {
+  const card = fcDeck[fcIdx]; if (!card) return;
+  masteredIds.delete(card.id);
+  saveMasteredIds();
+  fcDeck.splice(fcIdx, 1);
+  const reinsertAt = Math.min(fcIdx + 3, fcDeck.length);
+  fcDeck.splice(reinsertAt, 0, card);
+  fcFlipped = false;
+  if (fcIdx >= fcDeck.length) fcIdx = 0;
+  showToast("Sẽ lặp lại thẻ này sau 3 thẻ nữa");
+  renderFlashcardView();
+}
+function resetMasteredInSource() {
+  getRawFlashcardSource().forEach(c => masteredIds.delete(c.id));
+  saveMasteredIds();
+  buildFlashcardDeck();
+  renderFlashcardView();
+  showToast("Đã đặt lại toàn bộ thẻ để ôn vòng mới");
+}
+
+function switchFlashcardSource(s) { fcConfig.source = s; buildFlashcardDeck(); renderFlashcardView(); }
+function flipFlashcard() { fcFlipped = !fcFlipped; renderFlashcardView(); }
+function stepFlashcard(d) { const n = fcIdx + d; if (n >= 0 && n < fcDeck.length) { fcIdx = n; fcFlipped = false; renderFlashcardView(); } }
+function shuffleFlashcards() { fcDeck = shuffleArray(fcDeck); fcIdx = 0; fcFlipped = false; renderFlashcardView(); showToast("Đã xáo trộn bộ thẻ"); }
+
+// ==================== EXAM ENGINE (DAY FILTER, STAR FILTER, COUNTDOWN, HISTORY) ====================
+function getAvailableExamDays() {
+  const days = new Set();
+  parsedQuizBank.forEach(q => { if (q.dayTag && q.dayTag !== "KHÁC") days.add(q.dayTag); });
+  return [...days].sort((a, b) => a.localeCompare(b, "vi", { numeric: true }));
+}
+
+function getFilteredExamPool(source, day = examConfig.day) {
+  let pool = [...parsedQuizBank];
+  if (day && day !== "all") pool = pool.filter(q => q.dayTag === day);
+  if (source === "tuvung") return pool.filter(q => q.tabId === "tuvung");
+  if (source === "nguphap") return pool.filter(q => q.tabId === "nguphap");
+  if (source === "dochieu") return pool.filter(q => q.tabId === "dochieu");
+  if (source === "star") return pool.filter(q => q.isStar);
+  if (source === "bookmarked") return pool.filter(q => !!bmState.items[q.id]);
+  if (source === "wrong") return pool.filter(q => wrongIds.has(q.id));
+  return pool;
+}
+
+function renderExamView() {
+  const root = document.getElementById("stageRoot");
+  if (!parsedQuizBank.length) {
+    root.innerHTML = `<div class="empty-state"><h2 style="font-family:var(--font-serif);">Thi thử JLPT N1</h2><p style="color:var(--muted);">Đang tải ngân hàng câu hỏi Từ vựng &amp; Ngữ pháp...</p><button class="btn btn-primary" onclick="fetchPublicMarkdownFiles(true)">Tải lại 3 file .md</button></div>`;
+    return;
+  }
+  if (examSession) {
+    if (examSession.finished) renderExamResult(root);
+    else renderExamActive(root);
+    return;
+  }
+
+  const days = getAvailableExamDays();
+  const baseByDay = getFilteredExamPool("all", examConfig.day);
+  const vocabCnt = baseByDay.filter(q => q.tabId === "tuvung").length;
+  const gramCnt = baseByDay.filter(q => q.tabId === "nguphap").length;
+  const readCnt = baseByDay.filter(q => q.tabId === "dochieu").length;
+  const starCnt = baseByDay.filter(q => q.isStar).length;
+  const bmCnt = baseByDay.filter(q => !!bmState.items[q.id]).length;
+  const wrongCnt = baseByDay.filter(q => wrongIds.has(q.id)).length;
+  const poolSize = getFilteredExamPool(examConfig.source, examConfig.day).length;
+  const targetCnt = examConfig.count === "all" ? poolSize : Math.min(Number(examConfig.count) || 10, poolSize);
+
+  root.innerHTML = `
+    <div class="exam-setup-card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--border);padding-bottom:12px;">
+        <h2 style="font-family:var(--font-serif);margin:0;font-size:21px;">Tạo đề thi thử JLPT N1</h2>
+        <span style="font-size:12.5px;color:var(--muted);">Ngân hàng: <strong>${parsedQuizBank.length} câu</strong> · Đang lọc: <strong>${poolSize} câu</strong></span>
+      </div>
+
+      <div class="exam-grid-setup">
+        <div class="exam-field">
+          <label>1. Lọc theo Ngày học</label>
+          <div class="pill-group">
+            <button class="choice-pill ${examConfig.day==='all'?'active':''}" onclick="setExamConfig('day','all')">Tất cả ngày</button>
+            ${days.map(d => `<button class="choice-pill ${examConfig.day===d?'active':''}" onclick="setExamConfig('day','${d}')">${d}</button>`).join("")}
+          </div>
+        </div>
+
+        <div class="exam-field">
+          <label>2. Nguồn câu hỏi</label>
+          <div class="pill-group">
+            <button class="choice-pill ${examConfig.source==='all'?'active':''}" onclick="setExamConfig('source','all')">Tất cả (${baseByDay.length})</button>
+            <button class="choice-pill ${examConfig.source==='tuvung'?'active':''}" onclick="setExamConfig('source','tuvung')">Từ vựng (${vocabCnt})</button>
+            <button class="choice-pill ${examConfig.source==='nguphap'?'active':''}" onclick="setExamConfig('source','nguphap')">Ngữ pháp (${gramCnt})</button>
+            <button class="choice-pill ${examConfig.source==='dochieu'?'active':''}" onclick="setExamConfig('source','dochieu')">Đọc hiểu (${readCnt})</button>
+            <button class="choice-pill ${examConfig.source==='star'?'active':''}" onclick="setExamConfig('source','star')">Câu sao ★ (${starCnt})</button>
+            <button class="choice-pill ${examConfig.source==='bookmarked'?'active':''}" onclick="setExamConfig('source','bookmarked')">Bookmark (${bmCnt})</button>
+            <button class="choice-pill ${examConfig.source==='wrong'?'active':''}" onclick="setExamConfig('source','wrong')">Hay sai (${wrongCnt})</button>
+          </div>
+        </div>
+
+        <div class="exam-field">
+          <label>3. Số câu ngẫu nhiên (tối đa ${poolSize})</label>
+          <div class="pill-group" style="align-items:center;">
+            ${[5, 10, 20, 30].map(n => `<button class="choice-pill ${examConfig.count===n?'active':''}" onclick="setExamConfig('count',${n})">${n}</button>`).join("")}
+            <button class="choice-pill ${examConfig.count==='all'?'active':''}" onclick="setExamConfig('count','all')">Tất cả</button>
+            <input class="custom-count-input" type="number" min="1" max="${Math.max(1, poolSize)}" placeholder="Tùy ý"
+              value="${typeof examConfig.count==='number' && ![5,10,20,30].includes(examConfig.count) ? examConfig.count : ''}"
+              oninput="setCustomExamCount(this.value)">
+          </div>
+        </div>
+
+        <div class="exam-field">
+          <label>4. Chế độ chấm điểm &amp; Thời gian</label>
+          <div class="pill-group" style="margin-bottom:7px;">
+            <button class="choice-pill ${examConfig.mode==='instant'?'active':''}" onclick="setExamConfig('mode','instant')">Chấm ngay</button>
+            <button class="choice-pill ${examConfig.mode==='submit'?'active':''}" onclick="setExamConfig('mode','submit')">Nộp bài mới chấm</button>
+          </div>
+          <div class="pill-group">
+            <button class="choice-pill ${examConfig.timerMode==='up'?'active':''}" onclick="setExamConfig('timerMode','up')">Đếm tiến</button>
+            <button class="choice-pill ${examConfig.timerMode==='countdown'?'active':''}" onclick="setExamConfig('timerMode','countdown')">Đếm ngược chuẩn N1</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:18px;">
+        <button class="btn btn-primary" onclick="startExam()" ${poolSize === 0 ? "disabled" : ""} style="padding:10px 28px;font-size:14.5px;">
+          Bắt đầu làm bài (${targetCnt} câu)
+        </button>
+      </div>
+    </div>
+
+    ${examHistory.length ? `
+      <div class="exam-setup-card" style="margin-top:16px;border-top:1px solid var(--border);padding:18px 22px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h3 style="font-family:var(--font-serif);margin:0;font-size:16px;">Lịch sử làm bài gần đây (${examHistory.length})</h3>
+          <button class="btn" onclick="clearExamHistory()" style="font-size:11.5px;padding:3px 9px;color:var(--muted);">Xóa lịch sử</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Thời gian</th><th>Phạm vi</th><th>Điểm số</th><th>Tỉ lệ</th><th>Thời lượng</th></tr></thead>
+            <tbody>
+              ${examHistory.slice(0, 10).map(h => `
+                <tr>
+                  <td style="white-space:nowrap;">${escapeHtml(h.dateLabel)}</td>
+                  <td>${escapeHtml(h.scope)}</td>
+                  <td><strong>${h.correct}/${h.total}</strong></td>
+                  <td style="font-weight:700;color:${h.pct>=70?'var(--matcha)':'var(--vermilion)'};">${h.pct}%</td>
+                  <td>${escapeHtml(h.duration)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ` : ""}
+  `;
+}
+
+function clearExamHistory() {
+  examHistory = [];
+  saveExamHistory();
+  renderExamView();
+}
+
+function setExamConfig(k, v) { examConfig[k] = v; renderExamView(); }
+function setCustomExamCount(v) { const n = parseInt(v, 10); if (n > 0) { examConfig.count = n; renderExamView(); } }
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function formatDuration(sec) { const s = Math.max(0, sec); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
+
+function startExam(customList = null) {
+  const pool = customList || getFilteredExamPool(examConfig.source, examConfig.day);
+  if (!pool.length) { showToast("Không có câu hỏi nào."); return; }
+  const desired = customList ? pool.length : (examConfig.count === "all" ? pool.length : Math.min(Number(examConfig.count) || 10, pool.length));
+  const selected = shuffleArray(pool).slice(0, desired);
+  // N1 pace: 30s per vocab, 45s per grammar
+  const limitSec = selected.reduce((sum, q) => sum + (q.tabId === "dochieu" ? 90 : (q.tabId === "nguphap" ? 45 : 30)), 0);
+  const scopeLabel = customList ? "Làm lại câu sai" : `${examConfig.day === "all" ? "Tất cả" : examConfig.day} · ${examConfig.source}`;
+
+  examSession = {
+    questions: selected, answers: {}, currentIdx: 0,
+    mode: examConfig.mode, timerMode: examConfig.timerMode,
+    limitSec, scopeLabel, startedAt: Date.now(), elapsedSec: 0, finished: false
+  };
+  clearInterval(examTimerInterval);
+  examTimerInterval = setInterval(() => {
+    if (!examSession || examSession.finished) return;
+    examSession.elapsedSec = Math.floor((Date.now() - examSession.startedAt) / 1000);
+    const el = document.getElementById("examTimer");
+    if (examSession.timerMode === "countdown") {
+      const rem = examSession.limitSec - examSession.elapsedSec;
+      if (el) {
+        el.textContent = formatDuration(rem);
+        el.style.color = rem <= 60 ? "var(--vermilion)" : "";
+      }
+      if (rem <= 0) {
+        showToast("Hết giờ làm bài — hệ thống tự động nộp bài");
+        finishExam();
+      }
+    } else if (el) {
+      el.textContent = formatDuration(examSession.elapsedSec);
+    }
+  }, 1000);
+  renderExamView();
+}
+
+function renderExamActive(root) {
+  const s = examSession, q = s.questions[s.currentIdx], total = s.questions.length;
+  const userAns = s.answers[s.currentIdx];
+  const showFeedback = s.mode === "instant" && userAns !== undefined;
+  const answeredCount = Object.keys(s.answers).length;
+  const pct = Math.round((answeredCount / total) * 100);
+  const isBm = !!bmState.items[q.id];
+
+  root.innerHTML = `
+    <div class="exam-2col">
+      <div class="exam-main-card">
+        <div class="card-head">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="tag-pill">${q.categoryLabel}</span>
+            <strong style="font-family:var(--font-serif);font-size:15.5px;">Câu ${s.currentIdx + 1} / ${total}</strong>
+            <span style="font-size:12px;color:var(--muted);">${escapeHtml(q.title.replace(/`\[[^\]]+\]`/g, ""))}</span>
+          </div>
+          <div class="card-actions">
+            <button class="tts-btn" onclick='speakJapanese(${JSON.stringify(q.promptPlain)})'>${ICONS.volume}<span>Nghe</span></button>
+            <button class="bm-btn ${isBm?'bookmarked':''}" onclick="toggleExamQuestionBookmark(${s.currentIdx})">${isBm ? ICONS.starFill : ICONS.star}<span>${isBm ? "Đã lưu" : "Bookmark"}</span></button>
+          </div>
+        </div>
+
+        ${q.passageHtml ? `<details class="exam-passage" open><summary>Đoạn văn / Thông báo đọc hiểu (bấm để thu gọn)</summary>${q.passageHtml}</details>` : ""}
+        <div class="jp-prompt">${q.promptHtml}</div>
+
+        <div class="exam-options-grid ${q.longOpts ? 'single-col' : ''}">
+          ${q.options.map((opt, idx) => {
+            const num = idx + 1;
+            let cls = "exam-opt-btn";
+            if (showFeedback) {
+              if (num === q.correct) cls += " correct";
+              else if (num === userAns) cls += " wrong";
+            } else if (num === userAns) cls += " selected";
+            return `<button class="${cls}" ${showFeedback ? "disabled" : ""} onclick="selectExamOption(${num})"><span class="exam-opt-num">${num}</span><span>${escapeHtml(opt)}</span></button>`;
+          }).join("")}
+        </div>
+
+        ${showFeedback ? `
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+            <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:${userAns===q.correct?'var(--matcha)':'var(--vermilion)'};">
+              ${userAns === q.correct ? "Chính xác" : `Chưa đúng — Đáp án đúng là số ${q.correct}`}
+            </div>
+            <div>${q.explanationHtml}</div>
+          </div>
+        ` : ""}
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+          <button class="btn" onclick="moveExamQuestion(-1)" ${s.currentIdx === 0 ? "disabled" : ""}>Câu trước</button>
+          <span style="font-size:12px;color:var(--muted);">Phím 1–4 chọn đáp án · ← → chuyển câu</span>
+          ${s.currentIdx < total - 1
+            ? `<button class="btn btn-primary" onclick="moveExamQuestion(1)">Câu tiếp</button>`
+            : `<button class="btn btn-active-matcha" onclick="finishExam()">Nộp bài</button>`}
+        </div>
+      </div>
+
+      <div class="exam-side-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+          <strong style="font-family:var(--font-serif);font-size:16px;color:${s.timerMode==='countdown' && (s.limitSec - s.elapsedSec)<=60 ? 'var(--vermilion)' : ''};" id="examTimer">${formatDuration(s.timerMode === "countdown" ? (s.limitSec - s.elapsedSec) : s.elapsedSec)}</strong>
+          <span style="color:var(--muted);">${answeredCount} / ${total} câu</span>
+        </div>
+        <div class="exam-progress-track"><div class="exam-progress-fill" style="width:${pct}%"></div></div>
+        <div class="exam-dots-grid">
+          ${s.questions.map((item, i) => {
+            const a = s.answers[i];
+            let dCls = "exam-dot";
+            if (i === s.currentIdx) dCls += " current";
+            if (a !== undefined) {
+              if (s.mode === "instant") dCls += (a === item.correct ? " dot-correct" : " dot-wrong");
+              else dCls += " answered";
+            }
+            return `<button class="${dCls}" onclick="goToExamQuestion(${i})">${i + 1}</button>`;
+          }).join("")}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-active-matcha" onclick="finishExam()" style="justify-content:center;padding:8px;">Nộp bài &amp; Chấm điểm</button>
+          <button class="btn" onclick="exitExam()" style="justify-content:center;">Thoát bài thi</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function selectExamOption(num) {
+  if (!examSession || examSession.finished) return;
+  const q = examSession.questions[examSession.currentIdx];
+  examSession.answers[examSession.currentIdx] = num;
+  if (num === q.correct) wrongIds.delete(q.id);
+  else wrongIds.add(q.id);
+  saveWrongIds();
+  renderExamView();
+}
+function moveExamQuestion(d) { const n = examSession.currentIdx + d; if (n >= 0 && n < examSession.questions.length) { examSession.currentIdx = n; renderExamView(); } }
+function goToExamQuestion(i) { examSession.currentIdx = i; renderExamView(); }
+function toggleExamQuestionBookmark(idx) {
+  const q = examSession?.questions[idx]; if (!q) return;
+  toggleBookmarkByData({ id: q.id, kind: "question", title: q.title, sub: q.promptPlain.slice(0, 100), note: "", session: q.sessionTitle });
+  renderExamView();
+}
+function finishExam() {
+  if (!examSession || examSession.finished) return;
+  let correctCnt = 0;
+  examSession.questions.forEach((q, i) => {
+    const a = examSession.answers[i];
+    if (a === q.correct) { wrongIds.delete(q.id); correctCnt++; }
+    else if (a !== undefined) wrongIds.add(q.id);
+  });
+  saveWrongIds();
+  const total = examSession.questions.length;
+  const pct = total ? Math.round((correctCnt / total) * 100) : 0;
+  const now = new Date();
+  examHistory.unshift({
+    ts: now.toISOString(),
+    dateLabel: now.toLocaleDateString("vi-VN") + " " + now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+    scope: examSession.scopeLabel || "JLPT N1",
+    correct: correctCnt,
+    total,
+    pct,
+    duration: formatDuration(examSession.elapsedSec)
+  });
+  saveExamHistory();
+  examSession.finished = true;
+  clearInterval(examTimerInterval);
+  renderExamView();
+}
+function exitExam() { clearInterval(examTimerInterval); examSession = null; renderExamView(); }
+function retryWrongExam() {
+  const wrongQs = examSession.questions.filter((q, i) => examSession.answers[i] !== q.correct);
+  if (!wrongQs.length) { showToast("Bạn đã đúng 100%"); return; }
+  startExam(wrongQs);
+}
+function bookmarkAllWrongExam() {
+  const wrongQs = examSession.questions.filter((q, i) => examSession.answers[i] !== q.correct);
+  if (!wrongQs.length) return;
+  const now = new Date().toISOString();
+  wrongQs.forEach(q => {
+    delete bmState.deleted[q.id];
+    bmState.items[q.id] = { id: q.id, kind: "question", title: q.title, sub: q.promptPlain.slice(0, 100), note: "Sai khi làm bài thi", session: q.sessionTitle, addedAt: now, updatedAt: now };
+  });
+  onBookmarksChanged();
+  renderExamView();
+  showToast(`Đã lưu ${wrongQs.length} câu làm sai vào Bookmark`);
+}
+
+function renderExamResult(root) {
+  const s = examSession, total = s.questions.length;
+  let correctCnt = 0;
+  s.questions.forEach((q, i) => { if (s.answers[i] === q.correct) correctCnt++; });
+  const wrongCnt = total - correctCnt;
+  const pct = Math.round((correctCnt / total) * 100);
+
+  root.innerHTML = `
+    <div style="max-width:840px;margin:0 auto;">
+      <div class="exam-score-box">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);">KẾT QUẢ BÀI THI JLPT N1</div>
+        <div class="exam-score-big">${correctCnt} / ${total} (${pct}%)</div>
+        <div style="font-size:13.5px;color:var(--ink-2);margin-top:4px;">
+          Thời gian: ${formatDuration(s.elapsedSec)} · Đúng: ${correctCnt} · Sai/Bỏ trống: ${wrongCnt}
+        </div>
+        <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:16px;">
+          <button class="btn btn-primary" onclick="exitExam()">Tạo đề thi mới</button>
+          ${wrongCnt > 0 ? `<button class="btn" onclick="retryWrongExam()">Làm lại ${wrongCnt} câu sai</button>` : ""}
+          ${wrongCnt > 0 ? `<button class="btn btn-gold-soft" onclick="bookmarkAllWrongExam()">Bookmark tất cả câu sai</button>` : ""}
+        </div>
+      </div>
+
+      ${s.questions.map((q, i) => {
+        const u = s.answers[i], ok = u === q.correct, isBm = !!bmState.items[q.id];
+        return `
+          <div class="review-item ${ok ? 'is-right' : 'is-wrong'}">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+              <div><strong>Câu ${i + 1}:</strong> <span style="color:${ok?'var(--matcha)':'var(--vermilion)'};font-weight:700;">${ok ? "Đúng" : `Sai (Chọn ${u || "trống"} · Đáp án ${q.correct})`}</span></div>
+              <button class="bm-btn ${isBm?'bookmarked':''}" onclick="toggleExamQuestionBookmark(${i})">${isBm ? ICONS.starFill : ICONS.star}<span>${isBm ? "Đã lưu" : "Bookmark"}</span></button>
+            </div>
+            <div class="jp-prompt" style="font-size:15px;padding:10px 13px;">${q.promptHtml}</div>
+            <div style="font-size:13.5px;margin-bottom:8px;">
+              ${q.options.map((o, oi) => {
+                const n = oi + 1;
+                const st = n === q.correct ? "color:var(--matcha);font-weight:700;" : (n === u ? "color:var(--vermilion);text-decoration:line-through;" : "color:var(--ink-2);");
+                return `<div style="${st}">${n}. ${escapeHtml(o)}</div>`;
+              }).join("")}
+            </div>
+            <details ${ok ? "" : "open"}>
+              <summary style="cursor:pointer;font-size:13px;color:var(--indigo);font-weight:600;">Xem giải thích chi tiết</summary>
+              <div style="margin-top:6px;">${q.explanationHtml}</div>
+            </details>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+// ==================== BOOKMARKS & FIRESTORE SYNC ====================
+function loadBookmarksLocal() {
+  try {
+    const raw = localStorage.getItem(KEYS.BOOKMARKS);
+    if (raw) { const p = JSON.parse(raw); bmState = { items: p.items || {}, deleted: p.deleted || {} }; return; }
+    const leg = localStorage.getItem(KEYS.LEGACY_BM);
+    if (leg) { bmState = { items: JSON.parse(leg) || {}, deleted: {} }; saveBookmarksLocal(); }
+  } catch { bmState = { items: {}, deleted: {} }; }
+}
+function saveBookmarksLocal() { localStorage.setItem(KEYS.BOOKMARKS, JSON.stringify(bmState)); }
+
+function mergeBookmarkStates(local, remote) {
+  const merged = { items: {}, deleted: {} };
+  const allIds = new Set([...Object.keys(local.items || {}), ...Object.keys(local.deleted || {}), ...Object.keys(remote.items || {}), ...Object.keys(remote.deleted || {})]);
+  allIds.forEach(id => {
+    const lItem = local.items?.[id], rItem = remote.items?.[id];
+    const lDel = local.deleted?.[id] || "", rDel = remote.deleted?.[id] || "";
+    const lTs = lItem ? (lItem.updatedAt || lItem.addedAt || "1970-01-01") : "";
+    const rTs = rItem ? (rItem.updatedAt || rItem.addedAt || "1970-01-01") : "";
+    const maxItemTs = lTs >= rTs ? lTs : rTs;
+    const winItem = lTs >= rTs ? lItem : rItem;
+    const maxDelTs = lDel >= rDel ? lDel : rDel;
+    if (maxDelTs && maxDelTs > maxItemTs) merged.deleted[id] = maxDelTs;
+    else if (winItem) merged.items[id] = winItem;
+  });
+  return merged;
+}
+
+function onBookmarksChanged() {
+  saveBookmarksLocal();
+  syncBookmarkBadgesOnly();
+  if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderSidebar(getFilteredItems(currentTab));
+  if (currentUser && !isApplyingRemote) {
+    document.getElementById("bmSyncInfo").textContent = "Đang đồng bộ lên Gmail...";
+    scheduleCloudPush();
+  }
+}
+
+function toggleBookmarkByData(data) {
+  if (!data.id) return;
+  const now = new Date().toISOString();
+  if (bmState.items[data.id]) { delete bmState.items[data.id]; bmState.deleted[data.id] = now; }
+  else {
+    delete bmState.deleted[data.id];
+    bmState.items[data.id] = { id: data.id, kind: data.kind || "term", title: data.title || data.id, sub: data.sub || "", note: data.note || "", session: data.session || "", addedAt: now, updatedAt: now };
+  }
+  onBookmarksChanged();
+}
+
+function addCustomBookmark() {
+  const w = document.getElementById("customWord").value.trim();
+  const n = document.getElementById("customNote").value.trim();
+  if (!w) return;
+  const now = new Date().toISOString(), id = "custom::" + w;
+  delete bmState.deleted[id];
+  bmState.items[id] = { id, kind: "custom", title: w, sub: "", note: n, session: "Tự thêm", addedAt: now, updatedAt: now };
+  document.getElementById("customWord").value = "";
+  document.getElementById("customNote").value = "";
+  onBookmarksChanged();
+  showToast("Đã lưu vào Bookmark");
+}
+
+function removeBookmark(id) { delete bmState.items[id]; bmState.deleted[id] = new Date().toISOString(); onBookmarksChanged(); }
+
+function syncBookmarkBadgesOnly() {
+  const items = bmState.items, count = Object.keys(items).length;
+  document.getElementById("bmCount").textContent = count;
+  document.getElementById("bmCountDrawer").textContent = count;
+
+  document.querySelectorAll("[data-bm-id]").forEach(el => {
+    const isBm = !!items[el.dataset.bmId];
+    el.classList.toggle("bookmarked", isBm);
+    if (el.classList.contains("bm-btn-card")) el.innerHTML = `${isBm ? ICONS.starFill : ICONS.star}<span>${isBm ? "Đã lưu" : "Bookmark"}</span>`;
+    else if (el.classList.contains("bm-btn")) el.innerHTML = isBm ? ICONS.starFill : ICONS.star;
+    else if (el.classList.contains("jp-pill")) { const s = el.querySelector(".pill-star"); if (s) s.textContent = isBm ? "★" : "☆"; }
+  });
+  document.querySelectorAll("[data-bm-card]").forEach(c => c.classList.toggle("is-bookmarked", !!items[c.dataset.bmCard] || !!c.querySelector(".bookmarked")));
+  document.querySelectorAll("[data-bm-row]").forEach(r => r.classList.toggle("is-bookmarked", !!items[r.dataset.bmRow]));
+  renderDrawerList();
+}
+
+function renderDrawerList() {
+  const listEl = document.getElementById("bmList");
+  const q = (document.getElementById("bmDrawerSearch")?.value || "").trim().toLowerCase();
+  let items = Object.values(bmState.items).sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""));
+  if (q) items = items.filter(it => (it.title + " " + it.sub + " " + it.note + " " + it.session).toLowerCase().includes(q));
+  if (!items.length) {
+    listEl.innerHTML = '<p style="color:var(--muted);font-size:12.5px;text-align:center;">Chưa có mục nào được bookmark.</p>';
+    return;
+  }
+  listEl.innerHTML = items.map(item => {
+    const isQ = item.kind === "question";
+    const fullQ = isQ ? findStudyItemById(item.id) : null;
+    const cleanTitle = isQ && fullQ ? fullQ.shortLabel : item.title;
+    const cleanSub = (isQ && fullQ ? fullQ.jpText : (item.sub || "")).replace(/<[^>]+>/g, "");
+    const cleanNote = (item.note || "").replace(/<[^>]+>/g, "");
+    const speakTxt = isQ ? cleanSub : item.title;
+    return `
+      <div class="bm-item">
+        <div class="bm-item-top">
+          <div style="min-width:0;flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span class="tag-pill ${isQ?'':'word'}">${isQ ? "Bài tập" : "Từ vựng"}</span>
+              <span class="bm-item-title">${escapeHtml(cleanTitle)}</span>
+            </div>
+            ${cleanSub ? `<div class="bm-item-sub">${escapeHtml(cleanSub)}</div>` : ""}
+            ${cleanNote ? `<div class="bm-item-sub">${escapeHtml(cleanNote)}</div>` : ""}
+            <div class="bm-item-meta">${escapeHtml(item.session)}</div>
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0;">
+            ${isQ && fullQ ? `<button class="btn btn-icon" onclick='jumpToBookmarkedItem(${JSON.stringify(item.id)})' title="Xem câu đầy đủ">${ICONS.eye}</button>` : ""}
+            ${speakTxt ? `<button class="btn btn-icon" onclick='speakJapanese(${JSON.stringify(speakTxt)})' title="Nghe đọc">${ICONS.volume}</button>` : ""}
+            <button class="btn btn-icon" onclick='removeBookmark(${JSON.stringify(item.id)})' title="Xóa">${ICONS.close}</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ==================== PUBLIC DRIVE FETCH + FIREBASE ====================
+async function fetchPublicMarkdownFiles(manual = false) {
+  setSyncStatus("Đang tải...", "syncing");
+  lastFetchError = "";
+  try {
+    const key = encodeURIComponent(FIREBASE_CONFIG.apiKey);
+    const cacheBust = Date.now();
+    await Promise.all(Object.entries(DRIVE_FILES).map(async ([tabId, meta]) => {
+      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${meta.id}?alt=media&key=${key}&_=${cacheBust}`);
+      if (!r.ok) throw new Error(`${meta.name} (HTTP ${r.status})`);
+      mdStore[tabId] = await r.text();
+    }));
+    localStorage.setItem(KEYS.MD_CACHE, JSON.stringify(mdStore));
+    localStorage.setItem(KEYS.LAST_SYNC, new Date().toISOString());
+    rebuildAllContent();
+    const t = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+    setSyncStatus(`Mới nhất (${t})`, "ok");
+    if (manual) showToast(`Đã tải 3 file .md mới nhất (${parsedQuizBank.length} câu thi)`);
+  } catch (err) {
+    lastFetchError = err.message || String(err);
+    const hasCache = !!(mdStore.tuvung || mdStore.nguphap || mdStore.dochieu);
+    setSyncStatus(hasCache ? "Đang dùng Cache" : "Lỗi tải bài", hasCache ? "warn" : "err");
+    if (!hasCache) renderCurrentView();
+    if (manual) showToast("Không tải được từ Drive: " + lastFetchError, 4000);
+  }
+}
+
+function initFirebase() {
+  if (!window.firebase) return;
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  fbAuth = firebase.auth();
+  fbDb = firebase.firestore();
+
+  fbAuth.onAuthStateChanged((user) => {
+    currentUser = user;
+    updateAuthUI();
+    if (unsubFirestore) { unsubFirestore(); unsubFirestore = null; }
+    if (user) {
+      document.getElementById("bmSyncInfo").textContent = `Đồng bộ realtime (${user.email})`;
+      const docRef = fbDb.collection("users").doc(user.uid);
+      unsubFirestore = docRef.onSnapshot((snap) => {
+        if (snap.exists) {
+          const data = snap.data() || {};
+          const remoteBm = data.bookmarks?.items ? data.bookmarks : { items: data.bookmarks || {}, deleted: {} };
+          const merged = mergeBookmarkStates(bmState, remoteBm);
+          const mergedWrong = new Set([...wrongIds, ...(data.wrongIds || [])]);
+          const mergedDone = new Set([...doneIds, ...(data.doneIds || [])]);
+          const mergedMastered = new Set([...masteredIds, ...(data.masteredIds || [])]);
+          const seenTs = new Set();
+          const mergedHist = [...(examHistory || []), ...(data.examHistory || [])]
+            .filter(h => h && h.ts && !seenTs.has(h.ts) && seenTs.add(h.ts))
+            .sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 15);
+          const mergedNotes = Object.assign({}, data.notes || {}, notesMap);
+          Object.entries(data.notes || {}).forEach(([k, v]) => {
+            const loc = notesMap[k];
+            if (!loc || ((v?.updatedAt || "") > (loc?.updatedAt || ""))) mergedNotes[k] = v;
+          });
+          isApplyingRemote = true;
+          bmState = merged; wrongIds = mergedWrong; doneIds = mergedDone; masteredIds = mergedMastered; examHistory = mergedHist; notesMap = mergedNotes;
+          saveBookmarksLocal(); saveWrongIds(true); saveDoneIds(true); saveMasteredIds(true); saveExamHistory(true); saveNotesMap(true);
+          syncBookmarkBadgesOnly();
+          if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderCurrentView(true);
+          else if (currentTab === "exam" && !examSession) renderExamView();
+          isApplyingRemote = false;
+          if (Object.keys(merged.items).length !== Object.keys(remoteBm.items || {}).length) scheduleCloudPush();
+        } else {
+          pushUserCloudState(false);
+        }
+      }, () => { document.getElementById("bmSyncInfo").textContent = "Lỗi đồng bộ đám mây"; });
+    } else {
+      document.getElementById("bmSyncInfo").textContent = "Lưu trên máy (Đăng nhập Gmail để đồng bộ)";
+    }
+  });
+}
+
+function updateAuthUI() {
+  const btn = document.getElementById("authBtn");
+  if (!btn) return;
+  if (currentUser) {
+    const shortName = (currentUser.displayName || currentUser.email || "Gmail").split(" ")[0];
+    const avatar = currentUser.photoURL
+      ? `<img src="${escapeHtml(currentUser.photoURL)}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;">`
+      : ICONS.user;
+    btn.className = "btn";
+    btn.innerHTML = `${avatar}<span>${escapeHtml(shortName)}</span>`;
+    btn.title = `${currentUser.email} — Bấm để quản lý tài khoản`;
+  } else {
+    btn.className = "btn btn-primary";
+    btn.innerHTML = `${ICONS.user}<span>Đăng nhập</span>`;
+    btn.title = "Đăng nhập Gmail để đồng bộ Bookmark & Câu hay sai";
+  }
+}
+
+function handleAuthClick() { if (currentUser) openSettings(); else signInWithGmail(); }
+async function signInWithGmail() {
+  if (!fbAuth) return;
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    await fbAuth.signInWithPopup(provider);
+    showToast("Đã đăng nhập Gmail & bật đồng bộ tự động");
+    closeSettings();
+  } catch (err) {
+    if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") await fbAuth.signInWithRedirect(provider);
+    else if (err.code !== "auth/popup-closed-by-user") showToast("Lỗi đăng nhập: " + err.message, 4000);
+  }
+}
+async function signOutGmail() { if (!fbAuth) return; await fbAuth.signOut(); closeSettings(); showToast("Đã đăng xuất tài khoản Gmail"); }
+function scheduleCloudPush() { clearTimeout(pushTimer); pushTimer = setTimeout(() => pushUserCloudState(false), 500); }
+async function pushUserCloudState(manual = false) {
+  if (!currentUser || !fbDb) { if (manual) signInWithGmail(); return; }
+  try {
+    await fbDb.collection("users").doc(currentUser.uid).set({
+      email: currentUser.email || "", updatedAt: new Date().toISOString(),
+      bookmarks: { items: bmState.items, deleted: bmState.deleted },
+      wrongIds: [...wrongIds],
+      doneIds: [...doneIds],
+      masteredIds: [...masteredIds],
+      examHistory: examHistory.slice(0, 15),
+      notes: notesMap
+    }, { merge: true });
+    const t = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+    document.getElementById("bmSyncInfo").textContent = `Đã đồng bộ (${t})`;
+    if (manual) showToast("Đã đồng bộ dữ liệu lên tài khoản Gmail");
+  } catch (err) {
+    document.getElementById("bmSyncInfo").textContent = "Lỗi đồng bộ (đã lưu máy)";
+    if (manual) showToast("Lỗi đồng bộ: " + err.message);
+  }
+}
+
+function loadLocalMarkdownFiles(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+  let loaded = 0;
+  files.forEach(file => {
+    const r = new FileReader();
+    r.onload = () => {
+      const n = file.name.toUpperCase();
+      if (n.includes("01") || n.includes("TU_VUNG")) mdStore.tuvung = r.result;
+      else if (n.includes("02") || n.includes("NGU_PHAP")) mdStore.nguphap = r.result;
+      else if (n.includes("03") || n.includes("DOC_HIEU")) mdStore.dochieu = r.result;
+      else mdStore.tuvung = r.result;
+      if (++loaded === files.length) {
+        localStorage.setItem(KEYS.MD_CACHE, JSON.stringify(mdStore));
+        rebuildAllContent(); closeSettings();
+        setSyncStatus("File nội bộ", "warn");
+        showToast(`Đã nạp ${loaded} file .md (${parsedQuizBank.length} câu thi)`);
+      }
+    };
+    r.readAsText(file, "utf-8");
+  });
+}
+
+// ==================== UI ACTIONS & SHORTCUTS ====================
+function switchTab(tabId) {
+  currentTab = tabId;
+  document.querySelectorAll(".tab-btn, .bnav-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
+  if (tabId === "flashcard") buildFlashcardDeck();
+  renderCurrentView();
+  document.getElementById("stageScroll").scrollTop = 0;
+  if (window.innerWidth <= 960) window.scrollTo({ top: 0 });
+}
+function toggleQuizMode() {
+  quizHideMode = !quizHideMode;
+  document.body.classList.toggle("quiz-mode", quizHideMode);
+  document.getElementById("quizBtn").classList.toggle("btn-active-matcha", quizHideMode);
+}
+function toggleOneAns(btn) { const a = btn.nextElementSibling; if (a) a.classList.toggle("revealed"); }
+function toggleFilterBookmarked() {
+  onlyBookmarked = !onlyBookmarked;
+  document.getElementById("filterBmBtn").classList.toggle("btn-active-gold", onlyBookmarked);
+  renderCurrentView();
+}
+function toggleMobileSidebar() { document.getElementById("sidebar").classList.toggle("mobile-open"); document.getElementById("sidebarBackdrop").classList.toggle("open"); }
+function closeMobileSidebar() { document.getElementById("sidebar").classList.remove("mobile-open"); document.getElementById("sidebarBackdrop").classList.remove("open"); }
+function openDrawer() { document.getElementById("drawer").classList.add("open"); document.getElementById("drawerBackdrop").classList.add("open"); }
+function closeDrawer() { document.getElementById("drawer").classList.remove("open"); document.getElementById("drawerBackdrop").classList.remove("open"); }
+function openSettings() {
+  const box = document.getElementById("accountInfoBox");
+  if (currentUser) {
+    box.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;"><div style="display:flex;align-items:center;gap:10px;">${currentUser.photoURL ? `<img src="${escapeHtml(currentUser.photoURL)}" style="width:36px;height:36px;border-radius:50%;">` : ""}<div><div style="font-weight:700;">${escapeHtml(currentUser.displayName || "Người dùng Gmail")}</div><div style="font-size:12px;color:var(--muted);">${escapeHtml(currentUser.email)} · Đang đồng bộ realtime</div></div></div><button class="btn" onclick="signOutGmail()" style="color:var(--vermilion);">Đăng xuất</button></div>`;
+  } else {
+    box.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;"><div><div style="font-weight:700;">Chưa đăng nhập Gmail</div><div style="font-size:12px;color:var(--muted);">Đăng nhập để đồng bộ Bookmark &amp; Câu hay sai giữa PC và Điện thoại.</div></div><button class="btn btn-primary" onclick="signInWithGmail()">Đăng nhập Gmail</button></div>`;
+  }
+  syncPreferencePills();
+  document.getElementById("settingsModal").classList.add("open");
+  document.getElementById("settingsBackdrop").classList.add("open");
+}
+function closeSettings() { document.getElementById("settingsModal").classList.remove("open"); document.getElementById("settingsBackdrop").classList.remove("open"); }
+function clearLocalCache() { localStorage.removeItem(KEYS.MD_CACHE); mdStore = { tuvung: "", nguphap: "", dochieu: "" }; rebuildAllContent(); closeSettings(); showToast("Đã xóa cache .md"); }
+
+function exportMarkdown() {
+  const items = Object.values(bmState.items);
+  if (!items.length) { showToast("Chưa có bookmark nào"); return; }
+  let md = "# DANH SÁCH BOOKMARK JLPT N1\n\n| Mục | Ghi chú / Nghĩa | Nguồn |\n| :--- | :--- | :--- |\n";
+  items.forEach(it => {
+    const note = [it.sub, it.note].filter(Boolean).join(" — ").replace(/<[^>]+>/g, "").replace(/\|/g, "/");
+    md += `| **${it.title.replace(/\|/g, "/")}** | ${note} | ${it.session.replace(/\|/g, "/")} |\n`;
+  });
+  downloadFile("JLPT_N1_BOOKMARKS.md", md, "text/markdown;charset=utf-8");
+}
+function exportJson() { downloadFile("jlpt_bookmarks.json", JSON.stringify({ version: 2, items: bmState.items, deleted: bmState.deleted }, null, 2), "application/json"); }
+function importJson(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const p = JSON.parse(r.result);
+      bmState = mergeBookmarkStates(bmState, p.items ? p : { items: p, deleted: {} });
+      onBookmarksChanged(); showToast("Đã khôi phục Bookmark");
+    } catch { showToast("File JSON không hợp lệ"); }
+  };
+  r.readAsText(f);
+}
+function downloadFile(name, content, mime) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([content], { type: mime })); a.download = name; a.click(); }
+
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-bm-id]");
+  if (t) {
+    e.stopPropagation();
+    toggleBookmarkByData({ id: t.dataset.bmId, kind: t.dataset.bmKind, title: t.dataset.bmTitle, sub: t.dataset.bmSub, note: t.dataset.bmNote, session: t.dataset.bmSession });
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+  if (currentTab === "exam" && examSession && !examSession.finished) {
+    if (["1", "2", "3", "4"].includes(e.key)) {
+      const s = examSession;
+      if (!(s.mode === "instant" && s.answers[s.currentIdx] !== undefined)) selectExamOption(parseInt(e.key, 10));
+    } else if (e.key === "ArrowRight") moveExamQuestion(1);
+    else if (e.key === "ArrowLeft") moveExamQuestion(-1);
+    return;
+  }
+  if (currentTab === "flashcard" && fcDeck.length) {
+    if (e.key === " ") { e.preventDefault(); flipFlashcard(); }
+    else if (e.key === "ArrowRight") stepFlashcard(1);
+    else if (e.key === "ArrowLeft") stepFlashcard(-1);
+  }
+});
+
+// ==================== BOOTSTRAP ====================
+initTheme();
+document.documentElement.style.setProperty("--font-scale", String(fontScale));
+loadBookmarksLocal();
+try {
+  const cachedMd = JSON.parse(localStorage.getItem(KEYS.MD_CACHE) || "null");
+  if (cachedMd && (cachedMd.tuvung || cachedMd.nguphap || cachedMd.dochieu)) {
+    mdStore = cachedMd;
+    setSyncStatus("Đang dùng Cache", "warn");
+  }
+} catch {}
+
+rebuildAllContent();
+initFirebase();
+fetchPublicMarkdownFiles(false);
+
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
