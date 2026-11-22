@@ -944,6 +944,66 @@
     color: var(--indigo);
   }
   .tag-pill.word { background: var(--gold-soft); color: var(--gold); }
+  .tag-pill.done { background: var(--matcha-soft); color: var(--matcha); }
+
+  .done-btn {
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 99px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .done-btn:hover { border-color: var(--matcha); color: var(--matcha); }
+  .done-btn.is-done {
+    background: var(--matcha-soft);
+    border-color: rgba(45, 106, 79, 0.35);
+    color: var(--matcha);
+  }
+  .study-card.is-done { opacity: 0.92; }
+  .sess-prog {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--matcha);
+    background: var(--matcha-soft);
+    padding: 2px 9px;
+    border-radius: 99px;
+    white-space: nowrap;
+  }
+  .dot-done-mini {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--matcha);
+    display: inline-block;
+  }
+  .scroll-top-btn {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 55;
+    box-shadow: 0 4px 12px rgba(28,25,23,0.12);
+  }
+  .scroll-top-btn.show { display: inline-flex; }
+  .scroll-top-btn:hover { border-color: var(--vermilion); color: var(--vermilion); }
 
   /* ==================== RESPONSIVE (MOBILE & TABLET) ==================== */
   @media (max-width: 960px) {
@@ -1128,6 +1188,9 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<button class="scroll-top-btn" id="scrollTopBtn" onclick="scrollStageToTop()" aria-label="Lên đầu trang" title="Lên đầu trang">
+  <svg class="ico" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
 
 <script>
 // ==================== SVG ICON HELPERS ====================
@@ -1141,7 +1204,8 @@ const ICONS = {
   sun: '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
   user: '<svg class="ico" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
   shuffle: '<svg class="ico" viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>',
-  refresh: '<svg class="ico" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>'
+  refresh: '<svg class="ico" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
+  check: '<svg class="ico" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'
 };
 
 // ==================== CONFIGURATION ====================
@@ -1166,6 +1230,9 @@ const KEYS = {
   MD_CACHE: "jlpt_n1_md_cache_v1",
   LAST_SYNC: "jlpt_n1_last_sync_v1",
   WRONG_IDS: "jlpt_n1_wrong_ids_v1",
+  DONE_IDS: "jlpt_n1_done_ids_v1",
+  MASTERED_IDS: "jlpt_n1_mastered_ids_v1",
+  LAST_READ: "jlpt_n1_last_read_v1",
   THEME: "jlpt_n1_theme_v1"
 };
 
@@ -1174,7 +1241,10 @@ let isApplyingRemote = false;
 let lastFetchError = "";
 
 let bmState = { items: {}, deleted: {} };
-let wrongIds = loadWrongIds();
+let wrongIds = loadSetFromStorage(KEYS.WRONG_IDS);
+let doneIds = loadSetFromStorage(KEYS.DONE_IDS);
+let masteredIds = loadSetFromStorage(KEYS.MASTERED_IDS);
+let lastReadMap = loadJsonFromStorage(KEYS.LAST_READ, {});
 let mdStore = { tuvung: "", nguphap: "", dochieu: "" };
 let tabItems = { tuvung: [], nguphap: [], dochieu: [] };
 let parsedQuizBank = [];
@@ -1183,12 +1253,13 @@ let cheatWordsBank = [];
 let currentTab = "tuvung";
 let onlyBookmarked = false;
 let quizHideMode = false;
+let scrollSpyBound = false;
 
 let examConfig = { source: "all", count: 10, mode: "instant" };
 let examSession = null;
 let examTimerInterval = null;
 
-let fcConfig = { source: "bookmarks" };
+let fcConfig = { source: "bookmarks", showMastered: false };
 let fcDeck = [];
 let fcIdx = 0;
 let fcFlipped = false;
@@ -1211,13 +1282,31 @@ function setSyncStatus(label, cls = "") {
   document.getElementById("syncLabel").textContent = label;
   pill.className = "sync-pill" + (cls ? " " + cls : "");
 }
-function loadWrongIds() {
-  try { return new Set(JSON.parse(localStorage.getItem(KEYS.WRONG_IDS) || "[]")); }
+function loadSetFromStorage(key) {
+  try { return new Set(JSON.parse(localStorage.getItem(key) || "[]")); }
   catch { return new Set(); }
+}
+function loadJsonFromStorage(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key) || "null") || fallback; }
+  catch { return fallback; }
 }
 function saveWrongIds(skipCloud = false) {
   localStorage.setItem(KEYS.WRONG_IDS, JSON.stringify([...wrongIds]));
   if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
+}
+function saveDoneIds(skipCloud = false) {
+  localStorage.setItem(KEYS.DONE_IDS, JSON.stringify([...doneIds]));
+  if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
+}
+function saveMasteredIds(skipCloud = false) {
+  localStorage.setItem(KEYS.MASTERED_IDS, JSON.stringify([...masteredIds]));
+  if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
+}
+function toggleDoneItem(id) {
+  if (doneIds.has(id)) doneIds.delete(id);
+  else doneIds.add(id);
+  saveDoneIds();
+  renderCurrentView(true);
 }
 function speakJapanese(text) {
   if (!("speechSynthesis" in window)) { showToast("Trình duyệt không hỗ trợ đọc tiếng Nhật."); return; }
@@ -1510,7 +1599,9 @@ function isItemBookmarked(item) {
   return false;
 }
 
-function renderCurrentView() {
+function renderCurrentView(preserveScroll = false) {
+  const scrollEl = document.getElementById("stageScroll");
+  const prevTop = preserveScroll ? scrollEl.scrollTop : 0;
   const isStudyTab = ["tuvung", "nguphap", "dochieu"].includes(currentTab);
   document.getElementById("sidebar").classList.toggle("hidden-mode", !isStudyTab);
   const root = document.getElementById("stageRoot");
@@ -1546,21 +1637,48 @@ function renderCurrentView() {
     return;
   }
 
+  // Precompute session progress (done / total questions)
+  const sessStats = {};
+  list.forEach(it => {
+    if (it.type !== "question") return;
+    if (!sessStats[it.sessionTitle]) sessStats[it.sessionTitle] = { total: 0, done: 0 };
+    sessStats[it.sessionTitle].total++;
+    if (doneIds.has(it.id)) sessStats[it.sessionTitle].done++;
+  });
+
+  // Resume last-read banner if user has saved position > 0 on this tab
+  const savedIdx = lastReadMap[currentTab];
   let html = "";
+  if (!preserveScroll && savedIdx > 0 && savedIdx < list.length && !onlyBookmarked && !(document.getElementById("searchInput")?.value || "").trim()) {
+    const savedItem = list[savedIdx];
+    html += `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--indigo);border-radius:6px;padding:9px 14px;margin-bottom:14px;font-size:13px;">
+        <span>Đang học dở: <strong>${escapeHtml(savedItem.shortLabel)}</strong></span>
+        <button class="btn btn-indigo" onclick="scrollToStudyItem(${savedIdx})" style="padding:4px 11px;font-size:12px;">Tiếp tục học</button>
+      </div>
+    `;
+  }
+
   let lastSess = "";
   list.forEach((item, idx) => {
     if (item.sessionTitle !== lastSess) {
       lastSess = item.sessionTitle;
-      html += `<h1 class="session-heading">${escapeHtml(lastSess)}</h1>`;
+      const st = sessStats[lastSess];
+      const progBadge = st && st.total ? `<span class="sess-prog">${st.done} / ${st.total} đã học</span>` : "";
+      html += `<h1 class="session-heading"><span>${escapeHtml(lastSess)}</span>${progBadge}</h1>`;
     }
     const isBm = !!bmState.items[item.id];
+    const isDone = doneIds.has(item.id);
     html += `
-      <article class="study-card ${isBm ? 'is-bookmarked' : ''}" id="list-item-${idx}" data-bm-card="${escapeHtml(item.id)}">
+      <article class="study-card ${isBm ? 'is-bookmarked' : ''} ${isDone ? 'is-done' : ''}" id="list-item-${idx}" data-idx="${idx}" data-bm-card="${escapeHtml(item.id)}">
         <div class="card-head">
           <h2 class="card-title">${escapeHtml(item.shortLabel || item.title)}</h2>
           <div class="card-actions">
             ${item.jpText ? `<button class="tts-btn" onclick='speakJapanese(${JSON.stringify(item.jpText)})' title="Nghe đọc tiếng Nhật">${ICONS.volume}<span>Nghe</span></button>` : ""}
             ${item.type === "question" ? `
+              <button class="done-btn ${isDone ? 'is-done' : ''}" onclick='toggleDoneItem(${JSON.stringify(item.id)})' title="Đánh dấu đã học xong câu này">
+                ${ICONS.check}<span>${isDone ? "Đã học" : "Xong"}</span>
+              </button>
               <button class="bm-btn bm-btn-card ${isBm ? 'bookmarked' : ''}" data-bm-id="${escapeHtml(item.id)}"
                 data-bm-kind="question" data-bm-title="${escapeHtml(item.shortLabel)}"
                 data-bm-sub="${escapeHtml(item.preview)}" data-bm-note=""
@@ -1579,7 +1697,50 @@ function renderCurrentView() {
     `;
   });
   root.innerHTML = html;
+  if (preserveScroll) scrollEl.scrollTop = prevTop;
   syncBookmarkBadgesOnly();
+  bindScrollSpy();
+}
+
+function bindScrollSpy() {
+  if (scrollSpyBound) return;
+  scrollSpyBound = true;
+  let spyTimer = null;
+  const onScroll = () => {
+    const stageEl = document.getElementById("stageScroll");
+    const scrollY = window.innerWidth <= 960 ? window.scrollY : stageEl.scrollTop;
+    document.getElementById("scrollTopBtn").classList.toggle("show", scrollY > 360);
+
+    if (!["tuvung", "nguphap", "dochieu"].includes(currentTab)) return;
+    clearTimeout(spyTimer);
+    spyTimer = setTimeout(() => {
+      const cards = document.querySelectorAll("#stageRoot .study-card[data-idx]");
+      if (!cards.length) return;
+      const refTop = window.innerWidth <= 960 ? 110 : stageEl.getBoundingClientRect().top + 48;
+      let activeIdx = 0;
+      for (const c of cards) {
+        if (c.getBoundingClientRect().top <= refTop) activeIdx = parseInt(c.dataset.idx, 10);
+        else break;
+      }
+      document.querySelectorAll(".nav-item.active").forEach(el => el.classList.remove("active"));
+      const navEl = document.getElementById("nav-item-" + activeIdx);
+      if (navEl) {
+        navEl.classList.add("active");
+        if (window.innerWidth > 960) navEl.scrollIntoView({ block: "nearest" });
+      }
+      if (!onlyBookmarked && !(document.getElementById("searchInput")?.value || "").trim()) {
+        lastReadMap[currentTab] = activeIdx;
+        localStorage.setItem(KEYS.LAST_READ, JSON.stringify(lastReadMap));
+      }
+    }, 90);
+  };
+  document.getElementById("stageScroll").addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("scroll", onScroll, { passive: true });
+}
+
+function scrollStageToTop() {
+  if (window.innerWidth <= 960) window.scrollTo({ top: 0, behavior: "smooth" });
+  else document.getElementById("stageScroll").scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function renderSidebar(list) {
@@ -1596,10 +1757,12 @@ function renderSidebar(list) {
     }
     const isBm = !!bmState.items[item.id];
     const isWrong = wrongIds.has(item.id);
+    const isDone = doneIds.has(item.id);
     html += `
       <div class="nav-item" onclick="scrollToStudyItem(${idx})" id="nav-item-${idx}">
         <span class="nav-item-text">${escapeHtml(item.shortLabel)}</span>
         <span class="nav-badges">
+          ${isDone ? '<span class="dot-done-mini" title="Đã học xong"></span>' : ''}
           ${isWrong ? '<span class="dot-wrong-mini" title="Từng làm sai"></span>' : ''}
           ${isBm ? `<span style="color:var(--gold);display:inline-flex;">${ICONS.starFill}</span>` : ''}
         </span>
@@ -1635,13 +1798,18 @@ function jumpToBookmarkedItem(id) {
   }
 }
 
-// ==================== FLASHCARD ENGINE ====================
-function buildFlashcardDeck() {
+// ==================== FLASHCARD ENGINE (SRS: ĐÃ THUỘC / ÔN LẠI) ====================
+function getRawFlashcardSource() {
   const allBms = Object.values(bmState.items);
-  if (fcConfig.source === "bookmarks") fcDeck = allBms.map(it => ({ ...it }));
-  else if (fcConfig.source === "bm_words") fcDeck = allBms.filter(it => it.kind !== "question").map(it => ({ ...it }));
-  else if (fcConfig.source === "bm_questions") fcDeck = allBms.filter(it => it.kind === "question").map(it => ({ ...it }));
-  else fcDeck = cheatWordsBank.map(w => ({ ...w, kind: "word" }));
+  if (fcConfig.source === "bookmarks") return allBms.map(it => ({ ...it }));
+  if (fcConfig.source === "bm_words") return allBms.filter(it => it.kind !== "question").map(it => ({ ...it }));
+  if (fcConfig.source === "bm_questions") return allBms.filter(it => it.kind === "question").map(it => ({ ...it }));
+  return cheatWordsBank.map(w => ({ ...w, kind: "word" }));
+}
+
+function buildFlashcardDeck() {
+  const raw = getRawFlashcardSource();
+  fcDeck = fcConfig.showMastered ? raw : raw.filter(c => !masteredIds.has(c.id));
   fcIdx = 0; fcFlipped = false;
 }
 
@@ -1651,6 +1819,8 @@ function renderFlashcardView() {
   const bmWordsCnt = allBms.filter(it => it.kind !== "question").length;
   const bmQsCnt = allBms.filter(it => it.kind === "question").length;
   const csCnt = cheatWordsBank.length;
+  const rawTotal = getRawFlashcardSource();
+  const masteredInSource = rawTotal.filter(c => masteredIds.has(c.id)).length;
 
   const filterBar = `
     <div class="fc-toolbar">
@@ -1660,31 +1830,37 @@ function renderFlashcardView() {
         <button class="btn ${fcConfig.source==='bm_questions'?'btn-primary':''}" onclick="switchFlashcardSource('bm_questions')">Bài tập (${bmQsCnt})</button>
         <button class="btn ${fcConfig.source==='cheatsheet'?'btn-primary':''}" onclick="switchFlashcardSource('cheatsheet')">Cheat Sheet (${csCnt})</button>
       </div>
-      ${fcDeck.length ? `
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span style="font-size:13px;font-weight:700;color:var(--muted);">Thẻ ${fcIdx + 1} / ${fcDeck.length}</span>
-          <button class="btn" onclick="shuffleFlashcards()">${ICONS.shuffle}<span>Xáo trộn</span></button>
-        </div>
-      ` : ""}
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <span class="tag-pill done">Đã thuộc: ${masteredInSource}/${rawTotal.length}</span>
+        <button class="btn ${fcConfig.showMastered?'btn-active-matcha':''}" onclick="toggleShowMastered()" style="font-size:12px;padding:4px 9px;">${fcConfig.showMastered ? "Đang hiện cả đã thuộc" : "Ẩn đã thuộc"}</button>
+        ${fcDeck.length ? `<button class="btn" onclick="shuffleFlashcards()" style="font-size:12px;padding:4px 9px;">${ICONS.shuffle}<span>Xáo</span></button>` : ""}
+      </div>
     </div>
   `;
 
   if (!fcDeck.length) {
-    root.innerHTML = `<div class="fc-wrap">${filterBar}<div class="empty-state"><h2 style="font-family:var(--font-serif);margin:0 0 6px;">Chưa có thẻ nào</h2><p style="color:var(--muted);font-size:13.5px;margin:0;">Hãy đánh dấu Bookmark từ vựng hoặc câu hỏi khó, hoặc chọn nguồn Cheat Sheet (${csCnt} từ).</p></div></div>`;
+    const allDone = rawTotal.length > 0 && masteredInSource === rawTotal.length;
+    root.innerHTML = `<div class="fc-wrap">${filterBar}<div class="empty-state">
+      <h2 style="font-family:var(--font-serif);margin:0 0 8px;">${allDone ? "Xuất sắc — Bạn đã thuộc 100% thẻ trong mục này" : "Chưa có thẻ nào"}</h2>
+      <p style="color:var(--muted);font-size:13.5px;margin:0 0 16px;">${allDone ? "Anh có thể đặt lại trạng thái đã thuộc để ôn vòng mới hoặc chuyển sang nguồn thẻ khác." : `Hãy đánh dấu Bookmark từ vựng/câu hỏi khó, hoặc chọn nguồn Cheat Sheet (${csCnt} từ).`}</p>
+      ${allDone ? `<button class="btn btn-primary" onclick="resetMasteredInSource()">Ôn lại toàn bộ ${rawTotal.length} thẻ</button>` : ""}
+    </div></div>`;
     return;
   }
 
+  if (fcIdx >= fcDeck.length) fcIdx = 0;
   const card = fcDeck[fcIdx];
   const isQ = card.kind === "question";
   const fullQ = isQ ? findStudyItemById(card.id) : null;
   const speakText = isQ ? (fullQ?.jpText || card.sub || "") : card.title;
+  const isMastered = masteredIds.has(card.id);
 
   let bodyHtml = "";
   if (isQ && fullQ) {
     bodyHtml = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
         <span class="tag-pill">BÀI TẬP · ${escapeHtml(fullQ.shortLabel)}</span>
-        <span style="font-size:12px;color:var(--muted);font-weight:600;">${fcFlipped ? "Mặt sau — Đáp án & phân tích" : "Mặt trước — Bấm thẻ hoặc Space để xem đáp án"}</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:600;">Thẻ ${fcIdx + 1}/${fcDeck.length} · ${fcFlipped ? "Mặt sau" : "Bấm thẻ hoặc Space"}</span>
       </div>
       <div class="jp-prompt" style="margin-bottom:8px;">${fullQ.promptHtml}</div>
       ${fcFlipped
@@ -1695,8 +1871,9 @@ function renderFlashcardView() {
     const cleanSub = (card.sub || "").replace(/<[^>]+>/g, "");
     const cleanNote = (card.note || "").replace(/<[^>]+>/g, "");
     bodyHtml = `
-      <div style="text-align:center;margin-bottom:8px;">
-        <span class="tag-pill word">${fcFlipped ? "Mặt sau — Cách đọc & nghĩa" : "Từ vựng — Bấm thẻ để lật"}</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span class="tag-pill word">TỪ VỰNG</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:600;">Thẻ ${fcIdx + 1}/${fcDeck.length}</span>
       </div>
       <div class="fc-word">${escapeHtml(card.title)}</div>
       ${fcFlipped ? `
@@ -1712,13 +1889,53 @@ function renderFlashcardView() {
       ${filterBar}
       <div class="fc-card" onclick="flipFlashcard()">${bodyHtml}</div>
       <div class="fc-controls">
-        <button class="btn" onclick="stepFlashcard(-1)" ${fcIdx <= 0 ? "disabled" : ""}>Thẻ trước</button>
-        ${speakText ? `<button class="btn" onclick='speakJapanese(${JSON.stringify(speakText)})'>${ICONS.volume}<span>Nghe đọc</span></button>` : ""}
+        <button class="btn" onclick="stepFlashcard(-1)" ${fcIdx <= 0 ? "disabled" : ""}>Trước</button>
+        ${speakText ? `<button class="btn" onclick='speakJapanese(${JSON.stringify(speakText)})'>${ICONS.volume}<span>Nghe</span></button>` : ""}
         <button class="btn btn-primary" onclick="flipFlashcard()">${fcFlipped ? "Úp thẻ" : "Lật xem đáp án"}</button>
-        <button class="btn" onclick="stepFlashcard(1)" ${fcIdx >= fcDeck.length - 1 ? "disabled" : ""}>Thẻ tiếp</button>
+        <button class="btn" onclick="markFlashcardAgain()" style="border-color:var(--vermilion);color:var(--vermilion);" title="Đưa thẻ này lặp lại sau 3 thẻ">Chưa thuộc (lặp lại)</button>
+        <button class="btn btn-active-matcha" onclick="markFlashcardMastered()" title="Đánh dấu đã thuộc và ẩn khỏi vòng ôn">${ICONS.check}<span>${isMastered ? "Bỏ đã thuộc" : "Đã thuộc"}</span></button>
+        <button class="btn" onclick="stepFlashcard(1)" ${fcIdx >= fcDeck.length - 1 ? "disabled" : ""}>Tiếp</button>
       </div>
     </div>
   `;
+}
+
+function toggleShowMastered() { fcConfig.showMastered = !fcConfig.showMastered; buildFlashcardDeck(); renderFlashcardView(); }
+function markFlashcardMastered() {
+  const card = fcDeck[fcIdx]; if (!card) return;
+  if (masteredIds.has(card.id)) {
+    masteredIds.delete(card.id);
+    saveMasteredIds();
+    showToast("Đã đưa thẻ trở lại danh sách cần ôn");
+  } else {
+    masteredIds.add(card.id);
+    saveMasteredIds();
+    if (!fcConfig.showMastered) fcDeck.splice(fcIdx, 1);
+    else fcIdx = Math.min(fcIdx + 1, fcDeck.length - 1);
+    showToast("Đã đánh dấu thuộc");
+  }
+  fcFlipped = false;
+  if (fcIdx >= fcDeck.length) fcIdx = Math.max(0, fcDeck.length - 1);
+  renderFlashcardView();
+}
+function markFlashcardAgain() {
+  const card = fcDeck[fcIdx]; if (!card) return;
+  masteredIds.delete(card.id);
+  saveMasteredIds();
+  fcDeck.splice(fcIdx, 1);
+  const reinsertAt = Math.min(fcIdx + 3, fcDeck.length);
+  fcDeck.splice(reinsertAt, 0, card);
+  fcFlipped = false;
+  if (fcIdx >= fcDeck.length) fcIdx = 0;
+  showToast("Sẽ lặp lại thẻ này sau 3 thẻ nữa");
+  renderFlashcardView();
+}
+function resetMasteredInSource() {
+  getRawFlashcardSource().forEach(c => masteredIds.delete(c.id));
+  saveMasteredIds();
+  buildFlashcardDeck();
+  renderFlashcardView();
+  showToast("Đã đặt lại toàn bộ thẻ để ôn vòng mới");
 }
 
 function switchFlashcardSource(s) { fcConfig.source = s; buildFlashcardDeck(); renderFlashcardView(); }
@@ -2170,11 +2387,13 @@ function initFirebase() {
           const remoteBm = data.bookmarks?.items ? data.bookmarks : { items: data.bookmarks || {}, deleted: {} };
           const merged = mergeBookmarkStates(bmState, remoteBm);
           const mergedWrong = new Set([...wrongIds, ...(data.wrongIds || [])]);
+          const mergedDone = new Set([...doneIds, ...(data.doneIds || [])]);
+          const mergedMastered = new Set([...masteredIds, ...(data.masteredIds || [])]);
           isApplyingRemote = true;
-          bmState = merged; wrongIds = mergedWrong;
-          saveBookmarksLocal(); saveWrongIds(true);
+          bmState = merged; wrongIds = mergedWrong; doneIds = mergedDone; masteredIds = mergedMastered;
+          saveBookmarksLocal(); saveWrongIds(true); saveDoneIds(true); saveMasteredIds(true);
           syncBookmarkBadgesOnly();
-          if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderSidebar(getFilteredItems(currentTab));
+          if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderCurrentView(true);
           else if (currentTab === "exam" && !examSession) renderExamView();
           isApplyingRemote = false;
           if (Object.keys(merged.items).length !== Object.keys(remoteBm.items || {}).length) scheduleCloudPush();
@@ -2226,7 +2445,10 @@ async function pushUserCloudState(manual = false) {
   try {
     await fbDb.collection("users").doc(currentUser.uid).set({
       email: currentUser.email || "", updatedAt: new Date().toISOString(),
-      bookmarks: { items: bmState.items, deleted: bmState.deleted }, wrongIds: [...wrongIds]
+      bookmarks: { items: bmState.items, deleted: bmState.deleted },
+      wrongIds: [...wrongIds],
+      doneIds: [...doneIds],
+      masteredIds: [...masteredIds]
     }, { merge: true });
     const t = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
     document.getElementById("bmSyncInfo").textContent = `Đã đồng bộ (${t})`;
