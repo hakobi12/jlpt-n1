@@ -1289,20 +1289,21 @@ function buildTabItems(tabId, mdText) {
         if (parts.length >= 2) {
           promptHtml = renderMdFragment(parts[0]);
           answerHtml = makeCodePillsClickable(renderMdFragment(parts.slice(1).join("\n")), sTitle);
-          promptPlain = parts[0].replace(/[`*#>]/g, "").trim();
+          promptPlain = parts[0].replace(/<[^>]+>/g, "").replace(/[`*#>]/g, "").trim();
         } else {
           answerHtml = makeCodePillsClickable(renderMdFragment(bMd), sTitle);
-          promptPlain = bMd.split("\n")[0].replace(/[`*#>]/g, "").trim();
+          promptPlain = bMd.split("\n")[0].replace(/<[^>]+>/g, "").replace(/[`*#>]/g, "").trim();
         }
         const qId = `q::${tabId}::${sIdx}::${blk.title}`;
         const jpSentence = (promptPlain.split("\n").find(l => JP_RE.test(l)) || "").trim();
         items.push({
           id: qId,
+          tabId,
           type: "question",
           sessionTitle: sTitle,
           title: blk.title,
           shortLabel: blk.title.replace(/`\[[^\]]+\]`/g, "").trim(),
-          preview: promptPlain.slice(0, 90),
+          preview: jpSentence || promptPlain.slice(0, 120),
           jpText: jpSentence,
           promptHtml,
           answerHtml,
@@ -1436,10 +1437,53 @@ function isItemBookmarked(item) {
   return false;
 }
 
+function isMobileViewport() {
+  return window.innerWidth <= 960;
+}
+
+function getEffectiveViewMode() {
+  // Trên điện thoại luôn mặc định kéo cuộn dọc liên tục từ câu này sang câu khác
+  if (isMobileViewport()) return "list";
+  return studyViewMode;
+}
+
+function findStudyItemById(id) {
+  for (const t of ["tuvung", "nguphap", "dochieu"]) {
+    const found = (tabItems[t] || []).find(it => it.id === id);
+    if (found) return found;
+  }
+  return null;
+}
+
+function jumpToBookmarkedItem(id) {
+  for (const t of ["tuvung", "nguphap", "dochieu"]) {
+    const idx = (tabItems[t] || []).findIndex(it => it.id === id);
+    if (idx !== -1) {
+      closeDrawer();
+      onlyBookmarked = false;
+      document.getElementById("filterBmBtn").classList.remove("btn-active-gold");
+      const searchEl = document.getElementById("searchInput");
+      if (searchEl) searchEl.value = "";
+      currentTab = t;
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
+      activeItemIdx[t] = idx;
+      renderCurrentView();
+      if (getEffectiveViewMode() === "list") {
+        setTimeout(() => {
+          const card = document.getElementById("list-item-" + idx);
+          if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 60);
+      }
+      return;
+    }
+  }
+}
+
 function renderCurrentView() {
   const isStudyTab = ["tuvung", "nguphap", "dochieu"].includes(currentTab);
+  const effMode = getEffectiveViewMode();
   document.getElementById("sidebar").classList.toggle("hidden-mode", !isStudyTab);
-  document.getElementById("stageToolbar").style.display = isStudyTab ? "flex" : "none";
+  document.getElementById("stageToolbar").style.display = (isStudyTab && !isMobileViewport()) ? "flex" : "none";
 
   if (currentTab === "exam") {
     renderExamView();
@@ -1484,7 +1528,7 @@ function renderCurrentView() {
   if (activeItemIdx[currentTab] >= list.length) activeItemIdx[currentTab] = 0;
   if (activeItemIdx[currentTab] < 0) activeItemIdx[currentTab] = 0;
 
-  if (studyViewMode === "focus") {
+  if (effMode === "focus") {
     renderFocusCard(list, activeItemIdx[currentTab]);
   } else {
     renderListCards(list);
@@ -1621,7 +1665,7 @@ function renderListCards(list) {
 function selectStudyItem(idx) {
   activeItemIdx[currentTab] = idx;
   closeMobileSidebar();
-  if (studyViewMode === "focus") {
+  if (getEffectiveViewMode() === "focus") {
     renderCurrentView();
     const navEl = document.getElementById("nav-item-" + idx);
     if (navEl) navEl.scrollIntoView({ block: "nearest" });
@@ -1646,14 +1690,17 @@ function toggleStudyViewMode() {
   renderCurrentView();
 }
 
-// ==================== FLASHCARD ENGINE ====================
+// ==================== FLASHCARD ENGINE (SEPARATE VOCAB vs QUESTION) ====================
 function buildFlashcardDeck() {
+  const allBms = Object.values(bmState.items);
   if (fcConfig.source === "bookmarks") {
-    fcDeck = Object.values(bmState.items).map(it => ({
-      id: it.id, title: it.title, sub: it.sub, note: it.note, session: it.session
-    }));
+    fcDeck = allBms.map(it => ({ ...it }));
+  } else if (fcConfig.source === "bm_words") {
+    fcDeck = allBms.filter(it => it.kind !== "question").map(it => ({ ...it }));
+  } else if (fcConfig.source === "bm_questions") {
+    fcDeck = allBms.filter(it => it.kind === "question").map(it => ({ ...it }));
   } else {
-    fcDeck = [...cheatWordsBank];
+    fcDeck = cheatWordsBank.map(w => ({ ...w, kind: "word" }));
   }
   fcIdx = 0;
   fcFlipped = false;
@@ -1661,19 +1708,35 @@ function buildFlashcardDeck() {
 
 function renderFlashcardView() {
   const root = document.getElementById("stageRoot");
-  if (!fcDeck.length) buildFlashcardDeck();
-
-  const bmCnt = Object.keys(bmState.items).length;
+  const allBms = Object.values(bmState.items);
+  const bmWordsCnt = allBms.filter(it => it.kind !== "question").length;
+  const bmQsCnt = allBms.filter(it => it.kind === "question").length;
   const csCnt = cheatWordsBank.length;
+
+  const filterBar = `
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn ${fcConfig.source==='bookmarks'?'btn-primary':''}" onclick="switchFlashcardSource('bookmarks')">★ Tất cả BM (${allBms.length})</button>
+        <button class="btn ${fcConfig.source==='bm_words'?'btn-primary':''}" onclick="switchFlashcardSource('bm_words')">🔤 Từ vựng (${bmWordsCnt})</button>
+        <button class="btn ${fcConfig.source==='bm_questions'?'btn-primary':''}" onclick="switchFlashcardSource('bm_questions')">📝 Bài tập (${bmQsCnt})</button>
+        <button class="btn ${fcConfig.source==='cheatsheet'?'btn-primary':''}" onclick="switchFlashcardSource('cheatsheet')">📋 Cheat Sheet (${csCnt})</button>
+      </div>
+      ${fcDeck.length ? `
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-size:13px;font-weight:700;color:var(--muted);">Thẻ ${fcIdx + 1} / ${fcDeck.length}</span>
+          <button class="btn" onclick="shuffleFlashcards()">🔀 Xáo trộn</button>
+        </div>
+      ` : ""}
+    </div>
+  `;
 
   if (!fcDeck.length) {
     root.innerHTML = `
-      <div class="empty-state">
-        <h2>🃏 Flashcard Ôn Từ Vựng N1</h2>
-        <p style="color:var(--muted);font-size:13.5px;">Chưa có thẻ nào trong nguồn này. Hãy bấm ★ Bookmark các từ khó hoặc chuyển sang nguồn <strong>Cheat Sheet (${csCnt} từ)</strong>!</p>
-        <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;">
-          <button class="btn ${fcConfig.source==='bookmarks'?'btn-primary':''}" onclick="switchFlashcardSource('bookmarks')">★ Từ Bookmark (${bmCnt})</button>
-          <button class="btn ${fcConfig.source==='cheatsheet'?'btn-primary':''}" onclick="switchFlashcardSource('cheatsheet')">📋 Từ Cheat Sheet (${csCnt})</button>
+      <div class="fc-wrap" style="max-width:780px;">
+        ${filterBar}
+        <div class="empty-state">
+          <h2>🃏 Chưa có thẻ trong mục này</h2>
+          <p style="color:var(--muted);font-size:13.5px;">Hãy bấm ★ Bookmark từ vựng / câu hỏi khó hoặc chuyển sang nguồn <strong>Cheat Sheet (${csCnt} từ)</strong>!</p>
         </div>
       </div>
     `;
@@ -1681,35 +1744,50 @@ function renderFlashcardView() {
   }
 
   const card = fcDeck[fcIdx];
+  const isQuestion = card.kind === "question";
+  const fullQ = isQuestion ? findStudyItemById(card.id) : null;
+  const speakText = isQuestion ? (fullQ?.jpText || card.sub || "") : card.title;
+
+  let cardBodyHtml = "";
+  if (isQuestion && fullQ) {
+    // BÀI TẬP: Mặt trước = Toàn bộ Đề bài & 4 đáp án | Mặt sau = Đáp án & Giải thích đầy đủ
+    cardBodyHtml = `
+      <div style="display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+        <span class="session-pill" style="background:var(--primary-soft);color:var(--primary);border:none;">📝 BÀI TẬP · ${escapeHtml(fullQ.shortLabel)}</span>
+        <span style="font-size:11.5px;font-weight:700;color:var(--muted);">${fcFlipped ? "MẶT SAU · ĐÁP ÁN & GIẢI THÍCH" : "MẶT TRƯỚC · BẤM HOẶC SPACE ĐỂ XEM ĐÁP ÁN"}</span>
+      </div>
+      <div class="focus-prompt" style="width:100%;text-align:left;margin-bottom:8px;">${fullQ.promptHtml}</div>
+      ${fcFlipped ? `
+        <div style="width:100%;text-align:left;margin-top:8px;padding-top:10px;border-top:1px dashed var(--border);">${fullQ.answerHtml}</div>
+      ` : `<div style="font-size:13px;color:var(--muted);margin-top:10px;">(Tự chọn đáp án 1–4 rồi bấm vào thẻ hoặc Space để xem lời giải chi tiết)</div>`}
+    `;
+  } else {
+    // TỪ VỰNG: Mặt trước = Từ tiếng Nhật | Mặt sau = Cách đọc & Nghĩa đầy đủ
+    const cleanSub = (card.sub || "").replace(/<[^>]+>/g, "");
+    const cleanNote = (card.note || "").replace(/<[^>]+>/g, "");
+    cardBodyHtml = `
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;font-weight:700;">
+        ${fcFlipped ? "MẶT SAU · CÁCH ĐỌC & NGHĨA" : "MẶT TRƯỚC · TỪ VỰNG (BẤM HOẶC SPACE ĐỂ LẬT)"}
+      </div>
+      <div class="fc-front-word">${escapeHtml(card.title)}</div>
+      ${fcFlipped ? `
+        ${cleanSub ? `<div class="fc-sub">${escapeHtml(cleanSub)}</div>` : ""}
+        ${cleanNote ? `<div class="fc-note">${escapeHtml(cleanNote)}</div>` : ""}
+        <div style="font-size:11.5px;color:var(--muted);margin-top:14px;">${escapeHtml(card.session || "")}</div>
+      ` : `<div style="font-size:13px;color:var(--muted);margin-top:8px;">(Tự nhẩm cách đọc &amp; nghĩa rồi bấm để kiểm tra)</div>`}
+    `;
+  }
+
   root.innerHTML = `
-    <div class="fc-wrap">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-        <div style="display:flex;gap:6px;">
-          <button class="btn ${fcConfig.source==='bookmarks'?'btn-primary':''}" onclick="switchFlashcardSource('bookmarks')">★ Bookmark (${bmCnt})</button>
-          <button class="btn ${fcConfig.source==='cheatsheet'?'btn-primary':''}" onclick="switchFlashcardSource('cheatsheet')">📋 Cheat Sheet (${csCnt})</button>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <span style="font-size:13px;font-weight:700;color:var(--muted);">Thẻ ${fcIdx + 1} / ${fcDeck.length}</span>
-          <button class="btn" onclick="shuffleFlashcards()">🔀 Xáo trộn</button>
-        </div>
+    <div class="fc-wrap" style="max-width:780px;">
+      ${filterBar}
+      <div class="fc-card" onclick="flipFlashcard()" style="align-items:${isQuestion && fullQ ? 'stretch' : 'center'};padding:${isQuestion && fullQ ? '20px 22px' : '34px 26px'};">
+        ${cardBodyHtml}
       </div>
-
-      <div class="fc-card" onclick="flipFlashcard()">
-        <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;font-weight:700;">
-          ${fcFlipped ? "MẶT SAU · NGHĨA & CÁCH ĐỌC" : "MẶT TRƯỚC · BẤM HOẶC SPACE ĐỂ LẬT"}
-        </div>
-        <div class="fc-front-word">${escapeHtml(card.title)}</div>
-        ${fcFlipped ? `
-          ${card.sub ? `<div class="fc-sub">${escapeHtml(card.sub)}</div>` : ""}
-          ${card.note ? `<div class="fc-note">${escapeHtml(card.note)}</div>` : ""}
-          <div style="font-size:11.5px;color:var(--muted);margin-top:14px;">${escapeHtml(card.session || "")}</div>
-        ` : `<div style="font-size:13px;color:var(--muted);margin-top:8px;">(Tự nhẩm cách đọc &amp; nghĩa rồi bấm để kiểm tra)</div>`}
-      </div>
-
       <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
         <button class="btn" onclick="stepFlashcard(-1)" ${fcIdx <= 0 ? "disabled" : ""}>← Thẻ trước</button>
-        <button class="btn" onclick='speakJapanese(${JSON.stringify(card.title)})'>🔊 Nghe đọc</button>
-        <button class="btn btn-primary" onclick="flipFlashcard()">🔄 Lật thẻ</button>
+        ${speakText ? `<button class="btn" onclick='speakJapanese(${JSON.stringify(speakText)})'>🔊 Nghe đọc</button>` : ""}
+        <button class="btn btn-primary" onclick="flipFlashcard()">🔄 ${fcFlipped ? "Úp thẻ" : "Lật xem đáp án"}</button>
         <button class="btn" onclick="stepFlashcard(1)" ${fcIdx >= fcDeck.length - 1 ? "disabled" : ""}>Thẻ tiếp →</button>
       </div>
     </div>
@@ -2156,22 +2234,34 @@ function renderDrawerList() {
     listEl.innerHTML = '<p style="color:var(--muted);font-size:12.5px;text-align:center;">Chưa có mục nào được bookmark.</p>';
     return;
   }
-  listEl.innerHTML = items.map(item => `
-    <div class="bm-item">
-      <div class="bm-item-top">
-        <div style="min-width:0;">
-          <div class="bm-item-title">${escapeHtml(item.title)}</div>
-          ${item.sub ? `<div class="bm-item-sub">${escapeHtml(item.sub)}</div>` : ""}
-          ${item.note ? `<div class="bm-item-sub">${escapeHtml(item.note)}</div>` : ""}
-          <div class="bm-item-meta">${escapeHtml(item.session)}</div>
-        </div>
-        <div style="display:flex;gap:4px;">
-          <button class="btn btn-icon" onclick='speakJapanese(${JSON.stringify(item.title)})' title="Nghe">🔊</button>
-          <button class="btn btn-icon" onclick='removeBookmark(${JSON.stringify(item.id)})' title="Xóa">✕</button>
+  listEl.innerHTML = items.map(item => {
+    const isQ = item.kind === "question";
+    const fullQ = isQ ? findStudyItemById(item.id) : null;
+    const cleanTitle = isQ && fullQ ? fullQ.shortLabel : item.title;
+    const cleanSub = (isQ && fullQ ? fullQ.jpText : (item.sub || "")).replace(/<[^>]+>/g, "");
+    const cleanNote = (item.note || "").replace(/<[^>]+>/g, "");
+    const speakTxt = isQ ? cleanSub : item.title;
+    return `
+      <div class="bm-item">
+        <div class="bm-item-top">
+          <div style="min-width:0;flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span style="font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px;background:${isQ?'var(--primary-soft)':'var(--gold-soft)'};color:${isQ?'var(--primary)':'var(--gold-text)'};">${isQ ? "BÀI TẬP" : "TỪ VỰNG"}</span>
+              <span class="bm-item-title">${escapeHtml(cleanTitle)}</span>
+            </div>
+            ${cleanSub ? `<div class="bm-item-sub">${escapeHtml(cleanSub)}</div>` : ""}
+            ${cleanNote ? `<div class="bm-item-sub">${escapeHtml(cleanNote)}</div>` : ""}
+            <div class="bm-item-meta">${escapeHtml(item.session)}</div>
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0;">
+            ${isQ && fullQ ? `<button class="btn btn-icon" onclick='jumpToBookmarkedItem(${JSON.stringify(item.id)})' title="Mở câu hỏi đầy đủ">👁️</button>` : ""}
+            ${speakTxt ? `<button class="btn btn-icon" onclick='speakJapanese(${JSON.stringify(speakTxt)})' title="Nghe">🔊</button>` : ""}
+            <button class="btn btn-icon" onclick='removeBookmark(${JSON.stringify(item.id)})' title="Xóa">✕</button>
+          </div>
         </div>
       </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
 
 // ==================== PUBLIC DRIVE FETCH + FIREBASE AUTH & FIRESTORE ====================
