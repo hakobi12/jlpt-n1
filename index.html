@@ -1233,6 +1233,7 @@ const KEYS = {
   DONE_IDS: "jlpt_n1_done_ids_v1",
   MASTERED_IDS: "jlpt_n1_mastered_ids_v1",
   LAST_READ: "jlpt_n1_last_read_v1",
+  EXAM_HISTORY: "jlpt_n1_exam_history_v1",
   THEME: "jlpt_n1_theme_v1"
 };
 
@@ -1245,6 +1246,7 @@ let wrongIds = loadSetFromStorage(KEYS.WRONG_IDS);
 let doneIds = loadSetFromStorage(KEYS.DONE_IDS);
 let masteredIds = loadSetFromStorage(KEYS.MASTERED_IDS);
 let lastReadMap = loadJsonFromStorage(KEYS.LAST_READ, {});
+let examHistory = loadJsonFromStorage(KEYS.EXAM_HISTORY, []);
 let mdStore = { tuvung: "", nguphap: "", dochieu: "" };
 let tabItems = { tuvung: [], nguphap: [], dochieu: [] };
 let parsedQuizBank = [];
@@ -1255,7 +1257,7 @@ let onlyBookmarked = false;
 let quizHideMode = false;
 let scrollSpyBound = false;
 
-let examConfig = { source: "all", count: 10, mode: "instant" };
+let examConfig = { source: "all", day: "all", count: 10, mode: "instant", timerMode: "up" };
 let examSession = null;
 let examTimerInterval = null;
 
@@ -1300,6 +1302,11 @@ function saveDoneIds(skipCloud = false) {
 }
 function saveMasteredIds(skipCloud = false) {
   localStorage.setItem(KEYS.MASTERED_IDS, JSON.stringify([...masteredIds]));
+  if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
+}
+function saveExamHistory(skipCloud = false) {
+  examHistory = (examHistory || []).slice(0, 15);
+  localStorage.setItem(KEYS.EXAM_HISTORY, JSON.stringify(examHistory));
   if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
 }
 function toggleDoneItem(id) {
@@ -1544,9 +1551,12 @@ function extractQuizQuestions(tabId, mdText) {
       if (options.length !== 4) return;
       const qId = `q::${tabId}::${sIdx}::${blk.title}`;
       const firstLine = (cleanPromptMd.split("\n")[0] || "").replace(/<[^>]+>/g, "").replace(/[`*#>]/g, "").trim();
+      const dayMatch = sess.title.match(/NGÀY\s*\d+/i);
+      const dayTag = dayMatch ? dayMatch[0].toUpperCase().replace(/\s+/, " ") : "KHÁC";
+      const isStar = blk.title.includes("★") || cleanPromptMd.includes("＿★＿");
 
       questions.push({
-        id: qId, tabId,
+        id: qId, tabId, dayTag, isStar,
         categoryLabel: tabId === "tuvung" ? "Từ vựng" : "Ngữ pháp",
         sessionTitle: sess.title, title: blk.title,
         promptHtml: renderMdFragment(cleanPromptMd),
@@ -1943,13 +1953,22 @@ function flipFlashcard() { fcFlipped = !fcFlipped; renderFlashcardView(); }
 function stepFlashcard(d) { const n = fcIdx + d; if (n >= 0 && n < fcDeck.length) { fcIdx = n; fcFlipped = false; renderFlashcardView(); } }
 function shuffleFlashcards() { fcDeck = shuffleArray(fcDeck); fcIdx = 0; fcFlipped = false; renderFlashcardView(); showToast("Đã xáo trộn bộ thẻ"); }
 
-// ==================== EXAM ENGINE ====================
-function getFilteredExamPool(source) {
-  if (source === "tuvung") return parsedQuizBank.filter(q => q.tabId === "tuvung");
-  if (source === "nguphap") return parsedQuizBank.filter(q => q.tabId === "nguphap");
-  if (source === "bookmarked") return parsedQuizBank.filter(q => !!bmState.items[q.id]);
-  if (source === "wrong") return parsedQuizBank.filter(q => wrongIds.has(q.id));
-  return [...parsedQuizBank];
+// ==================== EXAM ENGINE (DAY FILTER, STAR FILTER, COUNTDOWN, HISTORY) ====================
+function getAvailableExamDays() {
+  const days = new Set();
+  parsedQuizBank.forEach(q => { if (q.dayTag && q.dayTag !== "KHÁC") days.add(q.dayTag); });
+  return [...days].sort((a, b) => a.localeCompare(b, "vi", { numeric: true }));
+}
+
+function getFilteredExamPool(source, day = examConfig.day) {
+  let pool = [...parsedQuizBank];
+  if (day && day !== "all") pool = pool.filter(q => q.dayTag === day);
+  if (source === "tuvung") return pool.filter(q => q.tabId === "tuvung");
+  if (source === "nguphap") return pool.filter(q => q.tabId === "nguphap");
+  if (source === "star") return pool.filter(q => q.isStar);
+  if (source === "bookmarked") return pool.filter(q => !!bmState.items[q.id]);
+  if (source === "wrong") return pool.filter(q => wrongIds.has(q.id));
+  return pool;
 }
 
 function renderExamView() {
@@ -1964,34 +1983,46 @@ function renderExamView() {
     return;
   }
 
-  const vocabCnt = parsedQuizBank.filter(q => q.tabId === "tuvung").length;
-  const gramCnt = parsedQuizBank.filter(q => q.tabId === "nguphap").length;
-  const bmCnt = parsedQuizBank.filter(q => !!bmState.items[q.id]).length;
-  const wrongCnt = parsedQuizBank.filter(q => wrongIds.has(q.id)).length;
-  const poolSize = getFilteredExamPool(examConfig.source).length;
+  const days = getAvailableExamDays();
+  const baseByDay = getFilteredExamPool("all", examConfig.day);
+  const vocabCnt = baseByDay.filter(q => q.tabId === "tuvung").length;
+  const gramCnt = baseByDay.filter(q => q.tabId === "nguphap").length;
+  const starCnt = baseByDay.filter(q => q.isStar).length;
+  const bmCnt = baseByDay.filter(q => !!bmState.items[q.id]).length;
+  const wrongCnt = baseByDay.filter(q => wrongIds.has(q.id)).length;
+  const poolSize = getFilteredExamPool(examConfig.source, examConfig.day).length;
   const targetCnt = examConfig.count === "all" ? poolSize : Math.min(Number(examConfig.count) || 10, poolSize);
 
   root.innerHTML = `
     <div class="exam-setup-card">
       <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--border);padding-bottom:12px;">
         <h2 style="font-family:var(--font-serif);margin:0;font-size:21px;">Tạo đề thi thử JLPT N1</h2>
-        <span style="font-size:12.5px;color:var(--muted);">Ngân hàng hiện có <strong>${parsedQuizBank.length} câu</strong> (${vocabCnt} Từ vựng · ${gramCnt} Ngữ pháp)</span>
+        <span style="font-size:12.5px;color:var(--muted);">Ngân hàng: <strong>${parsedQuizBank.length} câu</strong> · Đang lọc: <strong>${poolSize} câu</strong></span>
       </div>
 
       <div class="exam-grid-setup">
         <div class="exam-field">
-          <label>1. Nguồn câu hỏi</label>
+          <label>1. Lọc theo Ngày học</label>
           <div class="pill-group">
-            <button class="choice-pill ${examConfig.source==='all'?'active':''}" onclick="setExamConfig('source','all')">Tất cả (${parsedQuizBank.length})</button>
-            <button class="choice-pill ${examConfig.source==='tuvung'?'active':''}" onclick="setExamConfig('source','tuvung')">Từ vựng (${vocabCnt})</button>
-            <button class="choice-pill ${examConfig.source==='nguphap'?'active':''}" onclick="setExamConfig('source','nguphap')">Ngữ pháp (${gramCnt})</button>
-            <button class="choice-pill ${examConfig.source==='bookmarked'?'active':''}" onclick="setExamConfig('source','bookmarked')">Đã Bookmark (${bmCnt})</button>
-            <button class="choice-pill ${examConfig.source==='wrong'?'active':''}" onclick="setExamConfig('source','wrong')">Câu hay sai (${wrongCnt})</button>
+            <button class="choice-pill ${examConfig.day==='all'?'active':''}" onclick="setExamConfig('day','all')">Tất cả ngày</button>
+            ${days.map(d => `<button class="choice-pill ${examConfig.day===d?'active':''}" onclick="setExamConfig('day','${d}')">${d}</button>`).join("")}
           </div>
         </div>
 
         <div class="exam-field">
-          <label>2. Số câu ngẫu nhiên (tối đa ${poolSize})</label>
+          <label>2. Nguồn câu hỏi</label>
+          <div class="pill-group">
+            <button class="choice-pill ${examConfig.source==='all'?'active':''}" onclick="setExamConfig('source','all')">Tất cả (${baseByDay.length})</button>
+            <button class="choice-pill ${examConfig.source==='tuvung'?'active':''}" onclick="setExamConfig('source','tuvung')">Từ vựng (${vocabCnt})</button>
+            <button class="choice-pill ${examConfig.source==='nguphap'?'active':''}" onclick="setExamConfig('source','nguphap')">Ngữ pháp (${gramCnt})</button>
+            <button class="choice-pill ${examConfig.source==='star'?'active':''}" onclick="setExamConfig('source','star')">Câu sao ★ (${starCnt})</button>
+            <button class="choice-pill ${examConfig.source==='bookmarked'?'active':''}" onclick="setExamConfig('source','bookmarked')">Bookmark (${bmCnt})</button>
+            <button class="choice-pill ${examConfig.source==='wrong'?'active':''}" onclick="setExamConfig('source','wrong')">Hay sai (${wrongCnt})</button>
+          </div>
+        </div>
+
+        <div class="exam-field">
+          <label>3. Số câu ngẫu nhiên (tối đa ${poolSize})</label>
           <div class="pill-group" style="align-items:center;">
             ${[5, 10, 20, 30].map(n => `<button class="choice-pill ${examConfig.count===n?'active':''}" onclick="setExamConfig('count',${n})">${n}</button>`).join("")}
             <button class="choice-pill ${examConfig.count==='all'?'active':''}" onclick="setExamConfig('count','all')">Tất cả</button>
@@ -2002,10 +2033,14 @@ function renderExamView() {
         </div>
 
         <div class="exam-field">
-          <label>3. Chế độ chấm điểm</label>
-          <div class="pill-group">
-            <button class="choice-pill ${examConfig.mode==='instant'?'active':''}" onclick="setExamConfig('mode','instant')">Chấm ngay từng câu</button>
+          <label>4. Chế độ chấm điểm &amp; Thời gian</label>
+          <div class="pill-group" style="margin-bottom:7px;">
+            <button class="choice-pill ${examConfig.mode==='instant'?'active':''}" onclick="setExamConfig('mode','instant')">Chấm ngay</button>
             <button class="choice-pill ${examConfig.mode==='submit'?'active':''}" onclick="setExamConfig('mode','submit')">Nộp bài mới chấm</button>
+          </div>
+          <div class="pill-group">
+            <button class="choice-pill ${examConfig.timerMode==='up'?'active':''}" onclick="setExamConfig('timerMode','up')">Đếm tiến</button>
+            <button class="choice-pill ${examConfig.timerMode==='countdown'?'active':''}" onclick="setExamConfig('timerMode','countdown')">Đếm ngược chuẩn N1</button>
           </div>
         </div>
       </div>
@@ -2016,7 +2051,38 @@ function renderExamView() {
         </button>
       </div>
     </div>
+
+    ${examHistory.length ? `
+      <div class="exam-setup-card" style="margin-top:16px;border-top:1px solid var(--border);padding:18px 22px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h3 style="font-family:var(--font-serif);margin:0;font-size:16px;">Lịch sử làm bài gần đây (${examHistory.length})</h3>
+          <button class="btn" onclick="clearExamHistory()" style="font-size:11.5px;padding:3px 9px;color:var(--muted);">Xóa lịch sử</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Thời gian</th><th>Phạm vi</th><th>Điểm số</th><th>Tỉ lệ</th><th>Thời lượng</th></tr></thead>
+            <tbody>
+              ${examHistory.slice(0, 10).map(h => `
+                <tr>
+                  <td style="white-space:nowrap;">${escapeHtml(h.dateLabel)}</td>
+                  <td>${escapeHtml(h.scope)}</td>
+                  <td><strong>${h.correct}/${h.total}</strong></td>
+                  <td style="font-weight:700;color:${h.pct>=70?'var(--matcha)':'var(--vermilion)'};">${h.pct}%</td>
+                  <td>${escapeHtml(h.duration)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ` : ""}
   `;
+}
+
+function clearExamHistory() {
+  examHistory = [];
+  saveExamHistory();
+  renderExamView();
 }
 
 function setExamConfig(k, v) { examConfig[k] = v; renderExamView(); }
@@ -2026,19 +2092,40 @@ function shuffleArray(arr) {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
-function formatDuration(sec) { return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`; }
+function formatDuration(sec) { const s = Math.max(0, sec); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
 
 function startExam(customList = null) {
-  const pool = customList || getFilteredExamPool(examConfig.source);
+  const pool = customList || getFilteredExamPool(examConfig.source, examConfig.day);
   if (!pool.length) { showToast("Không có câu hỏi nào."); return; }
   const desired = customList ? pool.length : (examConfig.count === "all" ? pool.length : Math.min(Number(examConfig.count) || 10, pool.length));
-  examSession = { questions: shuffleArray(pool).slice(0, desired), answers: {}, currentIdx: 0, mode: examConfig.mode, startedAt: Date.now(), elapsedSec: 0, finished: false };
+  const selected = shuffleArray(pool).slice(0, desired);
+  // N1 pace: 30s per vocab, 45s per grammar
+  const limitSec = selected.reduce((sum, q) => sum + (q.tabId === "nguphap" ? 45 : 30), 0);
+  const scopeLabel = customList ? "Làm lại câu sai" : `${examConfig.day === "all" ? "Tất cả" : examConfig.day} · ${examConfig.source}`;
+
+  examSession = {
+    questions: selected, answers: {}, currentIdx: 0,
+    mode: examConfig.mode, timerMode: examConfig.timerMode,
+    limitSec, scopeLabel, startedAt: Date.now(), elapsedSec: 0, finished: false
+  };
   clearInterval(examTimerInterval);
   examTimerInterval = setInterval(() => {
     if (!examSession || examSession.finished) return;
     examSession.elapsedSec = Math.floor((Date.now() - examSession.startedAt) / 1000);
     const el = document.getElementById("examTimer");
-    if (el) el.textContent = formatDuration(examSession.elapsedSec);
+    if (examSession.timerMode === "countdown") {
+      const rem = examSession.limitSec - examSession.elapsedSec;
+      if (el) {
+        el.textContent = formatDuration(rem);
+        el.style.color = rem <= 60 ? "var(--vermilion)" : "";
+      }
+      if (rem <= 0) {
+        showToast("Hết giờ làm bài — hệ thống tự động nộp bài");
+        finishExam();
+      }
+    } else if (el) {
+      el.textContent = formatDuration(examSession.elapsedSec);
+    }
   }, 1000);
   renderExamView();
 }
@@ -2100,7 +2187,7 @@ function renderExamActive(root) {
 
       <div class="exam-side-card">
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
-          <strong style="font-family:var(--font-serif);font-size:16px;" id="examTimer">${formatDuration(s.elapsedSec)}</strong>
+          <strong style="font-family:var(--font-serif);font-size:16px;color:${s.timerMode==='countdown' && (s.limitSec - s.elapsedSec)<=60 ? 'var(--vermilion)' : ''};" id="examTimer">${formatDuration(s.timerMode === "countdown" ? (s.limitSec - s.elapsedSec) : s.elapsedSec)}</strong>
           <span style="color:var(--muted);">${answeredCount} / ${total} câu</span>
         </div>
         <div class="exam-progress-track"><div class="exam-progress-fill" style="width:${pct}%"></div></div>
@@ -2142,13 +2229,27 @@ function toggleExamQuestionBookmark(idx) {
   renderExamView();
 }
 function finishExam() {
-  if (!examSession) return;
+  if (!examSession || examSession.finished) return;
+  let correctCnt = 0;
   examSession.questions.forEach((q, i) => {
     const a = examSession.answers[i];
-    if (a === q.correct) wrongIds.delete(q.id);
+    if (a === q.correct) { wrongIds.delete(q.id); correctCnt++; }
     else if (a !== undefined) wrongIds.add(q.id);
   });
   saveWrongIds();
+  const total = examSession.questions.length;
+  const pct = total ? Math.round((correctCnt / total) * 100) : 0;
+  const now = new Date();
+  examHistory.unshift({
+    ts: now.toISOString(),
+    dateLabel: now.toLocaleDateString("vi-VN") + " " + now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+    scope: examSession.scopeLabel || "JLPT N1",
+    correct: correctCnt,
+    total,
+    pct,
+    duration: formatDuration(examSession.elapsedSec)
+  });
+  saveExamHistory();
   examSession.finished = true;
   clearInterval(examTimerInterval);
   renderExamView();
@@ -2389,9 +2490,13 @@ function initFirebase() {
           const mergedWrong = new Set([...wrongIds, ...(data.wrongIds || [])]);
           const mergedDone = new Set([...doneIds, ...(data.doneIds || [])]);
           const mergedMastered = new Set([...masteredIds, ...(data.masteredIds || [])]);
+          const seenTs = new Set();
+          const mergedHist = [...(examHistory || []), ...(data.examHistory || [])]
+            .filter(h => h && h.ts && !seenTs.has(h.ts) && seenTs.add(h.ts))
+            .sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 15);
           isApplyingRemote = true;
-          bmState = merged; wrongIds = mergedWrong; doneIds = mergedDone; masteredIds = mergedMastered;
-          saveBookmarksLocal(); saveWrongIds(true); saveDoneIds(true); saveMasteredIds(true);
+          bmState = merged; wrongIds = mergedWrong; doneIds = mergedDone; masteredIds = mergedMastered; examHistory = mergedHist;
+          saveBookmarksLocal(); saveWrongIds(true); saveDoneIds(true); saveMasteredIds(true); saveExamHistory(true);
           syncBookmarkBadgesOnly();
           if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderCurrentView(true);
           else if (currentTab === "exam" && !examSession) renderExamView();
@@ -2448,7 +2553,8 @@ async function pushUserCloudState(manual = false) {
       bookmarks: { items: bmState.items, deleted: bmState.deleted },
       wrongIds: [...wrongIds],
       doneIds: [...doneIds],
-      masteredIds: [...masteredIds]
+      masteredIds: [...masteredIds],
+      examHistory: examHistory.slice(0, 15)
     }, { merge: true });
     const t = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
     document.getElementById("bmSyncInfo").textContent = `Đã đồng bộ (${t})`;
