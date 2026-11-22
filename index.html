@@ -12,7 +12,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <style>
   :root {
     --bg: #f1f5f9;
@@ -906,8 +908,8 @@
       <span class="brand-badge">N1</span>
       <span class="brand-text">JLPT Pro</span>
     </div>
-    <button class="sync-pill" id="syncPill" onclick="handleSyncClick()" title="Kết nối / Đồng bộ Google Drive">
-      <span id="syncDot">⚪</span><span id="syncLabel">Kết nối Drive</span>
+    <button class="sync-pill" id="syncPill" onclick="fetchPublicMarkdownFiles(true)" title="Tải lại 3 file .md mới nhất từ Google Drive">
+      <span id="syncDot">⏳</span><span id="syncLabel">Đang tải...</span>
     </button>
   </div>
 
@@ -922,9 +924,10 @@
   </div>
 
   <div class="top-right">
+    <button class="btn btn-primary" id="authBtn" onclick="handleAuthClick()" title="Đăng nhập Gmail để đồng bộ Bookmark & Câu hay sai riêng">🔐 Gmail</button>
     <button class="btn btn-gold" onclick="openDrawer()" title="Mở Sổ Bookmark">★ <span id="bmCount">0</span></button>
     <button class="btn btn-icon" id="themeBtn" onclick="toggleTheme()" title="Chế độ Sáng / Tối">🌙</button>
-    <button class="btn btn-icon" onclick="openSettings()" title="Cài đặt Drive Sync">⚙️</button>
+    <button class="btn btn-icon" onclick="openSettings()" title="Cài đặt & Dữ liệu">⚙️</button>
   </div>
 </header>
 
@@ -972,8 +975,8 @@
   </div>
   <div class="drawer-body">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:11.5px;color:var(--muted);">
-      <span id="bmSyncInfo">Lưu trên máy (localStorage)</span>
-      <button class="btn" onclick="syncBookmarksWithDrive(true)" style="padding:3px 8px;font-size:11.5px;">☁️ Đồng bộ</button>
+      <span id="bmSyncInfo">Lưu trên máy (Đăng nhập Gmail để đồng bộ)</span>
+      <button class="btn" onclick="pushUserCloudState(true)" style="padding:3px 8px;font-size:11.5px;">☁️ Đồng bộ</button>
     </div>
     <div class="quick-add">
       <input id="customWord" type="text" placeholder="➕ Thêm từ mới (VD: 肝に銘じる)">
@@ -995,37 +998,22 @@
 <div class="backdrop" id="settingsBackdrop" onclick="closeSettings()"></div>
 <div class="modal" id="settingsModal">
   <div class="modal-header">
-    <strong>⚙️ Cài đặt Google Drive &amp; Dữ liệu</strong>
+    <strong>⚙️ Tài khoản &amp; Dữ liệu học tập</strong>
     <button class="btn btn-icon" onclick="closeSettings()">✕</button>
   </div>
   <div class="modal-body">
-    <div class="form-group">
-      <label>Google OAuth 2.0 Client ID (dùng để đồng bộ Bookmark 2 chiều)</label>
-      <input id="cfgClientId" type="text" placeholder="xxxx.apps.googleusercontent.com">
-    </div>
-    <div class="form-group">
-      <label>Google Drive API Key (tùy chọn — đọc 3 file .md Public không cần đăng nhập)</label>
-      <input id="cfgApiKey" type="text" placeholder="AIzaSy... (để trống nếu dùng OAuth)">
-    </div>
-    <div class="form-group">
-      <label>Google Drive Folder ID (N1 14 day 122026)</label>
-      <input id="cfgFolderId" type="text">
-    </div>
-    <div class="form-group">
-      <label>File đồng bộ Bookmark trên Drive</label>
-      <input id="cfgBmFile" type="text">
-    </div>
-    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:12px;color:var(--text-2);margin-bottom:14px;">
-      <strong>Origin hiện tại:</strong> <code id="currentOriginDisplay"></code><br>
+    <div id="accountInfoBox" style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;"></div>
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12.5px;color:var(--text-2);margin-bottom:14px;">
+      <strong>📚 Nguồn bài học (3 file .md từ Google Drive):</strong>
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="fetchPublicMarkdownFiles(true);closeSettings();">🔄 Tải lại 3 file .md mới nhất</button>
         <button class="btn" onclick="document.getElementById('localMdInput').click()">📂 Nạp file .md từ máy (Offline)</button>
         <input id="localMdInput" type="file" accept=".md,.txt" multiple style="display:none" onchange="loadLocalMarkdownFiles(event)">
         <button class="btn" onclick="clearLocalCache()" style="color:var(--red);">🗑️ Xóa cache .md</button>
       </div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn" onclick="closeSettings()">Hủy</button>
-      <button class="btn btn-primary" onclick="saveSettings()">💾 Lưu cài đặt</button>
+      <button class="btn btn-primary" onclick="closeSettings()">Đóng</button>
     </div>
   </div>
 </div>
@@ -1033,21 +1021,23 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ==================== CONFIGURATION ====================
-const DEFAULT_CONFIG = {
-  clientId: "45519602571-s3vc7cs0bjk7rsdfsnqegm49jqs4hod2.apps.googleusercontent.com",
-  apiKey: "", // Nếu bật Public folder + API Key sẽ tự tải .md không cần đăng nhập
-  folderId: "1wBj2tlxaCjxqnUvjiU2vU93a2t0So_5h",
-  bookmarkFileName: "jlpt_bookmarks.json",
-  files: {
-    tuvung: { name: "01_TU_VUNG_N1_GMN.md", fallbackId: "1QW3cPCy6GOAXRtvYbuvD-CukwqatJlqF" },
-    nguphap: { name: "02_NGU_PHAP_N1_GMN.md", fallbackId: "1rgAp3b6pfnQ81fmHesR2pvhGxLYuVha5" },
-    dochieu: { name: "03_DOC_HIEU_N1_GMN.md", fallbackId: "1u2xccVEuH2nWIrvc5_Eiv3HvCJVpXwgy" }
-  }
+// ==================== CONFIGURATION (FIREBASE + PUBLIC DRIVE) ====================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyApN00WWVr-l-NPCu9ylxToky99ErH9Bz0",
+  authDomain: "mythical-mason-515501-r0.firebaseapp.com",
+  projectId: "mythical-mason-515501-r0",
+  storageBucket: "mythical-mason-515501-r0.firebasestorage.app",
+  messagingSenderId: "45519602571",
+  appId: "1:45519602571:web:32f315924014fd99c1658e"
+};
+
+const DRIVE_FILES = {
+  tuvung: { name: "01_TU_VUNG_N1_GMN.md", id: "1QW3cPCy6GOAXRtvYbuvD-CukwqatJlqF" },
+  nguphap: { name: "02_NGU_PHAP_N1_GMN.md", id: "1rgAp3b6pfnQ81fmHesR2pvhGxLYuVha5" },
+  dochieu: { name: "03_DOC_HIEU_N1_GMN.md", id: "1u2xccVEuH2nWIrvc5_Eiv3HvCJVpXwgy" }
 };
 
 const KEYS = {
-  CONFIG: "jlpt_n1_config_v1",
   BOOKMARKS: "jlpt_n1_bookmarks_v2",
   LEGACY_BM: "jlpt_n1_bookmarks_v1",
   MD_CACHE: "jlpt_n1_md_cache_v1",
@@ -1057,11 +1047,12 @@ const KEYS = {
   VIEW_MODE: "jlpt_n1_view_mode_v1"
 };
 
-let appConfig = loadConfig();
-let accessToken = null;
-let tokenClient = null;
-let bookmarkDriveFileId = null;
+let fbAuth = null;
+let fbDb = null;
+let currentUser = null;
+let unsubFirestore = null;
 let pushTimer = null;
+let isApplyingRemote = false;
 
 let bmState = { items: {}, deleted: {} };
 let wrongIds = loadWrongIds();
@@ -1111,27 +1102,16 @@ function setSyncStatus(dot, label, cls = "") {
   pill.className = "sync-pill" + (cls ? " " + cls : "");
 }
 
-function loadConfig() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(KEYS.CONFIG) || "{}");
-    return {
-      clientId: saved.clientId || DEFAULT_CONFIG.clientId,
-      apiKey: saved.apiKey || DEFAULT_CONFIG.apiKey,
-      folderId: saved.folderId || DEFAULT_CONFIG.folderId,
-      bookmarkFileName: saved.bookmarkFileName || DEFAULT_CONFIG.bookmarkFileName
-    };
-  } catch {
-    return { ...DEFAULT_CONFIG };
-  }
-}
-
 function loadWrongIds() {
   try { return new Set(JSON.parse(localStorage.getItem(KEYS.WRONG_IDS) || "[]")); }
   catch { return new Set(); }
 }
 
-function saveWrongIds() {
+function saveWrongIds(skipCloud = false) {
   localStorage.setItem(KEYS.WRONG_IDS, JSON.stringify([...wrongIds]));
+  if (!skipCloud && currentUser && !isApplyingRemote) {
+    scheduleCloudPush();
+  }
 }
 
 function speakJapanese(text) {
@@ -1480,13 +1460,13 @@ function renderCurrentView() {
     document.getElementById("stageMeta").textContent = "";
     root.innerHTML = `
       <div class="empty-state">
-        <div style="font-size:38px;margin-bottom:8px;">☁️</div>
-        <h2 style="margin:0 0 8px;">Kết nối Google Drive để bắt đầu học N1</h2>
+        <div style="font-size:38px;margin-bottom:8px;">📚</div>
+        <h2 style="margin:0 0 8px;">Đang tải bài học JLPT N1...</h2>
         <p style="color:var(--text-2);font-size:13.5px;margin:0 0 18px;">
-          Tự động tải 3 file <code>.md</code> mới nhất từ thư mục <strong>N1 14 day 122026</strong> và đồng bộ Bookmark 2 chiều giữa PC &amp; Điện thoại.
+          Web tự động tải 3 file <code>.md</code> mới nhất không cần đăng nhập. Anh có thể bấm nút bên dưới nếu muốn tải lại ngay.
         </p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="connectGoogleDrive()" style="padding:9px 18px;font-size:13.5px;">🔐 Kết nối Google Drive</button>
+          <button class="btn btn-primary" onclick="fetchPublicMarkdownFiles(true)" style="padding:9px 18px;font-size:13.5px;">🔄 Tải lại 3 file .md</button>
           <button class="btn" onclick="document.getElementById('localMdInput').click()" style="padding:9px 14px;">📂 Nạp file .md từ máy</button>
         </div>
       </div>
@@ -1765,7 +1745,7 @@ function getFilteredExamPool(source) {
 function renderExamView() {
   const root = document.getElementById("stageRoot");
   if (!parsedQuizBank.length) {
-    root.innerHTML = `<div class="empty-state"><h2>📝 Thi thử JLPT N1</h2><p style="color:var(--muted);">Hãy kết nối Google Drive để tải ngân hàng câu hỏi Từ vựng &amp; Ngữ pháp.</p><button class="btn btn-primary" onclick="connectGoogleDrive()">☁️ Kết nối Google Drive</button></div>`;
+    root.innerHTML = `<div class="empty-state"><h2>📝 Thi thử JLPT N1</h2><p style="color:var(--muted);">Đang tải ngân hàng câu hỏi Từ vựng &amp; Ngữ pháp từ Google Drive...</p><button class="btn btn-primary" onclick="fetchPublicMarkdownFiles(true)">🔄 Tải lại 3 file .md</button></div>`;
     return;
   }
   if (examSession) {
@@ -2099,10 +2079,9 @@ function onBookmarksChanged() {
   if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) {
     renderSidebar(getFilteredItems(currentTab));
   }
-  if (accessToken) {
-    document.getElementById("bmSyncInfo").textContent = "⏳ Đang lưu lên Drive...";
-    clearTimeout(pushTimer);
-    pushTimer = setTimeout(() => syncBookmarksWithDrive(false), 1200);
+  if (currentUser && !isApplyingRemote) {
+    document.getElementById("bmSyncInfo").textContent = "⏳ Đang đồng bộ lên tài khoản Gmail...";
+    scheduleCloudPush();
   }
 }
 
@@ -2195,140 +2174,159 @@ function renderDrawerList() {
   `).join("");
 }
 
-// ==================== DRIVE API (PUBLIC API KEY + OAUTH 2.0) ====================
-function handleSyncClick() {
-  if (accessToken) syncAllFromDrive();
-  else connectGoogleDrive();
-}
-
-async function fetchPublicMarkdownWithApiKey() {
-  if (!appConfig.apiKey) return false;
-  setSyncStatus("⏳", "Đang tải .md...", "syncing");
+// ==================== PUBLIC DRIVE FETCH + FIREBASE AUTH & FIRESTORE ====================
+async function fetchPublicMarkdownFiles(manual = false) {
+  setSyncStatus("⏳", "Đang tải bài...", "syncing");
   try {
-    const key = encodeURIComponent(appConfig.apiKey);
-    const q = encodeURIComponent(`'${appConfig.folderId}' in parents and trashed = false`);
-    const listRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime%20desc&key=${key}`);
-    if (!listRes.ok) throw new Error("Public API Key fetch failed");
-    const data = await listRes.json();
-    const byName = {};
-    (data.files || []).forEach(f => { if (!byName[f.name]) byName[f.name] = f; });
-
-    await Promise.all(Object.entries(DEFAULT_CONFIG.files).map(async ([tabId, meta]) => {
-      const fid = byName[meta.name]?.id || meta.fallbackId;
-      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fid}?alt=media&key=${key}`);
-      if (r.ok) mdStore[tabId] = await r.text();
+    const key = encodeURIComponent(FIREBASE_CONFIG.apiKey);
+    const cacheBust = Date.now();
+    await Promise.all(Object.entries(DRIVE_FILES).map(async ([tabId, meta]) => {
+      const url = `https://www.googleapis.com/drive/v3/files/${meta.id}?alt=media&key=${key}&_=${cacheBust}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`Không tải được ${meta.name} (HTTP ${r.status})`);
+      mdStore[tabId] = await r.text();
     }));
 
     localStorage.setItem(KEYS.MD_CACHE, JSON.stringify(mdStore));
     localStorage.setItem(KEYS.LAST_SYNC, new Date().toISOString());
-    rebuildAllContent();
-    setSyncStatus("🌐", "Đã tải .md (Public)", "ok");
-    return true;
-  } catch (e) {
-    console.warn("Public API Key load error:", e);
-    return false;
-  }
-}
-
-function connectGoogleDrive() {
-  if (!appConfig.clientId) { openSettings(); return; }
-  if (!window.google?.accounts?.oauth2) { showToast("⏳ Đang tải Google Auth, thử lại sau 2 giây..."); return; }
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: appConfig.clientId,
-    scope: "https://www.googleapis.com/auth/drive",
-    callback: async (resp) => {
-      if (resp.error) { setSyncStatus("🔴", "Lỗi OAuth", "err"); showToast("Lỗi OAuth: " + resp.error); return; }
-      accessToken = resp.access_token;
-      await syncAllFromDrive();
-    }
-  });
-  tokenClient.requestAccessToken({ prompt: "" });
-}
-
-async function driveFetch(url, options = {}) {
-  if (!accessToken) throw new Error("Chưa đăng nhập Google Drive");
-  const headers = Object.assign({}, options.headers || {}, { Authorization: "Bearer " + accessToken });
-  const res = await fetch(url, Object.assign({}, options, { headers }));
-  if (res.status === 401) { accessToken = null; setSyncStatus("🔑", "Đăng nhập lại", "warn"); throw new Error("Hết phiên đăng nhập"); }
-  if (!res.ok) throw new Error(`Drive API ${res.status}`);
-  return res;
-}
-
-async function syncAllFromDrive() {
-  if (!accessToken) { connectGoogleDrive(); return; }
-  setSyncStatus("⏳", "Đang đồng bộ...", "syncing");
-  try {
-    const q = encodeURIComponent(`'${appConfig.folderId}' in parents and trashed = false`);
-    const listRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime%20desc&pageSize=100`);
-    const files = (await listRes.json()).files || [];
-    const byName = {};
-    files.forEach(f => { if (!byName[f.name]) byName[f.name] = f; });
-
-    await Promise.all(Object.entries(DEFAULT_CONFIG.files).map(async ([tabId, meta]) => {
-      const fid = byName[meta.name]?.id || meta.fallbackId;
-      if (fid) {
-        const r = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fid}?alt=media`);
-        mdStore[tabId] = await r.text();
-      }
-    }));
-
-    localStorage.setItem(KEYS.MD_CACHE, JSON.stringify(mdStore));
-    localStorage.setItem(KEYS.LAST_SYNC, new Date().toISOString());
-    bookmarkDriveFileId = byName[appConfig.bookmarkFileName]?.id || null;
-
-    await syncBookmarksWithDrive(false);
     rebuildAllContent();
 
     const t = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-    setSyncStatus("🟢", `Đã đồng bộ (${t})`, "ok");
-    showToast(`✅ Đã đồng bộ 3 file .md (${parsedQuizBank.length} câu thi) & Bookmark!`);
+    setSyncStatus("🟢", `Mới nhất (${t})`, "ok");
+    if (manual) showToast(`✅ Đã tải 3 file .md mới nhất (${parsedQuizBank.length} câu thi)!`);
   } catch (err) {
-    setSyncStatus("🔴", "Lỗi đồng bộ", "err");
-    showToast("Lỗi đồng bộ: " + err.message, 3600);
+    console.error("Fetch public md error:", err);
+    const hasCache = !!(mdStore.tuvung || mdStore.nguphap || mdStore.dochieu);
+    setSyncStatus(hasCache ? "📦" : "🔴", hasCache ? "Đang dùng Cache" : "Lỗi tải bài", hasCache ? "warn" : "err");
+    if (manual) showToast("⚠️ Không tải được từ Drive: " + err.message, 3800);
   }
 }
 
-async function syncBookmarksWithDrive(manual = false) {
-  if (!accessToken) {
-    if (manual) { connectGoogleDrive(); }
+function initFirebase() {
+  if (!window.firebase) return;
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  fbAuth = firebase.auth();
+  fbDb = firebase.firestore();
+
+  fbAuth.onAuthStateChanged((user) => {
+    currentUser = user;
+    updateAuthUI();
+    if (unsubFirestore) { unsubFirestore(); unsubFirestore = null; }
+
+    if (user) {
+      document.getElementById("bmSyncInfo").textContent = `☁️ Đồng bộ realtime (${user.email})`;
+      const docRef = fbDb.collection("users").doc(user.uid);
+      unsubFirestore = docRef.onSnapshot((snap) => {
+        if (snap.exists) {
+          const data = snap.data() || {};
+          const remoteBm = data.bookmarks?.items ? data.bookmarks : { items: data.bookmarks || {}, deleted: {} };
+          const merged = mergeBookmarkStates(bmState, remoteBm);
+          const mergedWrong = new Set([...wrongIds, ...(data.wrongIds || [])]);
+
+          isApplyingRemote = true;
+          bmState = merged;
+          wrongIds = mergedWrong;
+          saveBookmarksLocal();
+          saveWrongIds(true);
+          syncBookmarkBadgesOnly();
+          if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) {
+            renderSidebar(getFilteredItems(currentTab));
+          } else if (currentTab === "exam" && !examSession) {
+            renderExamView();
+          }
+          isApplyingRemote = false;
+
+          // If local had items not yet on cloud, push merged result back
+          if (Object.keys(merged.items).length !== Object.keys(remoteBm.items || {}).length) {
+            scheduleCloudPush();
+          }
+        } else {
+          // First time this Gmail signs in: push existing local bookmarks & wrongIds to their personal Firestore doc
+          pushUserCloudState(false);
+        }
+      }, (err) => {
+        console.error("Firestore snapshot error:", err);
+        document.getElementById("bmSyncInfo").textContent = "⚠️ Lỗi đồng bộ Firestore";
+      });
+    } else {
+      document.getElementById("bmSyncInfo").textContent = "Lưu trên máy (Đăng nhập Gmail để đồng bộ)";
+    }
+  });
+}
+
+function updateAuthUI() {
+  const btn = document.getElementById("authBtn");
+  if (!btn) return;
+  if (currentUser) {
+    const shortName = (currentUser.displayName || currentUser.email || "Gmail").split(" ")[0];
+    const avatar = currentUser.photoURL
+      ? `<img src="${escapeHtml(currentUser.photoURL)}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;">`
+      : "👤";
+    btn.className = "btn";
+    btn.innerHTML = `${avatar} <span>${escapeHtml(shortName)}</span>`;
+    btn.title = `Đang đăng nhập: ${currentUser.email} (Bấm để xem tài khoản / Đăng xuất)`;
+  } else {
+    btn.className = "btn btn-primary";
+    btn.innerHTML = "🔐 Đăng nhập Gmail";
+    btn.title = "Đăng nhập Gmail để tự động đồng bộ Bookmark & Câu hay sai giữa PC và Điện thoại";
+  }
+}
+
+function handleAuthClick() {
+  if (currentUser) {
+    openSettings();
+  } else {
+    signInWithGmail();
+  }
+}
+
+async function signInWithGmail() {
+  if (!fbAuth) { showToast("⏳ Đang khởi tạo Firebase, thử lại sau 1 giây..."); return; }
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    await fbAuth.signInWithPopup(provider);
+    showToast("✅ Đã đăng nhập Gmail & bật đồng bộ tự động!");
+    closeSettings();
+  } catch (err) {
+    if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") {
+      await fbAuth.signInWithRedirect(provider);
+    } else if (err.code !== "auth/popup-closed-by-user") {
+      showToast("❌ Lỗi đăng nhập: " + err.message, 4000);
+    }
+  }
+}
+
+async function signOutGmail() {
+  if (!fbAuth) return;
+  await fbAuth.signOut();
+  closeSettings();
+  showToast("👋 Đã đăng xuất tài khoản Gmail.");
+}
+
+function scheduleCloudPush() {
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => pushUserCloudState(false), 500);
+}
+
+async function pushUserCloudState(manual = false) {
+  if (!currentUser || !fbDb) {
+    if (manual) signInWithGmail();
     return;
   }
   try {
-    document.getElementById("bmSyncInfo").textContent = "⏳ Đang đồng bộ...";
-    if (!bookmarkDriveFileId) {
-      const q = encodeURIComponent(`'${appConfig.folderId}' in parents and name = '${appConfig.bookmarkFileName}' and trashed = false`);
-      const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`);
-      const d = await res.json();
-      if (d.files?.length) bookmarkDriveFileId = d.files[0].id;
-    }
-    if (bookmarkDriveFileId) {
-      const r = await driveFetch(`https://www.googleapis.com/drive/v3/files/${bookmarkDriveFileId}?alt=media`);
-      try {
-        const parsed = JSON.parse(await r.text());
-        bmState = mergeBookmarkStates(bmState, parsed.items ? parsed : { items: parsed, deleted: {} });
-        saveBookmarksLocal();
-        syncBookmarkBadgesOnly();
-      } catch {}
-    }
-    const payload = JSON.stringify({ version: 2, updatedAt: new Date().toISOString(), items: bmState.items, deleted: bmState.deleted }, null, 2);
-    if (bookmarkDriveFileId) {
-      await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${bookmarkDriveFileId}?uploadType=media`, {
-        method: "PATCH", headers: { "Content-Type": "application/json; charset=UTF-8" }, body: payload
-      });
-    } else {
-      const b = "jlpt_bm_" + Date.now();
-      const body = `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ name: appConfig.bookmarkFileName, parents: [appConfig.folderId], mimeType: "application/json" })}\r\n--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${payload}\r\n--${b}--`;
-      const res = await driveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", {
-        method: "POST", headers: { "Content-Type": `multipart/related; boundary=${b}` }, body
-      });
-      bookmarkDriveFileId = (await res.json()).id;
-    }
+    await fbDb.collection("users").doc(currentUser.uid).set({
+      email: currentUser.email || "",
+      updatedAt: new Date().toISOString(),
+      bookmarks: { items: bmState.items, deleted: bmState.deleted },
+      wrongIds: [...wrongIds]
+    }, { merge: true });
     const t = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
     document.getElementById("bmSyncInfo").textContent = `☁️ Đã đồng bộ (${t})`;
-    if (manual) showToast("☁️ Đã đồng bộ Bookmark lên Drive!");
+    if (manual) showToast("☁️ Đã đồng bộ Bookmark & Câu hay sai lên Gmail!");
   } catch (err) {
-    document.getElementById("bmSyncInfo").textContent = "⚠️ Lỗi đồng bộ (đã lưu máy)";
-    if (manual) showToast("Lỗi: " + err.message);
+    console.error("Firestore push error:", err);
+    document.getElementById("bmSyncInfo").textContent = "⚠️ Lỗi lưu đám mây (đã lưu máy)";
+    if (manual) showToast("Lỗi đồng bộ: " + err.message);
   }
 }
 
@@ -2398,25 +2396,35 @@ function openDrawer() { document.getElementById("drawer").classList.add("open");
 function closeDrawer() { document.getElementById("drawer").classList.remove("open"); document.getElementById("drawerBackdrop").classList.remove("open"); }
 
 function openSettings() {
-  document.getElementById("cfgClientId").value = appConfig.clientId;
-  document.getElementById("cfgApiKey").value = appConfig.apiKey || "";
-  document.getElementById("cfgFolderId").value = appConfig.folderId;
-  document.getElementById("cfgBmFile").value = appConfig.bookmarkFileName;
-  document.getElementById("currentOriginDisplay").textContent = window.location.origin;
+  const box = document.getElementById("accountInfoBox");
+  if (currentUser) {
+    box.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${currentUser.photoURL ? `<img src="${escapeHtml(currentUser.photoURL)}" style="width:36px;height:36px;border-radius:50%;">` : ""}
+          <div>
+            <div style="font-weight:700;">${escapeHtml(currentUser.displayName || "Người dùng Gmail")}</div>
+            <div style="font-size:12px;color:var(--muted);">${escapeHtml(currentUser.email)} · ☁️ Đang đồng bộ realtime</div>
+          </div>
+        </div>
+        <button class="btn" onclick="signOutGmail()" style="color:var(--red);">Đăng xuất</button>
+      </div>
+    `;
+  } else {
+    box.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:700;">Chưa đăng nhập Gmail</div>
+          <div style="font-size:12px;color:var(--muted);">Đăng nhập để lưu &amp; đồng bộ Bookmark + Câu hay sai riêng theo tài khoản Gmail.</div>
+        </div>
+        <button class="btn btn-primary" onclick="signInWithGmail()">🔐 Đăng nhập Gmail</button>
+      </div>
+    `;
+  }
   document.getElementById("settingsModal").classList.add("open");
   document.getElementById("settingsBackdrop").classList.add("open");
 }
 function closeSettings() { document.getElementById("settingsModal").classList.remove("open"); document.getElementById("settingsBackdrop").classList.remove("open"); }
-function saveSettings() {
-  appConfig.clientId = document.getElementById("cfgClientId").value.trim();
-  appConfig.apiKey = document.getElementById("cfgApiKey").value.trim();
-  appConfig.folderId = document.getElementById("cfgFolderId").value.trim() || DEFAULT_CONFIG.folderId;
-  appConfig.bookmarkFileName = document.getElementById("cfgBmFile").value.trim() || "jlpt_bookmarks.json";
-  localStorage.setItem(KEYS.CONFIG, JSON.stringify(appConfig));
-  closeSettings();
-  showToast("✅ Đã lưu cài đặt!");
-  if (appConfig.apiKey && !accessToken) fetchPublicMarkdownWithApiKey();
-}
 function clearLocalCache() {
   localStorage.removeItem(KEYS.MD_CACHE);
   mdStore = { tuvung: "", nguphap: "", dochieu: "" };
@@ -2525,11 +2533,8 @@ try {
 } catch {}
 
 rebuildAllContent();
-
-// If a public Read-only API Key is configured, fetch latest .md automatically with ZERO login!
-if (appConfig.apiKey) {
-  fetchPublicMarkdownWithApiKey();
-}
+initFirebase();
+fetchPublicMarkdownFiles(false);
 </script>
 </body>
 </html>
