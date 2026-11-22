@@ -1,261 +1,449 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta name="theme-color" content="#1a73e8">
+<meta name="theme-color" content="#4f46e5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="./manifest.json">
-<title>JLPT N1 — Học, Bookmark & Thi Thử (Drive Sync)</title>
+<title>JLPT N1 Pro — Học, Flashcard, Bookmark & Thi Thử</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
-    --bg: #f6f8fb;
-    --card: #ffffff;
-    --text: #1f2937;
-    --muted: #6b7280;
-    --primary: #1a73e8;
-    --primary-dark: #1557b0;
-    --primary-soft: #eef5ff;
+    --bg: #f1f5f9;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --surface-hover: #f1f5f9;
+    --text: #0f172a;
+    --text-2: #475569;
+    --muted: #64748b;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --primary-soft: #eef2ff;
+    --primary-border: #c7d2fe;
     --gold: #f59e0b;
     --gold-soft: #fef3c7;
+    --gold-text: #92400e;
     --green: #10b981;
     --green-soft: #ecfdf5;
+    --green-text: #065f46;
     --red: #ef4444;
     --red-soft: #fef2f2;
-    --border: #e5e7eb;
+    --red-text: #991b1b;
+    --border: #e2e8f0;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+    --topbar-h: 54px;
+    --sidebar-w: 295px;
     --radius: 12px;
   }
+
+  [data-theme="dark"] {
+    --bg: #0b1120;
+    --surface: #111827;
+    --surface-2: #1e293b;
+    --surface-hover: #1f2937;
+    --text: #f1f5f9;
+    --text-2: #cbd5e1;
+    --muted: #94a3b8;
+    --primary: #6366f1;
+    --primary-hover: #818cf8;
+    --primary-soft: rgba(99, 102, 241, 0.16);
+    --primary-border: rgba(99, 102, 241, 0.35);
+    --gold: #fbbf24;
+    --gold-soft: rgba(251, 191, 36, 0.15);
+    --gold-text: #fcd34d;
+    --green: #34d399;
+    --green-soft: rgba(16, 185, 129, 0.15);
+    --green-text: #6ee7b7;
+    --red: #f87171;
+    --red-soft: rgba(239, 68, 68, 0.15);
+    --red-text: #fca5a5;
+    --border: #1e293b;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
   * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
   body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Yu Gothic UI", Arial, sans-serif;
+    font-family: "Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: var(--bg);
     color: var(--text);
-    line-height: 1.65;
+    line-height: 1.6;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Topbar */
+  /* Custom scrollbars */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* ==================== TOPBAR (SINGLE COMPACT ROW - 54px) ==================== */
   .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 60;
-    background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(8px);
+    height: var(--topbar-h);
+    min-height: var(--topbar-h);
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 10px 14px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-  }
-  .topbar-row {
-    max-width: 1120px;
-    margin: 0 auto;
+    padding: 0 14px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
+    z-index: 60;
+    box-shadow: var(--shadow-sm);
   }
-  .topbar-row + .topbar-row {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px dashed #edf0f5;
-  }
-  .brand-wrap {
+  .top-left, .top-center, .top-right {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
   }
   .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-weight: 800;
-    font-size: 16px;
-    color: var(--primary);
-    letter-spacing: -0.2px;
+    font-size: 15px;
+    letter-spacing: -0.3px;
+    color: var(--text);
+    white-space: nowrap;
   }
-  .sync-badge {
+  .brand-badge {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: #fff;
     font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 999px;
-    background: #f3f4f6;
-    color: var(--muted);
+    font-weight: 800;
+    padding: 3px 7px;
+    border-radius: 7px;
+    letter-spacing: 0.4px;
+  }
+  .mobile-menu-btn { display: none; }
+
+  .nav-pills {
+    display: flex;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 3px;
+    border-radius: 10px;
+    gap: 2px;
+  }
+  .tab-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-2);
+    padding: 5px 11px;
+    border-radius: 7px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--surface-hover); }
+  .tab-btn.active {
+    background: var(--surface);
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
+  }
+  .tab-btn.exam-tab.active { color: #7c3aed; }
+  .tab-btn.fc-tab.active { color: #d97706; }
+
+  .btn {
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 12.5px;
     font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-  }
-  .sync-badge.ok { background: var(--green-soft); color: #047857; }
-  .sync-badge.syncing { background: var(--primary-soft); color: var(--primary); }
-  .sync-badge.warn { background: var(--gold-soft); color: #92400e; }
-  .sync-badge.err { background: var(--red-soft); color: #b91c1c; }
-
-  .tabs, .controls, .auth-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: center;
-  }
-  button {
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: #fff;
-    color: var(--text);
-    padding: 6px 11px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.15s;
-    display: inline-flex;
-    align-items: center;
     gap: 5px;
+    white-space: nowrap;
+    transition: all 0.15s;
+    font-family: inherit;
   }
-  button:hover { background: #f3f4f6; }
-  button:active { transform: scale(0.98); }
-  button:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--muted); }
+  .btn:active:not(:disabled) { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-icon { padding: 5px 8px; }
   .btn-primary {
     background: var(--primary);
     color: #fff;
     border-color: var(--primary);
   }
-  .btn-primary:hover { background: var(--primary-dark); }
-  .tab-btn.active {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
-    font-weight: 600;
-  }
-  .tab-btn.exam-tab.active {
-    background: #7c3aed;
-    border-color: #7c3aed;
-  }
-  .btn-bookmark-drawer {
+  .btn-primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
+  .btn-gold {
     background: var(--gold-soft);
-    border-color: #fcd34d;
-    color: #92400e;
-    font-weight: 600;
-  }
-  .btn-filter-bm.active {
-    background: var(--gold);
-    color: #fff;
     border-color: var(--gold);
+    color: var(--gold-text);
   }
-  .btn-quiz.active {
+  .btn-active-green {
     background: var(--green);
     color: #fff;
     border-color: var(--green);
   }
-  .search-input, .session-select {
-    padding: 6px 10px;
+  .btn-active-gold {
+    background: var(--gold);
+    color: #fff;
+    border-color: var(--gold);
+  }
+
+  .sync-pill {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .sync-pill.ok { background: var(--green-soft); color: var(--green-text); border-color: transparent; }
+  .sync-pill.syncing { background: var(--primary-soft); color: var(--primary); border-color: transparent; }
+  .sync-pill.warn { background: var(--gold-soft); color: var(--gold-text); border-color: transparent; }
+  .sync-pill.err { background: var(--red-soft); color: var(--red-text); border-color: transparent; }
+
+  /* ==================== MAIN WORKSPACE (100vh - 54px) ==================== */
+  .workspace {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* LEFT SIDEBAR (Master Navigation) */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    z-index: 40;
+    transition: transform 0.22s ease;
+  }
+  .sidebar.hidden-mode { display: none; }
+  .sidebar-top {
+    padding: 10px 10px 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .search-box {
+    width: 100%;
+    padding: 7px 10px;
     border: 1px solid var(--border);
     border-radius: 8px;
-    font-size: 13px;
-    background: #fff;
+    background: var(--surface-2);
     color: var(--text);
+    font-size: 12.5px;
+    font-family: inherit;
+    outline: none;
   }
-  .search-input { width: 190px; }
-  .session-select { max-width: 220px; }
-
-  /* Main Container */
-  .container {
-    max-width: 980px;
-    margin: 16px auto;
-    padding: 0 14px 90px;
-  }
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
-
-  /* Welcome / Connect Banner */
-  .connect-card {
-    background: linear-gradient(135deg, #eef5ff 0%, #ffffff 100%);
-    border: 1px solid #bfdbfe;
-    border-radius: 14px;
-    padding: 20px;
-    margin-bottom: 18px;
-    text-align: center;
-  }
-  .connect-card h2 {
-    margin: 0 0 8px;
-    color: var(--primary);
-    font-size: 19px;
-  }
-  .connect-card p {
-    margin: 0 0 14px;
-    color: #4b5563;
-    font-size: 14px;
-  }
-  .connect-actions {
+  .search-box:focus { border-color: var(--primary); background: var(--surface); }
+  .sidebar-filters {
     display: flex;
+    gap: 5px;
     flex-wrap: wrap;
+  }
+  .mini-chip {
+    flex: 1;
     justify-content: center;
-    gap: 10px;
+    font-size: 11.5px;
+    padding: 4px 7px;
   }
-
-  .hint-bar {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    color: #92400e;
-    padding: 9px 13px;
-    border-radius: 10px;
-    font-size: 13px;
-    margin-bottom: 14px;
+  .sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
   }
-
-  /* Study Cards (Mẫu 2) */
-  .session-title {
+  .sess-group-title {
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--muted);
+    padding: 10px 8px 4px;
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 2;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 7px 9px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12.5px;
+    color: var(--text-2);
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+    transition: all 0.12s;
+  }
+  .nav-item:hover { background: var(--surface-hover); color: var(--text); }
+  .nav-item.active {
+    background: var(--primary-soft);
     color: var(--primary);
-    border-bottom: 2px solid var(--primary);
-    padding-bottom: 6px;
-    margin-top: 28px;
-    font-size: 20px;
-    scroll-margin-top: 120px;
+    border-color: var(--primary-border);
+    font-weight: 600;
   }
-  .q-card, .section-card, .cheatsheet-card {
-    background: var(--card);
+  .nav-item-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .nav-item-badges {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  /* RIGHT MAIN STAGE */
+  .stage {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .stage-toolbar {
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    padding: 7px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+  }
+  .stage-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 18px 24px;
+  }
+  .stage-inner {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  /* FOCUS MODE (1 QUESTION PER 14-INCH SCREEN) */
+  .focus-card {
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 15px 17px;
-    margin: 12px 0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    border-radius: 14px;
+    padding: 18px 22px;
+    box-shadow: var(--shadow-sm);
   }
-  .q-card.is-bookmarked {
+  .focus-card.is-bookmarked {
     border-color: var(--gold);
     box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.16);
   }
-  .q-header {
+  .focus-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-    margin-bottom: 8px;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
   }
-  .q-header h3 {
+  .focus-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .focus-title {
     margin: 0;
-    color: #185abc;
-    font-size: 15.5px;
-  }
-  .bm-btn {
-    font-size: 12.5px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    border: 1px solid #d1d5db;
-    background: #fff;
-    color: #6b7280;
-    white-space: nowrap;
-  }
-  .bm-btn.bookmarked {
-    background: var(--gold-soft);
-    border-color: var(--gold);
-    color: #b45309;
+    font-size: 16px;
     font-weight: 700;
+    color: var(--primary);
   }
+  .session-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 99px;
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .focus-prompt {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 15.5px;
+    line-height: 1.75;
+    margin-bottom: 12px;
+  }
+  .focus-prompt p { margin: 4px 0; }
+  .focus-footer {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .kbd-hints {
+    font-size: 11.5px;
+    color: var(--muted);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  kbd {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 600;
+  }
+
+  /* MARKDOWN CONTENT STYLING */
   blockquote {
     border-left: 4px solid var(--primary);
     background: var(--primary-soft);
     padding: 10px 14px;
-    margin: 10px 0;
-    border-radius: 0 8px 8px 0;
+    margin: 8px 0;
+    border-radius: 0 10px 10px 0;
+    font-size: 14px;
   }
+  blockquote p { margin: 4px 0; }
+  ul, ol { margin: 6px 0; padding-left: 20px; font-size: 14px; }
+  li { margin: 3px 0; }
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table {
     border-collapse: collapse;
@@ -265,300 +453,321 @@
   }
   th, td {
     border: 1px solid var(--border);
-    padding: 7px 9px;
+    padding: 7px 10px;
     text-align: left;
     vertical-align: top;
   }
-  th { background: #f9fafb; font-weight: 600; }
-  tr.is-bookmarked { background: #fffbeb; }
+  th { background: var(--surface-2); font-weight: 700; font-size: 12.5px; }
+  tr.is-bookmarked { background: var(--gold-soft); }
   .bm-cell { width: 42px; text-align: center; }
+
   code {
-    background: #f3f4f6;
-    padding: 1px 5px;
-    border-radius: 4px;
-    font-family: Consolas, "Yu Gothic UI", "Hiragino Sans", sans-serif;
-    font-size: 0.94em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-family: "Noto Sans JP", Consolas, monospace;
+    font-size: 0.92em;
   }
   code.jp-pill {
     cursor: pointer;
-    border: 1px solid transparent;
     transition: all 0.12s;
   }
-  code.jp-pill:hover {
-    border-color: var(--gold);
-    background: #fffbeb;
-  }
-  code.jp-pill .pill-star {
-    margin-left: 3px;
-    font-size: 11px;
-    color: #9ca3af;
-  }
+  code.jp-pill:hover { border-color: var(--gold); background: var(--gold-soft); }
+  code.jp-pill .pill-star { margin-left: 3px; font-size: 11px; color: var(--muted); }
   code.jp-pill.bookmarked {
     background: var(--gold-soft);
     border-color: var(--gold);
-    color: #92400e;
+    color: var(--gold-text);
+    font-weight: 700;
+  }
+  code.jp-pill.bookmarked .pill-star { color: var(--gold); }
+
+  .bm-btn {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .bm-btn.bookmarked {
+    background: var(--gold-soft);
+    border-color: var(--gold);
+    color: var(--gold-text);
+  }
+  .tts-btn {
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    cursor: pointer;
     font-weight: 600;
   }
-  code.jp-pill.bookmarked .pill-star { color: #d97706; }
+  .tts-btn:hover { border-color: var(--primary); color: var(--primary); }
 
-  .toggle-ans-btn {
-    display: none;
-    margin: 6px 0;
-    font-size: 12.5px;
-    background: #f3f4f6;
-  }
+  .toggle-ans-btn { display: none; margin: 6px 0; }
   body.quiz-mode .toggle-ans-btn { display: inline-flex; }
   body.quiz-mode .q-answer { display: none; }
   body.quiz-mode .q-answer.revealed { display: block; }
 
-  /* Exam / Quiz Mode */
-  .exam-setup-card, .exam-active-card, .exam-result-card {
-    background: var(--card);
+  /* LIST VIEW CARDS */
+  .list-card {
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border-radius: var(--radius);
+    padding: 15px 18px;
+    margin-bottom: 12px;
   }
-  .exam-setup-grid {
+  .list-card.is-bookmarked { border-color: var(--gold); }
+  .session-heading {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--primary);
+    margin: 20px 0 10px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid var(--primary-border);
+  }
+
+  /* ==================== EXAM MODE (2-COLUMN 14-INCH FIT) ==================== */
+  .exam-shell {
+    max-width: 1120px;
+    margin: 0 auto;
+    height: 100%;
+  }
+  .exam-setup-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 24px;
+    box-shadow: var(--shadow-sm);
+    max-width: 880px;
+    margin: 8px auto;
+  }
+  .exam-grid-setup {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 12px;
     margin: 16px 0;
   }
   .exam-field {
-    background: #f9fafb;
+    background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 12px;
   }
   .exam-field label {
     display: block;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 800;
     color: var(--muted);
     text-transform: uppercase;
+    letter-spacing: 0.4px;
     margin-bottom: 8px;
   }
-  .pill-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+  .pill-group { display: flex; flex-wrap: wrap; gap: 6px; }
   .choice-pill {
-    padding: 6px 12px;
+    padding: 5px 11px;
     border-radius: 999px;
-    border: 1px solid #d1d5db;
-    background: #fff;
-    font-size: 13px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    font-size: 12.5px;
+    font-weight: 600;
     cursor: pointer;
   }
-  .choice-pill.active {
-    background: #7c3aed;
-    color: #fff;
-    border-color: #7c3aed;
-    font-weight: 600;
-  }
+  .choice-pill.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
   .custom-count-input {
-    width: 80px;
+    width: 76px;
     padding: 5px 8px;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border);
     border-radius: 8px;
-    font-size: 13px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12.5px;
   }
-  .exam-header-bar {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border);
+
+  .exam-2col {
+    display: grid;
+    grid-template-columns: 1fr 250px;
+    gap: 14px;
+    align-items: start;
   }
+  .exam-main-card, .exam-side-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .exam-side-card { position: sticky; top: 0; }
   .exam-progress-track {
     width: 100%;
-    height: 7px;
-    background: #e5e7eb;
-    border-radius: 999px;
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 99px;
     overflow: hidden;
-    margin-bottom: 16px;
+    margin: 8px 0 12px;
   }
   .exam-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #7c3aed, #1a73e8);
-    transition: width 0.25s ease;
+    background: linear-gradient(90deg, #7c3aed, #4f46e5);
+    transition: width 0.2s;
   }
-  .exam-q-meta {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-  .exam-tag {
-    font-size: 11.5px;
-    font-weight: 700;
-    padding: 3px 9px;
-    border-radius: 999px;
-    background: var(--primary-soft);
-    color: var(--primary);
-  }
-  .exam-tag.grammar { background: var(--green-soft); color: #047857; }
-  .exam-prompt {
-    font-size: 16.5px;
-    line-height: 1.75;
-    margin: 10px 0 16px;
-    padding: 14px 16px;
-    background: #f9fafb;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-  }
-  .exam-options {
+  .exam-options-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-    margin-bottom: 16px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 9px;
+    margin: 12px 0;
   }
+  .exam-options-grid.single-col { grid-template-columns: 1fr; }
   .exam-opt-btn {
     width: 100%;
     text-align: left;
     justify-content: flex-start;
-    padding: 12px 14px;
-    font-size: 15px;
+    padding: 10px 13px;
+    font-size: 14.5px;
     border-radius: 10px;
     border: 2px solid var(--border);
-    background: #fff;
-    line-height: 1.5;
+    background: var(--surface);
+    color: var(--text);
+    line-height: 1.45;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-family: inherit;
+    transition: all 0.12s;
   }
-  .exam-opt-btn:hover:not(:disabled) {
-    border-color: #93c5fd;
-    background: #f8fbff;
-  }
-  .exam-opt-btn.selected {
-    border-color: #7c3aed;
-    background: #f5f3ff;
-    font-weight: 600;
-  }
-  .exam-opt-btn.correct {
-    border-color: var(--green);
-    background: var(--green-soft);
-    color: #065f46;
-    font-weight: 700;
-  }
-  .exam-opt-btn.wrong {
-    border-color: var(--red);
-    background: var(--red-soft);
-    color: #991b1b;
-  }
+  .exam-opt-btn:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-soft); }
+  .exam-opt-btn.selected { border-color: #7c3aed; background: var(--primary-soft); font-weight: 700; }
+  .exam-opt-btn.correct { border-color: var(--green); background: var(--green-soft); color: var(--green-text); font-weight: 700; }
+  .exam-opt-btn.wrong { border-color: var(--red); background: var(--red-soft); color: var(--red-text); }
   .exam-opt-num {
+    min-width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--surface-2);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: #eef2f7;
     font-weight: 700;
-    font-size: 13px;
-    margin-right: 10px;
+    font-size: 12px;
+    flex-shrink: 0;
   }
   .exam-opt-btn.selected .exam-opt-num { background: #7c3aed; color: #fff; }
   .exam-opt-btn.correct .exam-opt-num { background: var(--green); color: #fff; }
   .exam-opt-btn.wrong .exam-opt-num { background: var(--red); color: #fff; }
-  .exam-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    margin-top: 14px;
-    flex-wrap: wrap;
-  }
-  .exam-dots {
-    display: flex;
-    flex-wrap: wrap;
+
+  .exam-dots-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
     gap: 5px;
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px dashed var(--border);
+    margin: 10px 0 14px;
   }
   .exam-dot {
-    width: 30px;
     height: 30px;
-    border-radius: 8px;
-    padding: 0;
-    justify-content: center;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-2);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
+    cursor: pointer;
   }
   .exam-dot.current { border: 2px solid #7c3aed; color: #7c3aed; }
-  .exam-dot.answered { background: #ede9fe; border-color: #c4b5fd; color: #5b21b6; }
+  .exam-dot.answered { background: var(--primary-soft); border-color: var(--primary-border); color: var(--primary); }
   .exam-dot.dot-correct { background: var(--green); border-color: var(--green); color: #fff; }
   .exam-dot.dot-wrong { background: var(--red); border-color: var(--red); color: #fff; }
+
   .exam-score-box {
     text-align: center;
-    padding: 20px;
-    background: linear-gradient(135deg, #f5f3ff, #eef5ff);
-    border-radius: 12px;
-    margin-bottom: 18px;
+    padding: 18px;
+    background: var(--primary-soft);
+    border-radius: 14px;
+    margin-bottom: 16px;
   }
-  .exam-score-big {
-    font-size: 42px;
-    font-weight: 800;
-    color: #7c3aed;
-    line-height: 1.1;
-  }
+  .exam-score-big { font-size: 38px; font-weight: 800; color: var(--primary); }
   .review-item {
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 14px;
-    margin-bottom: 12px;
+    padding: 13px 15px;
+    margin-bottom: 10px;
   }
   .review-item.is-wrong { border-left: 4px solid var(--red); }
   .review-item.is-right { border-left: 4px solid var(--green); }
 
-  /* Drawer & Modals */
-  .drawer-backdrop, .modal-backdrop {
+  /* ==================== FLASHCARD MODE ==================== */
+  .fc-wrap {
+    max-width: 680px;
+    margin: 6px auto;
+    text-align: center;
+  }
+  .fc-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 18px;
+    padding: 34px 26px;
+    min-height: 270px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    transition: transform 0.15s, border-color 0.15s;
+    margin: 14px 0;
+  }
+  .fc-card:hover { border-color: var(--primary); }
+  .fc-front-word { font-size: 30px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+  .fc-sub { font-size: 16px; color: var(--primary); font-weight: 600; margin-bottom: 8px; }
+  .fc-note { font-size: 15px; color: var(--text-2); max-width: 540px; }
+
+  /* ==================== DRAWER & MODALS ==================== */
+  .backdrop {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.4);
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
     z-index: 90;
   }
-  .drawer-backdrop.open, .modal-backdrop.open { display: block; }
+  .backdrop.open { display: block; }
   .drawer {
     position: fixed;
     top: 0;
     right: -460px;
-    width: 440px;
-    max-width: 96vw;
+    width: 420px;
+    max-width: 95vw;
     height: 100vh;
-    background: #fff;
+    background: var(--surface);
     z-index: 100;
-    box-shadow: -4px 0 20px rgba(0,0,0,0.16);
+    box-shadow: -8px 0 30px rgba(0,0,0,0.2);
     display: flex;
     flex-direction: column;
     transition: right 0.22s ease;
   }
   .drawer.open { right: 0; }
   .drawer-header, .modal-header {
-    padding: 14px 16px;
+    padding: 13px 16px;
     border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  .drawer-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 14px 16px;
-  }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 12px 14px; }
   .drawer-footer {
-    padding: 12px 16px;
+    padding: 10px 14px;
     border-top: 1px solid var(--border);
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
   }
   .modal {
     display: none;
@@ -566,209 +775,247 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 520px;
+    width: 510px;
     max-width: 94vw;
     max-height: 90vh;
     overflow-y: auto;
-    background: #fff;
-    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
     z-index: 110;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.22);
+    box-shadow: var(--shadow-md);
   }
   .modal.open { display: block; }
   .modal-body { padding: 16px; }
   .form-group { margin-bottom: 12px; }
-  .form-group label {
-    display: block;
-    font-size: 12.5px;
-    font-weight: 600;
-    margin-bottom: 4px;
-    color: #374151;
-  }
+  .form-group label { display: block; font-size: 12px; font-weight: 700; color: var(--text-2); margin-bottom: 4px; }
   .form-group input {
     width: 100%;
     padding: 8px 10px;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border);
     border-radius: 8px;
-    font-size: 13.5px;
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
   }
   .bm-item {
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 10px 12px;
-    margin-bottom: 10px;
-    background: #fffdf7;
+    padding: 9px 11px;
+    margin-bottom: 8px;
+    background: var(--surface-2);
   }
-  .bm-item-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .bm-item-title { font-weight: 700; font-size: 15px; color: #111827; }
-  .bm-item-sub { font-size: 13px; color: #4b5563; margin-top: 2px; }
-  .bm-item-meta { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+  .bm-item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .bm-item-title { font-weight: 700; font-size: 14px; }
+  .bm-item-sub { font-size: 12.5px; color: var(--text-2); margin-top: 2px; }
+  .bm-item-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
   .quick-add {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    background: #f9fafb;
+    background: var(--surface-2);
     padding: 10px;
     border-radius: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     border: 1px solid var(--border);
   }
   .quick-add input {
-    padding: 7px 9px;
+    padding: 6px 9px;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 13px;
+    border-radius: 7px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12.5px;
   }
+
+  .empty-state {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 24px;
+    text-align: center;
+    max-width: 560px;
+    margin: 24px auto;
+    box-shadow: var(--shadow-sm);
+  }
+
   .toast {
     position: fixed;
-    bottom: 20px;
+    bottom: 18px;
     left: 50%;
     transform: translateX(-50%) translateY(80px);
-    background: #1f2937;
+    background: #0f172a;
     color: #fff;
     padding: 9px 16px;
     border-radius: 999px;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 12.5px;
+    font-weight: 600;
     z-index: 200;
     opacity: 0;
     transition: all 0.25s ease;
     pointer-events: none;
-    max-width: 90vw;
+    max-width: 92vw;
     text-align: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
   }
   .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-  @media (max-width: 680px) {
-    .topbar { padding: 8px 10px; }
-    .brand { font-size: 14.5px; }
-    .search-input { width: 100%; }
-    .session-select { width: 100%; max-width: none; }
-    button { padding: 6px 9px; font-size: 12.5px; }
-    .q-card, .section-card, .cheatsheet-card { padding: 12px 13px; }
+  /* ==================== RESPONSIVE (MOBILE & TABLET) ==================== */
+  @media (max-width: 960px) {
+    body { overflow: auto; height: auto; min-height: 100%; }
+    .topbar { position: sticky; top: 0; height: auto; padding: 8px 10px; flex-wrap: wrap; }
+    .mobile-menu-btn { display: inline-flex; }
+    .brand-text { display: none; }
+    .workspace { overflow: visible; }
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      transform: translateX(-105%);
+      box-shadow: 4px 0 24px rgba(0,0,0,0.25);
+      z-index: 95;
+    }
+    .sidebar.mobile-open { transform: translateX(0); }
+    .stage { overflow: visible; }
+    .stage-scroll { overflow: visible; padding: 10px 10px 40px; }
+    .exam-2col { grid-template-columns: 1fr; }
+    .exam-options-grid { grid-template-columns: 1fr; }
+    .kbd-hints { display: none; }
+    .focus-card { padding: 14px 14px; }
   }
 </style>
 </head>
 <body>
 
 <header class="topbar">
-  <div class="topbar-row">
-    <div class="brand-wrap">
-      <div class="brand">🇯🇵 JLPT N1</div>
-      <span class="sync-badge" id="syncBadge">📴 Chưa kết nối Drive</span>
+  <div class="top-left">
+    <button class="btn btn-icon mobile-menu-btn" onclick="toggleMobileSidebar()" title="Mục lục câu hỏi">☰</button>
+    <div class="brand">
+      <span class="brand-badge">N1</span>
+      <span class="brand-text">JLPT Pro</span>
     </div>
-    <div class="tabs">
+    <button class="sync-pill" id="syncPill" onclick="handleSyncClick()" title="Kết nối / Đồng bộ Google Drive">
+      <span id="syncDot">⚪</span><span id="syncLabel">Kết nối Drive</span>
+    </button>
+  </div>
+
+  <div class="top-center">
+    <div class="nav-pills">
       <button class="tab-btn active" data-tab="tuvung" onclick="switchTab('tuvung')">📘 Từ vựng</button>
       <button class="tab-btn" data-tab="nguphap" onclick="switchTab('nguphap')">📗 Ngữ pháp</button>
       <button class="tab-btn" data-tab="dochieu" onclick="switchTab('dochieu')">📙 Đọc hiểu</button>
-      <button class="tab-btn exam-tab" data-tab="exam" onclick="switchTab('exam')">📝 Làm bài thi</button>
-    </div>
-    <div class="auth-controls">
-      <button class="btn-primary" id="driveAuthBtn" onclick="connectGoogleDrive()">☁️ Kết nối Drive</button>
-      <button id="refreshBtn" onclick="syncAllFromDrive()" style="display:none" title="Tải lại 3 file .md & Bookmark từ Drive">🔄 Đồng bộ</button>
-      <button onclick="openSettings()" title="Cài đặt OAuth Client ID & Folder ID">⚙️</button>
+      <button class="tab-btn fc-tab" data-tab="flashcard" onclick="switchTab('flashcard')">🃏 Flashcard</button>
+      <button class="tab-btn exam-tab" data-tab="exam" onclick="switchTab('exam')">📝 Thi thử</button>
     </div>
   </div>
-  <div class="topbar-row" id="studyControlsRow">
-    <div class="controls" style="flex:1;">
-      <input class="search-input" id="searchInput" type="text" placeholder="🔍 Tìm từ, nghĩa, câu..." oninput="applyFilters()">
-      <select class="session-select" id="sessionJump" onchange="jumpToSession(this.value)">
-        <option value="">📑 Nhảy nhanh đến buổi học...</option>
-      </select>
-    </div>
-    <div class="controls">
-      <button class="btn-quiz" id="quizBtn" onclick="toggleQuizMode()">🧠 Tự nhẩm</button>
-      <button class="btn-filter-bm" id="filterBmBtn" onclick="toggleFilterBookmarked()">★ Bookmark</button>
-      <button class="btn-bookmark-drawer" onclick="openDrawer()">📑 Sổ (<span id="bmCount">0</span>)</button>
-    </div>
+
+  <div class="top-right">
+    <button class="btn btn-gold" onclick="openDrawer()" title="Mở Sổ Bookmark">★ <span id="bmCount">0</span></button>
+    <button class="btn btn-icon" id="themeBtn" onclick="toggleTheme()" title="Chế độ Sáng / Tối">🌙</button>
+    <button class="btn btn-icon" onclick="openSettings()" title="Cài đặt Drive Sync">⚙️</button>
   </div>
 </header>
 
-<main class="container">
-  <div class="connect-card" id="connectCard">
-    <h2>☁️ Kết nối Google Drive để học Realtime & Đồng bộ Bookmark</h2>
-    <p>App sẽ tự động tải 3 file <code>.md</code> mới nhất từ thư mục <strong>N1 14 day 122026</strong> và đồng bộ file <code>jlpt_bookmarks.json</code> giữa PC &amp; Điện thoại (có cache offline).</p>
-    <div class="connect-actions">
-      <button class="btn-primary" onclick="connectGoogleDrive()" style="padding:10px 18px;font-size:14px;">🔐 Đăng nhập Google Drive (hakobi152@gmail.com)</button>
-      <button onclick="document.getElementById('localMdInput').click()" style="padding:10px 14px;">📂 Hoặc nạp file .md từ máy</button>
-      <input id="localMdInput" type="file" accept=".md,.txt" multiple style="display:none" onchange="loadLocalMarkdownFiles(event)">
+<div class="workspace">
+  <!-- LEFT SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <input class="search-box" id="searchInput" type="text" placeholder="🔍 Tìm từ, nghĩa, câu..." oninput="onSearchOrFilterChange()">
+      <div class="sidebar-filters">
+        <button class="btn mini-chip" id="filterBmBtn" onclick="toggleFilterBookmarked()">★ Bookmark</button>
+        <button class="btn mini-chip" id="quizBtn" onclick="toggleQuizMode()">🧠 Tự nhẩm</button>
+        <button class="btn mini-chip" id="viewModeBtn" onclick="toggleStudyViewMode()" title="Đổi giữa 1 câu/màn hình và Danh sách cuộn">🎯 1 câu</button>
+      </div>
     </div>
-  </div>
+    <div class="sidebar-list" id="sidebarList"></div>
+  </aside>
 
-  <div class="hint-bar" id="studyHintBar">
-    💡 <strong>Mẹo Bookmark nhanh:</strong> Nhấn <strong>☆</strong> ở đầu <em>Câu hỏi</em>, từng dòng <em>Cheat Sheet</em>, hoặc click trực tiếp vào <em>từ tiếng Nhật đóng khung xám</em> (<code>言葉</code>). Mọi thay đổi tự động lưu lên <code>jlpt_bookmarks.json</code> trên Google Drive!
-  </div>
+  <!-- RIGHT MAIN STAGE -->
+  <main class="stage">
+    <div class="stage-toolbar" id="stageToolbar">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span id="stageCounter" style="font-weight:700;color:var(--text);">Sẵn sàng</span>
+        <span id="stageMeta" style="color:var(--muted);font-size:12px;"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button class="btn" id="prevItemBtn" onclick="stepItem(-1)">← Trước</button>
+        <button class="btn btn-primary" id="nextItemBtn" onclick="stepItem(1)">Tiếp →</button>
+      </div>
+    </div>
+    <div class="stage-scroll" id="stageScroll">
+      <div class="stage-inner" id="stageRoot"></div>
+    </div>
+  </main>
+</div>
 
-  <div class="tab-panel active" id="panel-tuvung"></div>
-  <div class="tab-panel" id="panel-nguphap"></div>
-  <div class="tab-panel" id="panel-dochieu"></div>
-  <div class="tab-panel" id="panel-exam">
-    <div id="examRoot"></div>
-  </div>
-</main>
+<!-- Mobile Sidebar Backdrop -->
+<div class="backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
 
 <!-- Bookmark Drawer -->
-<div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+<div class="backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
 <aside class="drawer" id="drawer">
   <div class="drawer-header">
     <strong>📑 Sổ tay Bookmark (<span id="bmCountDrawer">0</span>)</strong>
-    <button onclick="closeDrawer()">✕ Đóng</button>
+    <button class="btn btn-icon" onclick="closeDrawer()">✕</button>
   </div>
   <div class="drawer-body">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:12px;color:var(--muted);">
-      <span id="bmSyncInfo">Lưu trên thiết bị (localStorage)</span>
-      <button onclick="syncBookmarksWithDrive(true)" style="padding:3px 8px;font-size:11.5px;">☁️ Đồng bộ ngay</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:11.5px;color:var(--muted);">
+      <span id="bmSyncInfo">Lưu trên máy (localStorage)</span>
+      <button class="btn" onclick="syncBookmarksWithDrive(true)" style="padding:3px 8px;font-size:11.5px;">☁️ Đồng bộ</button>
     </div>
     <div class="quick-add">
-      <strong style="font-size:12px;">➕ Thêm từ mới thủ công</strong>
-      <input id="customWord" type="text" placeholder="Từ vựng (VD: 肝に銘じる)">
+      <input id="customWord" type="text" placeholder="➕ Thêm từ mới (VD: 肝に銘じる)">
       <input id="customNote" type="text" placeholder="Cách đọc / Nghĩa (VD: きもにめいじる - khắc cốt ghi tâm)">
-      <button class="btn-primary" onclick="addCustomBookmark()" style="justify-content:center;">Lưu vào Bookmark</button>
+      <button class="btn btn-primary" onclick="addCustomBookmark()" style="justify-content:center;">Lưu vào Bookmark</button>
     </div>
-    <input id="bmDrawerSearch" type="text" placeholder="🔍 Lọc trong sổ Bookmark..." oninput="renderDrawerList()" style="width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:10px;">
+    <input id="bmDrawerSearch" type="text" class="search-box" placeholder="🔍 Lọc trong sổ Bookmark..." oninput="renderDrawerList()" style="margin-bottom:8px;">
     <div id="bmList"></div>
   </div>
   <div class="drawer-footer">
-    <button onclick="exportMarkdown()">⬇️ Xuất .MD</button>
-    <button onclick="exportJson()">💾 Sao lưu JSON</button>
-    <button onclick="document.getElementById('importFile').click()">📂 Khôi phục</button>
+    <button class="btn" onclick="exportMarkdown()">⬇️ Xuất .MD</button>
+    <button class="btn" onclick="exportJson()">💾 Backup JSON</button>
+    <button class="btn" onclick="document.getElementById('importFile').click()">📂 Khôi phục</button>
     <input id="importFile" type="file" accept=".json" style="display:none" onchange="importJson(event)">
   </div>
 </aside>
 
 <!-- Settings Modal -->
-<div class="modal-backdrop" id="settingsBackdrop" onclick="closeSettings()"></div>
+<div class="backdrop" id="settingsBackdrop" onclick="closeSettings()"></div>
 <div class="modal" id="settingsModal">
   <div class="modal-header">
-    <strong>⚙️ Cài đặt Google Drive Sync</strong>
-    <button onclick="closeSettings()">✕</button>
+    <strong>⚙️ Cài đặt Google Drive &amp; Dữ liệu</strong>
+    <button class="btn btn-icon" onclick="closeSettings()">✕</button>
   </div>
   <div class="modal-body">
     <div class="form-group">
-      <label>Google OAuth 2.0 Client ID (Web Application)</label>
+      <label>Google OAuth 2.0 Client ID (dùng để đồng bộ Bookmark 2 chiều)</label>
       <input id="cfgClientId" type="text" placeholder="xxxx.apps.googleusercontent.com">
     </div>
     <div class="form-group">
-      <label>Google Drive Folder ID (N1 14 day 122026)</label>
-      <input id="cfgFolderId" type="text" placeholder="1wBj2tlxaCjxqnUvjiU2vU93a2t0So_5h">
+      <label>Google Drive API Key (tùy chọn — đọc 3 file .md Public không cần đăng nhập)</label>
+      <input id="cfgApiKey" type="text" placeholder="AIzaSy... (để trống nếu dùng OAuth)">
     </div>
     <div class="form-group">
-      <label>Tên file đồng bộ Bookmark trên Drive</label>
-      <input id="cfgBmFile" type="text" placeholder="jlpt_bookmarks.json">
+      <label>Google Drive Folder ID (N1 14 day 122026)</label>
+      <input id="cfgFolderId" type="text">
     </div>
-    <div style="background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;color:#4b5563;margin-bottom:14px;">
-      <strong>Origin hiện tại của Web App:</strong><br>
-      <code id="currentOriginDisplay"></code><br>
-      <span style="color:#6b7280;">(Thêm origin này vào mục <em>Authorized JavaScript origins</em> trong Google Cloud Console OAuth Client ID.)</span>
+    <div class="form-group">
+      <label>File đồng bộ Bookmark trên Drive</label>
+      <input id="cfgBmFile" type="text">
+    </div>
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:12px;color:var(--text-2);margin-bottom:14px;">
+      <strong>Origin hiện tại:</strong> <code id="currentOriginDisplay"></code><br>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" onclick="document.getElementById('localMdInput').click()">📂 Nạp file .md từ máy (Offline)</button>
+        <input id="localMdInput" type="file" accept=".md,.txt" multiple style="display:none" onchange="loadLocalMarkdownFiles(event)">
+        <button class="btn" onclick="clearLocalCache()" style="color:var(--red);">🗑️ Xóa cache .md</button>
+      </div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button onclick="clearLocalCache()" style="color:#b91c1c;">🗑️ Xóa cache .md</button>
-      <button class="btn-primary" onclick="saveSettings()">💾 Lưu cài đặt</button>
+      <button class="btn" onclick="closeSettings()">Hủy</button>
+      <button class="btn btn-primary" onclick="saveSettings()">💾 Lưu cài đặt</button>
     </div>
   </div>
 </div>
@@ -779,12 +1026,13 @@
 // ==================== CONFIGURATION ====================
 const DEFAULT_CONFIG = {
   clientId: "45519602571-s3vc7cs0bjk7rsdfsnqegm49jqs4hod2.apps.googleusercontent.com",
+  apiKey: "", // Nếu bật Public folder + API Key sẽ tự tải .md không cần đăng nhập
   folderId: "1wBj2tlxaCjxqnUvjiU2vU93a2t0So_5h",
   bookmarkFileName: "jlpt_bookmarks.json",
   files: {
-    tuvung: { name: "01_TU_VUNG_N1_GMN.md", fallbackId: "1QW3cPCy6GOAXRtvYbuvD-CukwqatJlqF", label: "📘 Từ vựng (01)" },
-    nguphap: { name: "02_NGU_PHAP_N1_GMN.md", fallbackId: "1rgAp3b6pfnQ81fmHesR2pvhGxLYuVha5", label: "📗 Ngữ pháp (02)" },
-    dochieu: { name: "03_DOC_HIEU_N1_GMN.md", fallbackId: "1u2xccVEuH2nWIrvc5_Eiv3HvCJVpXwgy", label: "📙 Đọc hiểu (03)" }
+    tuvung: { name: "01_TU_VUNG_N1_GMN.md", fallbackId: "1QW3cPCy6GOAXRtvYbuvD-CukwqatJlqF" },
+    nguphap: { name: "02_NGU_PHAP_N1_GMN.md", fallbackId: "1rgAp3b6pfnQ81fmHesR2pvhGxLYuVha5" },
+    dochieu: { name: "03_DOC_HIEU_N1_GMN.md", fallbackId: "1u2xccVEuH2nWIrvc5_Eiv3HvCJVpXwgy" }
   }
 };
 
@@ -793,27 +1041,43 @@ const KEYS = {
   BOOKMARKS: "jlpt_n1_bookmarks_v2",
   LEGACY_BM: "jlpt_n1_bookmarks_v1",
   MD_CACHE: "jlpt_n1_md_cache_v1",
-  LAST_SYNC: "jlpt_n1_last_sync_v1"
+  LAST_SYNC: "jlpt_n1_last_sync_v1",
+  WRONG_IDS: "jlpt_n1_wrong_ids_v1",
+  THEME: "jlpt_n1_theme_v1",
+  VIEW_MODE: "jlpt_n1_view_mode_v1"
 };
 
 let appConfig = loadConfig();
 let accessToken = null;
 let tokenClient = null;
-let tokenExpiresAt = 0;
 let bookmarkDriveFileId = null;
 let pushTimer = null;
 
-// Bookmark state with tombstones for conflict-free multi-device sync
 let bmState = { items: {}, deleted: {} };
+let wrongIds = loadWrongIds();
 let mdStore = { tuvung: "", nguphap: "", dochieu: "" };
-let parsedQuizBank = []; // Extracted MCQ questions from tuvung + nguphap
-let onlyBookmarked = false;
+
+// Parsed study items per tab for Master-Detail Focus View & List View
+let tabItems = { tuvung: [], nguphap: [], dochieu: [] };
+let activeItemIdx = { tuvung: 0, nguphap: 0, dochieu: 0 };
+let parsedQuizBank = [];
+let cheatWordsBank = [];
+
 let currentTab = "tuvung";
+let studyViewMode = localStorage.getItem(KEYS.VIEW_MODE) || "focus"; // "focus" | "list"
+let onlyBookmarked = false;
+let quizHideMode = false;
 
 // Exam state
 let examConfig = { source: "all", count: 10, mode: "instant" };
 let examSession = null;
 let examTimerInterval = null;
+
+// Flashcard state
+let fcConfig = { source: "bookmarks" }; // "bookmarks" | "cheatsheet"
+let fcDeck = [];
+let fcIdx = 0;
+let fcFlipped = false;
 
 const JP_RE = /[\u3040-\u30ff\u4e00-\u9fff]/;
 
@@ -830,10 +1094,11 @@ function showToast(msg, ms = 2600) {
   el._t = setTimeout(() => el.classList.remove("show"), ms);
 }
 
-function setSyncBadge(text, state = "") {
-  const b = document.getElementById("syncBadge");
-  b.textContent = text;
-  b.className = "sync-badge" + (state ? " " + state : "");
+function setSyncStatus(dot, label, cls = "") {
+  const pill = document.getElementById("syncPill");
+  document.getElementById("syncDot").textContent = dot;
+  document.getElementById("syncLabel").textContent = label;
+  pill.className = "sync-pill" + (cls ? " " + cls : "");
 }
 
 function loadConfig() {
@@ -841,19 +1106,53 @@ function loadConfig() {
     const saved = JSON.parse(localStorage.getItem(KEYS.CONFIG) || "{}");
     return {
       clientId: saved.clientId || DEFAULT_CONFIG.clientId,
+      apiKey: saved.apiKey || DEFAULT_CONFIG.apiKey,
       folderId: saved.folderId || DEFAULT_CONFIG.folderId,
       bookmarkFileName: saved.bookmarkFileName || DEFAULT_CONFIG.bookmarkFileName
     };
   } catch {
-    return {
-      clientId: DEFAULT_CONFIG.clientId,
-      folderId: DEFAULT_CONFIG.folderId,
-      bookmarkFileName: DEFAULT_CONFIG.bookmarkFileName
-    };
+    return { ...DEFAULT_CONFIG };
   }
 }
 
-// ==================== MARKDOWN RENDERER & PARSER (MẪU 2) ====================
+function loadWrongIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(KEYS.WRONG_IDS) || "[]")); }
+  catch { return new Set(); }
+}
+
+function saveWrongIds() {
+  localStorage.setItem(KEYS.WRONG_IDS, JSON.stringify([...wrongIds]));
+}
+
+function speakJapanese(text) {
+  if (!("speechSynthesis" in window)) {
+    showToast("Trình duyệt không hỗ trợ đọc tiếng Nhật (TTS).");
+    return;
+  }
+  const clean = String(text || "").replace(/（[^）]*）|\([^)]*\)|[★☆①②③④＿＿＿\s]+/g, " ").trim();
+  if (!clean) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = "ja-JP";
+  u.rate = 0.95;
+  window.speechSynthesis.speak(u);
+}
+
+// ==================== THEME ====================
+function initTheme() {
+  const saved = localStorage.getItem(KEYS.THEME) || "light";
+  document.documentElement.setAttribute("data-theme", saved);
+  document.getElementById("themeBtn").textContent = saved === "dark" ? "☀️" : "🌙";
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute("data-theme");
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem(KEYS.THEME, next);
+  document.getElementById("themeBtn").textContent = next === "dark" ? "☀️" : "🌙";
+}
+
+// ==================== MARKDOWN PARSER (MẪU 2) ====================
 function renderMdFragment(mdText) {
   if (!mdText) return "";
   if (window.marked) {
@@ -874,15 +1173,8 @@ function parseMarkdownToSections(mdText) {
   function flushBlock() {
     if (!curSession) return;
     const bodyMd = curBlockLines.join("\n").trim();
-    if (!bodyMd && !curBlockTitle) {
-      curBlockLines = [];
-      return;
-    }
-    curSession.blocks.push({
-      type: curBlockType,
-      title: curBlockTitle || "",
-      body_md: bodyMd
-    });
+    if (!bodyMd && !curBlockTitle) { curBlockLines = []; return; }
+    curSession.blocks.push({ type: curBlockType, title: curBlockTitle || "", body_md: bodyMd });
     curBlockLines = [];
     curBlockTitle = null;
     curBlockType = "section";
@@ -893,9 +1185,7 @@ function parseMarkdownToSections(mdText) {
       flushBlock();
       curSession = { title: line.slice(2).trim(), blocks: [] };
       sessions.push(curSession);
-      curBlockType = "intro";
-      curBlockTitle = null;
-      curBlockLines = [];
+      curBlockType = "intro"; curBlockTitle = null; curBlockLines = [];
     } else if (!curSession) {
       curSession = { title: "Tổng quan", blocks: [] };
       sessions.push(curSession);
@@ -909,8 +1199,8 @@ function parseMarkdownToSections(mdText) {
       flushBlock();
       const h2Title = line.slice(3).trim();
       curBlockTitle = h2Title;
-      const upper = h2Title.toUpperCase();
-      curBlockType = (upper.includes("CHEAT SHEET") || upper.includes("BẢNG TỔNG KẾT")) ? "cheatsheet" : "section";
+      const u = h2Title.toUpperCase();
+      curBlockType = (u.includes("CHEAT SHEET") || u.includes("BẢNG TỔNG KẾT")) ? "cheatsheet" : "section";
       curBlockLines = [];
     } else {
       curBlockLines.push(line);
@@ -920,7 +1210,7 @@ function parseMarkdownToSections(mdText) {
   return sessions;
 }
 
-function enhanceCheatsheetTable(htmlStr, sessionTitle, tabId) {
+function enhanceCheatsheetTable(htmlStr, sessionTitle, tabId, collectWords = false) {
   const tmp = document.createElement("div");
   tmp.innerHTML = htmlStr;
   tmp.querySelectorAll("table").forEach(table => {
@@ -939,6 +1229,10 @@ function enhanceCheatsheetTable(htmlStr, sessionTitle, tabId) {
       const itemId = `word::${tabId}::${wordText}::${readingText}`;
       tr.dataset.bmRow = itemId;
 
+      if (collectWords && wordText && JP_RE.test(wordText)) {
+        cheatWordsBank.push({ id: itemId, title: wordText, sub: readingText, note: meaningText, session: sessionTitle });
+      }
+
       const td = document.createElement("td");
       td.className = "bm-cell";
       const btn = document.createElement("button");
@@ -949,7 +1243,6 @@ function enhanceCheatsheetTable(htmlStr, sessionTitle, tabId) {
       btn.dataset.bmSub = readingText;
       btn.dataset.bmNote = meaningText;
       btn.dataset.bmSession = sessionTitle;
-      btn.title = "Bookmark từ này";
       btn.textContent = "☆";
       td.appendChild(btn);
       tr.insertBefore(td, tr.firstChild);
@@ -978,7 +1271,7 @@ function makeCodePillsClickable(htmlStr, sessionTitle) {
     codeEl.dataset.bmSub = "";
     codeEl.dataset.bmNote = `Từ mở rộng (${sessionTitle})`;
     codeEl.dataset.bmSession = sessionTitle;
-    codeEl.title = "Click để Bookmark / Bỏ Bookmark từ này";
+    codeEl.title = "Click để Bookmark từ này";
     const star = document.createElement("span");
     star.className = "pill-star";
     star.textContent = "☆";
@@ -987,161 +1280,122 @@ function makeCodePillsClickable(htmlStr, sessionTitle) {
   return tmp.innerHTML;
 }
 
-function renderTabContent(tabId, mdText) {
-  const panel = document.getElementById("panel-" + tabId);
-  if (!mdText || !mdText.trim()) {
-    panel.innerHTML = `<div class="section-card" style="text-align:center;color:var(--muted);padding:32px;">
-      Chưa có dữ liệu cho mục này. Hãy nhấn <strong>☁️ Kết nối Drive</strong> (hoặc nạp file <code>.md</code>) để tải nội dung mới nhất.
-    </div>`;
-    return;
-  }
-
+function buildTabItems(tabId, mdText) {
+  if (!mdText || !mdText.trim()) return [];
   const sessions = parseMarkdownToSections(mdText);
-  const out = [];
+  const items = [];
 
   sessions.forEach((sess, sIdx) => {
     const sTitle = sess.title;
-    const anchorId = `sess-${tabId}-${sIdx}`;
-    out.push(`<section class="session-block" data-session="${escapeHtml(sTitle)}" id="${anchorId}">`);
-    out.push(`<h1 class="session-title">${escapeHtml(sTitle)}</h1>`);
-
-    sess.blocks.forEach(blk => {
-      const bType = blk.type;
-      const bTitle = blk.title;
+    sess.blocks.forEach((blk, bIdx) => {
       const bMd = blk.body_md;
+      const bTitle = blk.title || (blk.type === "intro" ? "Giới thiệu buổi học" : `Mục ${bIdx + 1}`);
+      if (blk.type === "intro" && !bMd.replace(/[-*_]/g, "").trim()) return;
 
-      if (bType === "question") {
+      if (blk.type === "question") {
         const sepRe = /\n?\*\(Khoảng trống tự nhẩm đáp án\)\*\n?/;
         const parts = bMd.split(sepRe);
-        let promptHtml = "";
-        let answerHtml = "";
+        let promptHtml = "", answerHtml = "", promptPlain = "";
         if (parts.length >= 2) {
           promptHtml = renderMdFragment(parts[0]);
           answerHtml = makeCodePillsClickable(renderMdFragment(parts.slice(1).join("\n")), sTitle);
+          promptPlain = parts[0].replace(/[`*#>]/g, "").trim();
         } else {
           answerHtml = makeCodePillsClickable(renderMdFragment(bMd), sTitle);
+          promptPlain = bMd.split("\n")[0].replace(/[`*#>]/g, "").trim();
         }
-
-        const qId = `q::${tabId}::${sIdx}::${bTitle}`;
-        const firstLine = (bMd.split("\n")[0] || "").replace(/[`*#>]/g, "").trim();
-
-        out.push(`<article class="q-card" data-bm-card="${escapeHtml(qId)}">`);
-        out.push(`<div class="q-header">`);
-        out.push(`<h3>${escapeHtml(bTitle)}</h3>`);
-        out.push(
-          `<button class="bm-btn bm-btn-card" data-bm-id="${escapeHtml(qId)}" ` +
-          `data-bm-kind="question" data-bm-title="${escapeHtml(bTitle)}" ` +
-          `data-bm-sub="${escapeHtml(firstLine.slice(0, 95))}" data-bm-note="" ` +
-          `data-bm-session="${escapeHtml(sTitle)}" title="Bookmark câu hỏi này">☆ Bookmark</button>`
-        );
-        out.push(`</div>`);
-
-        if (promptHtml) {
-          out.push(`<div class="q-prompt">${promptHtml}</div>`);
-          out.push(
-            `<div class="q-answer-wrap">` +
-            `<button class="toggle-ans-btn" onclick="toggleOneAns(this)">👁️ Hiện / Ẩn đáp án</button>` +
-            `<div class="q-answer">${answerHtml}</div>` +
-            `</div>`
-          );
-        } else {
-          out.push(`<div class="q-answer">${answerHtml}</div>`);
-        }
-        out.push(`</article>`);
-      } else if (bType === "cheatsheet") {
-        let tblHtml = renderMdFragment(bMd);
-        tblHtml = enhanceCheatsheetTable(tblHtml, sTitle, tabId);
-        tblHtml = makeCodePillsClickable(tblHtml, sTitle);
-        out.push(`<div class="cheatsheet-card"><h2>${escapeHtml(bTitle)}</h2>${tblHtml}</div>`);
+        const qId = `q::${tabId}::${sIdx}::${blk.title}`;
+        const jpSentence = (promptPlain.split("\n").find(l => JP_RE.test(l)) || "").trim();
+        items.push({
+          id: qId,
+          type: "question",
+          sessionTitle: sTitle,
+          title: blk.title,
+          shortLabel: blk.title.replace(/`\[[^\]]+\]`/g, "").trim(),
+          preview: promptPlain.slice(0, 90),
+          jpText: jpSentence,
+          promptHtml,
+          answerHtml,
+          searchText: (sTitle + " " + blk.title + " " + bMd).toLowerCase()
+        });
+      } else if (blk.type === "cheatsheet") {
+        let html = enhanceCheatsheetTable(renderMdFragment(bMd), sTitle, tabId, true);
+        html = makeCodePillsClickable(html, sTitle);
+        items.push({
+          id: `cs::${tabId}::${sIdx}::${bIdx}`,
+          type: "cheatsheet",
+          sessionTitle: sTitle,
+          title: bTitle,
+          shortLabel: "📋 " + bTitle,
+          preview: "",
+          jpText: "",
+          promptHtml: "",
+          answerHtml: html,
+          searchText: (sTitle + " " + bTitle + " " + bMd).toLowerCase()
+        });
       } else {
-        let secHtml = makeCodePillsClickable(renderMdFragment(bMd), sTitle);
-        out.push(`<div class="section-card">${bTitle ? `<h2>${escapeHtml(bTitle)}</h2>` : ""}${secHtml}</div>`);
+        const html = makeCodePillsClickable(renderMdFragment(bMd), sTitle);
+        items.push({
+          id: `sec::${tabId}::${sIdx}::${bIdx}`,
+          type: "section",
+          sessionTitle: sTitle,
+          title: bTitle,
+          shortLabel: "📄 " + bTitle,
+          preview: "",
+          jpText: "",
+          promptHtml: "",
+          answerHtml: html,
+          searchText: (sTitle + " " + bTitle + " " + bMd).toLowerCase()
+        });
       }
     });
-
-    out.push(`</section>`);
   });
 
-  panel.innerHTML = out.join("\n");
+  return items;
 }
 
-function updateSessionJump() {
-  const sel = document.getElementById("sessionJump");
-  sel.innerHTML = '<option value="">📑 Nhảy nhanh đến buổi học...</option>';
-  const panel = document.getElementById("panel-" + currentTab);
-  if (!panel) return;
-  panel.querySelectorAll(".session-block").forEach(sec => {
-    const opt = document.createElement("option");
-    opt.value = sec.id;
-    opt.textContent = sec.dataset.session || sec.id;
-    sel.appendChild(opt);
-  });
-}
-
-function jumpToSession(id) {
-  if (!id) return;
-  const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-// ==================== QUIZ / EXAM PARSER ====================
 function extractQuizQuestions(tabId, mdText) {
   if (!mdText) return [];
   const sessions = parseMarkdownToSections(mdText);
   const questions = [];
-
   sessions.forEach((sess, sIdx) => {
     sess.blocks.forEach(blk => {
       if (blk.type !== "question") return;
-      const sepRe = /\n?\*\(Khoảng trống tự nhẩm đáp án\)\*\n?/;
-      const parts = blk.body_md.split(sepRe);
+      const parts = blk.body_md.split(/\n?\*\(Khoảng trống tự nhẩm đáp án\)\*\n?/);
       if (parts.length < 2) return;
-
       const promptMd = parts[0].trim();
       const answerMd = parts.slice(1).join("\n").trim();
-
-      // Extract correct answer index (1..4)
       const ansMatch = answerMd.match(/Đáp án(?:\s*\(★\))?:\**\s*`?([1-4])/);
       if (!ansMatch) return;
       const correctNum = parseInt(ansMatch[1], 10);
 
-      // Extract 4 options:
-      // Format A: `1. ...` ｜ `2. ...` ｜ `3. ...` ｜ `4. ...`
       let options = [];
       let cleanPromptMd = promptMd;
-      const backtickMatches = [...promptMd.matchAll(/`([1-4])\.\s*([^`]+)`/g)];
-      if (backtickMatches.length >= 4) {
+      const btMatches = [...promptMd.matchAll(/`([1-4])\.\s*([^`]+)`/g)];
+      if (btMatches.length >= 4) {
         const byNum = {};
-        backtickMatches.forEach(m => { byNum[m[1]] = m[2].trim(); });
+        btMatches.forEach(m => { byNum[m[1]] = m[2].trim(); });
         if (byNum["1"] && byNum["2"] && byNum["3"] && byNum["4"]) {
           options = [byNum["1"], byNum["2"], byNum["3"], byNum["4"]];
-          cleanPromptMd = promptMd.split("\n").filter(line => !/`[1-4]\./.test(line)).join("\n").trim();
+          cleanPromptMd = promptMd.split("\n").filter(l => !/`[1-4]\./.test(l)).join("\n").trim();
         }
       }
-
-      // Format B: numbered list lines `1. ...` through `4. ...`
       if (options.length !== 4) {
-        const lines = promptMd.split("\n");
-        const byNum = {};
-        const keptLines = [];
-        lines.forEach(line => {
+        const byNum = {}, kept = [];
+        promptMd.split("\n").forEach(line => {
           const m = line.match(/^\s*([1-4])\.\s+(.+)$/);
-          if (m && !byNum[m[1]]) {
-            byNum[m[1]] = m[2].trim();
-          } else {
-            keptLines.push(line);
-          }
+          if (m && !byNum[m[1]]) byNum[m[1]] = m[2].trim();
+          else kept.push(line);
         });
         if (byNum["1"] && byNum["2"] && byNum["3"] && byNum["4"]) {
           options = [byNum["1"], byNum["2"], byNum["3"], byNum["4"]];
-          cleanPromptMd = keptLines.join("\n").trim();
+          cleanPromptMd = kept.join("\n").trim();
         }
       }
-
       if (options.length !== 4) return;
-
       const qId = `q::${tabId}::${sIdx}::${blk.title}`;
       const firstLine = (cleanPromptMd.split("\n")[0] || "").replace(/[`*#>]/g, "").trim();
+      const longOpts = options.some(o => o.length > 22);
 
       questions.push({
         id: qId,
@@ -1152,132 +1406,711 @@ function extractQuizQuestions(tabId, mdText) {
         promptHtml: renderMdFragment(cleanPromptMd),
         promptPlain: firstLine,
         options,
-        correct: correctNum, // 1..4
+        longOpts,
+        correct: correctNum,
         explanationHtml: renderMdFragment(answerMd)
       });
     });
   });
-
   return questions;
 }
 
 function rebuildAllContent() {
-  renderTabContent("tuvung", mdStore.tuvung);
-  renderTabContent("nguphap", mdStore.nguphap);
-  renderTabContent("dochieu", mdStore.dochieu);
-
+  cheatWordsBank = [];
+  tabItems.tuvung = buildTabItems("tuvung", mdStore.tuvung);
+  tabItems.nguphap = buildTabItems("nguphap", mdStore.nguphap);
+  tabItems.dochieu = buildTabItems("dochieu", mdStore.dochieu);
   parsedQuizBank = [
     ...extractQuizQuestions("tuvung", mdStore.tuvung),
     ...extractQuizQuestions("nguphap", mdStore.nguphap)
   ];
+  renderCurrentView();
+  syncBookmarkBadgesOnly();
+}
 
-  const hasData = !!(mdStore.tuvung || mdStore.nguphap || mdStore.dochieu);
-  if (hasData && accessToken) {
-    document.getElementById("connectCard").style.display = "none";
+// ==================== STUDY VIEW RENDERER (FOCUS 1-SCREEN & LIST) ====================
+function getFilteredItems(tabId) {
+  const q = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
+  return (tabItems[tabId] || []).filter(item => {
+    const matchQ = !q || item.searchText.includes(q);
+    const matchBm = !onlyBookmarked || isItemBookmarked(item);
+    return matchQ && matchBm;
+  });
+}
+
+function isItemBookmarked(item) {
+  if (bmState.items[item.id]) return true;
+  if (item.type === "cheatsheet") {
+    return Object.keys(bmState.items).some(k => k.startsWith("word::") && item.answerHtml.includes(escapeHtml(k)));
+  }
+  return false;
+}
+
+function renderCurrentView() {
+  const isStudyTab = ["tuvung", "nguphap", "dochieu"].includes(currentTab);
+  document.getElementById("sidebar").classList.toggle("hidden-mode", !isStudyTab);
+  document.getElementById("stageToolbar").style.display = isStudyTab ? "flex" : "none";
+
+  if (currentTab === "exam") {
+    renderExamView();
+    return;
+  }
+  if (currentTab === "flashcard") {
+    renderFlashcardView();
+    return;
   }
 
-  updateSessionJump();
-  syncUI();
+  const list = getFilteredItems(currentTab);
+  const hasAnyData = (tabItems[currentTab] || []).length > 0;
+  renderSidebar(list);
+
+  const root = document.getElementById("stageRoot");
+  if (!hasAnyData) {
+    document.getElementById("stageCounter").textContent = "Chưa có dữ liệu";
+    document.getElementById("stageMeta").textContent = "";
+    root.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size:38px;margin-bottom:8px;">☁️</div>
+        <h2 style="margin:0 0 8px;">Kết nối Google Drive để bắt đầu học N1</h2>
+        <p style="color:var(--text-2);font-size:13.5px;margin:0 0 18px;">
+          Tự động tải 3 file <code>.md</code> mới nhất từ thư mục <strong>N1 14 day 122026</strong> và đồng bộ Bookmark 2 chiều giữa PC &amp; Điện thoại.
+        </p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="connectGoogleDrive()" style="padding:9px 18px;font-size:13.5px;">🔐 Kết nối Google Drive</button>
+          <button class="btn" onclick="document.getElementById('localMdInput').click()" style="padding:9px 14px;">📂 Nạp file .md từ máy</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (!list.length) {
+    document.getElementById("stageCounter").textContent = "0 kết quả";
+    document.getElementById("stageMeta").textContent = "";
+    root.innerHTML = `<div class="empty-state"><h3>Không tìm thấy mục nào khớp bộ lọc</h3><p style="color:var(--muted);font-size:13px;">Thử xóa từ khóa tìm kiếm hoặc tắt lọc ★ Bookmark.</p></div>`;
+    return;
+  }
+
+  if (activeItemIdx[currentTab] >= list.length) activeItemIdx[currentTab] = 0;
+  if (activeItemIdx[currentTab] < 0) activeItemIdx[currentTab] = 0;
+
+  if (studyViewMode === "focus") {
+    renderFocusCard(list, activeItemIdx[currentTab]);
+  } else {
+    renderListCards(list);
+  }
+  syncBookmarkBadgesOnly();
+}
+
+function renderSidebar(list) {
+  const el = document.getElementById("sidebarList");
+  if (!list.length) {
+    el.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted);font-size:12.5px;">Không có mục nào</div>`;
+    return;
+  }
+  let html = "";
+  let lastSess = "";
+  const curIdx = activeItemIdx[currentTab] || 0;
+
+  list.forEach((item, idx) => {
+    if (item.sessionTitle !== lastSess) {
+      lastSess = item.sessionTitle;
+      html += `<div class="sess-group-title">${escapeHtml(lastSess)}</div>`;
+    }
+    const isAct = studyViewMode === "focus" && idx === curIdx;
+    const isBm = !!bmState.items[item.id];
+    const isWrong = wrongIds.has(item.id);
+    html += `
+      <div class="nav-item ${isAct ? 'active' : ''}" onclick="selectStudyItem(${idx})" id="nav-item-${idx}">
+        <span class="nav-item-text">${escapeHtml(item.shortLabel)}</span>
+        <span class="nav-item-badges">
+          ${isWrong ? '<span title="Từng làm sai">🔴</span>' : ''}
+          ${isBm ? '<span style="color:var(--gold);">★</span>' : ''}
+        </span>
+      </div>
+    `;
+  });
+  el.innerHTML = html;
+}
+
+function renderFocusCard(list, idx) {
+  const item = list[idx];
+  const isBm = !!bmState.items[item.id];
+  document.getElementById("stageCounter").textContent = `${idx + 1} / ${list.length}`;
+  document.getElementById("stageMeta").textContent = item.sessionTitle;
+  document.getElementById("prevItemBtn").disabled = idx <= 0;
+  document.getElementById("nextItemBtn").disabled = idx >= list.length - 1;
+  document.getElementById("prevItemBtn").style.display = "inline-flex";
+  document.getElementById("nextItemBtn").style.display = "inline-flex";
+
+  const root = document.getElementById("stageRoot");
+  root.innerHTML = `
+    <article class="focus-card ${isBm ? 'is-bookmarked' : ''}" data-bm-card="${escapeHtml(item.id)}">
+      <div class="focus-header">
+        <div class="focus-title-wrap">
+          <h2 class="focus-title">${escapeHtml(item.title)}</h2>
+          <span class="session-pill">${escapeHtml(item.sessionTitle.slice(0, 42))}</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${item.jpText ? `<button class="tts-btn" onclick='speakJapanese(${JSON.stringify(item.jpText)})' title="Nghe đọc tiếng Nhật">🔊 Nghe</button>` : ""}
+          ${item.type === "question" ? `
+            <button class="bm-btn bm-btn-card ${isBm ? 'bookmarked' : ''}" data-bm-id="${escapeHtml(item.id)}"
+              data-bm-kind="question" data-bm-title="${escapeHtml(item.title)}"
+              data-bm-sub="${escapeHtml(item.preview)}" data-bm-note=""
+              data-bm-session="${escapeHtml(item.sessionTitle)}">
+              ${isBm ? "★ Đã bookmark" : "☆ Bookmark"}
+            </button>
+          ` : ""}
+        </div>
+      </div>
+
+      ${item.promptHtml ? `<div class="focus-prompt">${item.promptHtml}</div>` : ""}
+
+      <div class="q-answer-wrap">
+        ${item.promptHtml ? `<button class="btn toggle-ans-btn" id="focusRevealBtn" onclick="toggleOneAns(this)">👁️ Hiện / Ẩn đáp án (Space)</button>` : ""}
+        <div class="q-answer">${item.answerHtml}</div>
+      </div>
+
+      <div class="focus-footer">
+        <div class="kbd-hints">
+          <span><kbd>←</kbd> <kbd>→</kbd> Chuyển câu</span>
+          <span><kbd>Space</kbd> Ẩn/Hiện đáp án</span>
+          <span><kbd>B</kbd> Bookmark</span>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn" onclick="stepItem(-1)" ${idx <= 0 ? "disabled" : ""}>← Câu trước</button>
+          <button class="btn btn-primary" onclick="stepItem(1)" ${idx >= list.length - 1 ? "disabled" : ""}>Câu tiếp →</button>
+        </div>
+      </div>
+    </article>
+  `;
+  document.getElementById("stageScroll").scrollTop = 0;
+}
+
+function renderListCards(list) {
+  document.getElementById("stageCounter").textContent = `${list.length} mục (Chế độ cuộn)`;
+  document.getElementById("stageMeta").textContent = "";
+  document.getElementById("prevItemBtn").style.display = "none";
+  document.getElementById("nextItemBtn").style.display = "none";
+
+  let html = "";
+  let lastSess = "";
+  list.forEach((item, idx) => {
+    if (item.sessionTitle !== lastSess) {
+      lastSess = item.sessionTitle;
+      html += `<div class="session-heading">${escapeHtml(lastSess)}</div>`;
+    }
+    const isBm = !!bmState.items[item.id];
+    html += `
+      <article class="list-card ${isBm ? 'is-bookmarked' : ''}" id="list-item-${idx}" data-bm-card="${escapeHtml(item.id)}">
+        <div class="focus-header" style="margin-bottom:8px;padding-bottom:8px;">
+          <h3 class="focus-title" style="font-size:15px;">${escapeHtml(item.title)}</h3>
+          <div style="display:flex;gap:6px;">
+            ${item.jpText ? `<button class="tts-btn" onclick='speakJapanese(${JSON.stringify(item.jpText)})'>🔊</button>` : ""}
+            ${item.type === "question" ? `
+              <button class="bm-btn bm-btn-card ${isBm ? 'bookmarked' : ''}" data-bm-id="${escapeHtml(item.id)}"
+                data-bm-kind="question" data-bm-title="${escapeHtml(item.title)}"
+                data-bm-sub="${escapeHtml(item.preview)}" data-bm-note=""
+                data-bm-session="${escapeHtml(item.sessionTitle)}">
+                ${isBm ? "★ Đã bookmark" : "☆ Bookmark"}
+              </button>
+            ` : ""}
+          </div>
+        </div>
+        ${item.promptHtml ? `<div class="focus-prompt" style="padding:10px 13px;font-size:14.5px;">${item.promptHtml}</div>` : ""}
+        <div class="q-answer-wrap">
+          ${item.promptHtml ? `<button class="btn toggle-ans-btn" onclick="toggleOneAns(this)">👁️ Hiện / Ẩn đáp án</button>` : ""}
+          <div class="q-answer">${item.answerHtml}</div>
+        </div>
+      </article>
+    `;
+  });
+  document.getElementById("stageRoot").innerHTML = html;
+}
+
+function selectStudyItem(idx) {
+  activeItemIdx[currentTab] = idx;
+  closeMobileSidebar();
+  if (studyViewMode === "focus") {
+    renderCurrentView();
+    const navEl = document.getElementById("nav-item-" + idx);
+    if (navEl) navEl.scrollIntoView({ block: "nearest" });
+  } else {
+    const card = document.getElementById("list-item-" + idx);
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function stepItem(delta) {
+  const list = getFilteredItems(currentTab);
+  const next = (activeItemIdx[currentTab] || 0) + delta;
+  if (next >= 0 && next < list.length) {
+    selectStudyItem(next);
+  }
+}
+
+function toggleStudyViewMode() {
+  studyViewMode = studyViewMode === "focus" ? "list" : "focus";
+  localStorage.setItem(KEYS.VIEW_MODE, studyViewMode);
+  document.getElementById("viewModeBtn").textContent = studyViewMode === "focus" ? "🎯 1 câu" : "📜 Cuộn";
+  renderCurrentView();
+}
+
+// ==================== FLASHCARD ENGINE ====================
+function buildFlashcardDeck() {
+  if (fcConfig.source === "bookmarks") {
+    fcDeck = Object.values(bmState.items).map(it => ({
+      id: it.id, title: it.title, sub: it.sub, note: it.note, session: it.session
+    }));
+  } else {
+    fcDeck = [...cheatWordsBank];
+  }
+  fcIdx = 0;
+  fcFlipped = false;
+}
+
+function renderFlashcardView() {
+  const root = document.getElementById("stageRoot");
+  if (!fcDeck.length) buildFlashcardDeck();
+
+  const bmCnt = Object.keys(bmState.items).length;
+  const csCnt = cheatWordsBank.length;
+
+  if (!fcDeck.length) {
+    root.innerHTML = `
+      <div class="empty-state">
+        <h2>🃏 Flashcard Ôn Từ Vựng N1</h2>
+        <p style="color:var(--muted);font-size:13.5px;">Chưa có thẻ nào trong nguồn này. Hãy bấm ★ Bookmark các từ khó hoặc chuyển sang nguồn <strong>Cheat Sheet (${csCnt} từ)</strong>!</p>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;">
+          <button class="btn ${fcConfig.source==='bookmarks'?'btn-primary':''}" onclick="switchFlashcardSource('bookmarks')">★ Từ Bookmark (${bmCnt})</button>
+          <button class="btn ${fcConfig.source==='cheatsheet'?'btn-primary':''}" onclick="switchFlashcardSource('cheatsheet')">📋 Từ Cheat Sheet (${csCnt})</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const card = fcDeck[fcIdx];
+  root.innerHTML = `
+    <div class="fc-wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:6px;">
+          <button class="btn ${fcConfig.source==='bookmarks'?'btn-primary':''}" onclick="switchFlashcardSource('bookmarks')">★ Bookmark (${bmCnt})</button>
+          <button class="btn ${fcConfig.source==='cheatsheet'?'btn-primary':''}" onclick="switchFlashcardSource('cheatsheet')">📋 Cheat Sheet (${csCnt})</button>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-size:13px;font-weight:700;color:var(--muted);">Thẻ ${fcIdx + 1} / ${fcDeck.length}</span>
+          <button class="btn" onclick="shuffleFlashcards()">🔀 Xáo trộn</button>
+        </div>
+      </div>
+
+      <div class="fc-card" onclick="flipFlashcard()">
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;font-weight:700;">
+          ${fcFlipped ? "MẶT SAU · NGHĨA & CÁCH ĐỌC" : "MẶT TRƯỚC · BẤM HOẶC SPACE ĐỂ LẬT"}
+        </div>
+        <div class="fc-front-word">${escapeHtml(card.title)}</div>
+        ${fcFlipped ? `
+          ${card.sub ? `<div class="fc-sub">${escapeHtml(card.sub)}</div>` : ""}
+          ${card.note ? `<div class="fc-note">${escapeHtml(card.note)}</div>` : ""}
+          <div style="font-size:11.5px;color:var(--muted);margin-top:14px;">${escapeHtml(card.session || "")}</div>
+        ` : `<div style="font-size:13px;color:var(--muted);margin-top:8px;">(Tự nhẩm cách đọc &amp; nghĩa rồi bấm để kiểm tra)</div>`}
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+        <button class="btn" onclick="stepFlashcard(-1)" ${fcIdx <= 0 ? "disabled" : ""}>← Thẻ trước</button>
+        <button class="btn" onclick='speakJapanese(${JSON.stringify(card.title)})'>🔊 Nghe đọc</button>
+        <button class="btn btn-primary" onclick="flipFlashcard()">🔄 Lật thẻ</button>
+        <button class="btn" onclick="stepFlashcard(1)" ${fcIdx >= fcDeck.length - 1 ? "disabled" : ""}>Thẻ tiếp →</button>
+      </div>
+    </div>
+  `;
+}
+
+function switchFlashcardSource(src) {
+  fcConfig.source = src;
+  buildFlashcardDeck();
+  renderFlashcardView();
+}
+function flipFlashcard() { fcFlipped = !fcFlipped; renderFlashcardView(); }
+function stepFlashcard(d) {
+  const n = fcIdx + d;
+  if (n >= 0 && n < fcDeck.length) { fcIdx = n; fcFlipped = false; renderFlashcardView(); }
+}
+function shuffleFlashcards() {
+  fcDeck = shuffleArray(fcDeck);
+  fcIdx = 0; fcFlipped = false;
+  renderFlashcardView();
+  showToast("🔀 Đã xáo trộn bộ thẻ!");
+}
+
+// ==================== EXAM ENGINE (2-COLUMN 14-INCH FIT) ====================
+function getFilteredExamPool(source) {
+  if (source === "tuvung") return parsedQuizBank.filter(q => q.tabId === "tuvung");
+  if (source === "nguphap") return parsedQuizBank.filter(q => q.tabId === "nguphap");
+  if (source === "bookmarked") return parsedQuizBank.filter(q => !!bmState.items[q.id]);
+  if (source === "wrong") return parsedQuizBank.filter(q => wrongIds.has(q.id));
+  return [...parsedQuizBank];
+}
+
+function renderExamView() {
+  const root = document.getElementById("stageRoot");
+  if (!parsedQuizBank.length) {
+    root.innerHTML = `<div class="empty-state"><h2>📝 Thi thử JLPT N1</h2><p style="color:var(--muted);">Hãy kết nối Google Drive để tải ngân hàng câu hỏi Từ vựng &amp; Ngữ pháp.</p><button class="btn btn-primary" onclick="connectGoogleDrive()">☁️ Kết nối Google Drive</button></div>`;
+    return;
+  }
+  if (examSession) {
+    if (examSession.finished) renderExamResult(root);
+    else renderExamActive(root);
+    return;
+  }
+
+  const vocabCnt = parsedQuizBank.filter(q => q.tabId === "tuvung").length;
+  const gramCnt = parsedQuizBank.filter(q => q.tabId === "nguphap").length;
+  const bmCnt = parsedQuizBank.filter(q => !!bmState.items[q.id]).length;
+  const wrongCnt = parsedQuizBank.filter(q => wrongIds.has(q.id)).length;
+  const poolSize = getFilteredExamPool(examConfig.source).length;
+  const targetCnt = examConfig.count === "all" ? poolSize : Math.min(Number(examConfig.count) || 10, poolSize);
+
+  root.innerHTML = `
+    <div class="exam-setup-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <h2 style="margin:0;color:var(--primary);">📝 Thi thử Từ vựng &amp; Ngữ pháp N1</h2>
+        <span class="session-pill">Ngân hàng: <strong>${parsedQuizBank.length} câu</strong> (${vocabCnt} TV · ${gramCnt} NP)</span>
+      </div>
+
+      <div class="exam-grid-setup">
+        <div class="exam-field">
+          <label>1. Chọn nguồn câu hỏi</label>
+          <div class="pill-group">
+            <button class="choice-pill ${examConfig.source==='all'?'active':''}" onclick="setExamConfig('source','all')">Tất cả (${parsedQuizBank.length})</button>
+            <button class="choice-pill ${examConfig.source==='tuvung'?'active':''}" onclick="setExamConfig('source','tuvung')">📘 Từ vựng (${vocabCnt})</button>
+            <button class="choice-pill ${examConfig.source==='nguphap'?'active':''}" onclick="setExamConfig('source','nguphap')">📗 Ngữ pháp (${gramCnt})</button>
+            <button class="choice-pill ${examConfig.source==='bookmarked'?'active':''}" onclick="setExamConfig('source','bookmarked')">★ Bookmark (${bmCnt})</button>
+            <button class="choice-pill ${examConfig.source==='wrong'?'active':''}" onclick="setExamConfig('source','wrong')">🔴 Hay sai (${wrongCnt})</button>
+          </div>
+        </div>
+
+        <div class="exam-field">
+          <label>2. Số câu ngẫu nhiên (tối đa ${poolSize})</label>
+          <div class="pill-group" style="align-items:center;">
+            ${[5, 10, 20, 30].map(n =>
+              `<button class="choice-pill ${examConfig.count===n?'active':''}" onclick="setExamConfig('count',${n})">${n}</button>`
+            ).join("")}
+            <button class="choice-pill ${examConfig.count==='all'?'active':''}" onclick="setExamConfig('count','all')">Tất cả</button>
+            <input class="custom-count-input" type="number" min="1" max="${Math.max(1, poolSize)}" placeholder="Tùy ý"
+              value="${typeof examConfig.count==='number' && ![5,10,20,30].includes(examConfig.count) ? examConfig.count : ''}"
+              oninput="setCustomExamCount(this.value)">
+          </div>
+        </div>
+
+        <div class="exam-field">
+          <label>3. Chế độ chấm điểm</label>
+          <div class="pill-group">
+            <button class="choice-pill ${examConfig.mode==='instant'?'active':''}" onclick="setExamConfig('mode','instant')">⚡ Chấm ngay từng câu</button>
+            <button class="choice-pill ${examConfig.mode==='submit'?'active':''}" onclick="setExamConfig('mode','submit')">🎯 Nộp bài mới chấm</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:16px;">
+        <button class="btn btn-primary" onclick="startExam()" ${poolSize === 0 ? "disabled" : ""} style="padding:10px 26px;font-size:14.5px;">
+          🚀 Bắt đầu làm bài (${targetCnt} câu)
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function setExamConfig(k, v) { examConfig[k] = v; renderExamView(); }
+function setCustomExamCount(v) { const n = parseInt(v, 10); if (n > 0) { examConfig.count = n; renderExamView(); } }
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function formatDuration(sec) {
+  return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+}
+
+function startExam(customList = null) {
+  const pool = customList || getFilteredExamPool(examConfig.source);
+  if (!pool.length) { showToast("Không có câu hỏi nào!"); return; }
+  const desired = customList ? pool.length : (examConfig.count === "all" ? pool.length : Math.min(Number(examConfig.count) || 10, pool.length));
+  examSession = {
+    questions: shuffleArray(pool).slice(0, desired),
+    answers: {},
+    currentIdx: 0,
+    mode: examConfig.mode,
+    startedAt: Date.now(),
+    elapsedSec: 0,
+    finished: false
+  };
+  clearInterval(examTimerInterval);
+  examTimerInterval = setInterval(() => {
+    if (!examSession || examSession.finished) return;
+    examSession.elapsedSec = Math.floor((Date.now() - examSession.startedAt) / 1000);
+    const el = document.getElementById("examTimer");
+    if (el) el.textContent = formatDuration(examSession.elapsedSec);
+  }, 1000);
   renderExamView();
 }
 
-// ==================== BOOKMARKS (LOCAL + GOOGLE DRIVE MERGE) ====================
+function renderExamActive(root) {
+  const s = examSession;
+  const q = s.questions[s.currentIdx];
+  const total = s.questions.length;
+  const userAns = s.answers[s.currentIdx];
+  const showFeedback = s.mode === "instant" && userAns !== undefined;
+  const answeredCount = Object.keys(s.answers).length;
+  const pct = Math.round((answeredCount / total) * 100);
+  const isBm = !!bmState.items[q.id];
+
+  root.innerHTML = `
+    <div class="exam-shell">
+      <div class="exam-2col">
+        <!-- LEFT: QUESTION & OPTIONS -->
+        <div class="exam-main-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span class="session-pill" style="background:var(--primary-soft);color:var(--primary);border:none;">${q.categoryLabel}</span>
+              <strong style="font-size:14px;">Câu ${s.currentIdx + 1} / ${total}</strong>
+              <span style="font-size:12px;color:var(--muted);">${escapeHtml(q.title)}</span>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="tts-btn" onclick='speakJapanese(${JSON.stringify(q.promptPlain)})'>🔊</button>
+              <button class="bm-btn ${isBm?'bookmarked':''}" onclick="toggleExamQuestionBookmark(${s.currentIdx})">${isBm ? "★ Đã lưu" : "☆ Bookmark"}</button>
+            </div>
+          </div>
+
+          <div class="focus-prompt" style="margin-bottom:12px;">${q.promptHtml}</div>
+
+          <div class="exam-options-grid ${q.longOpts ? 'single-col' : ''}">
+            ${q.options.map((opt, idx) => {
+              const num = idx + 1;
+              let cls = "exam-opt-btn";
+              if (showFeedback) {
+                if (num === q.correct) cls += " correct";
+                else if (num === userAns) cls += " wrong";
+              } else if (num === userAns) cls += " selected";
+              return `<button class="${cls}" ${showFeedback ? "disabled" : ""} onclick="selectExamOption(${num})">
+                <span class="exam-opt-num">${num}</span>
+                <span>${escapeHtml(opt)}</span>
+              </button>`;
+            }).join("")}
+          </div>
+
+          ${showFeedback ? `
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+              <div style="font-weight:700;font-size:13.5px;margin-bottom:4px;color:${userAns===q.correct?'var(--green-text)':'var(--red-text)'};">
+                ${userAns === q.correct ? "✅ Chính xác!" : `❌ Chưa đúng! Đáp án đúng là số ${q.correct}.`}
+              </div>
+              <div style="font-size:13.5px;">${q.explanationHtml}</div>
+            </div>
+          ` : ""}
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--border);">
+            <button class="btn" onclick="moveExamQuestion(-1)" ${s.currentIdx === 0 ? "disabled" : ""}>← Câu trước</button>
+            <span class="kbd-hints"><kbd>1</kbd>-<kbd>4</kbd> Chọn · <kbd>←</kbd><kbd>→</kbd> Chuyển</span>
+            ${s.currentIdx < total - 1
+              ? `<button class="btn btn-primary" onclick="moveExamQuestion(1)">Câu tiếp →</button>`
+              : `<button class="btn btn-active-green" onclick="finishExam()">🏁 Nộp bài</button>`
+            }
+          </div>
+        </div>
+
+        <!-- RIGHT: COMPACT NAVIGATOR & TIMER -->
+        <div class="exam-side-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+            <strong>⏱️ <span id="examTimer">${formatDuration(s.elapsedSec)}</span></strong>
+            <span style="color:var(--muted);">${answeredCount}/${total} câu</span>
+          </div>
+          <div class="exam-progress-track"><div class="exam-progress-fill" style="width:${pct}%"></div></div>
+          <div class="exam-dots-grid">
+            ${s.questions.map((item, i) => {
+              const a = s.answers[i];
+              let dCls = "exam-dot";
+              if (i === s.currentIdx) dCls += " current";
+              if (a !== undefined) {
+                if (s.mode === "instant") dCls += (a === item.correct ? " dot-correct" : " dot-wrong");
+                else dCls += " answered";
+              }
+              return `<button class="${dCls}" onclick="goToExamQuestion(${i})">${i + 1}</button>`;
+            }).join("")}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px;">
+            <button class="btn btn-active-green" onclick="finishExam()" style="justify-content:center;padding:8px;">✅ Nộp bài &amp; Chấm điểm</button>
+            <button class="btn" onclick="exitExam()" style="justify-content:center;">✕ Thoát bài thi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function selectExamOption(num) {
+  if (!examSession || examSession.finished) return;
+  const q = examSession.questions[examSession.currentIdx];
+  examSession.answers[examSession.currentIdx] = num;
+  if (num === q.correct) wrongIds.delete(q.id);
+  else wrongIds.add(q.id);
+  saveWrongIds();
+  renderExamView();
+}
+
+function moveExamQuestion(d) {
+  if (!examSession) return;
+  const n = examSession.currentIdx + d;
+  if (n >= 0 && n < examSession.questions.length) { examSession.currentIdx = n; renderExamView(); }
+}
+function goToExamQuestion(i) { if (examSession) { examSession.currentIdx = i; renderExamView(); } }
+function toggleExamQuestionBookmark(idx) {
+  const q = examSession?.questions[idx];
+  if (!q) return;
+  toggleBookmarkByData({ id: q.id, kind: "question", title: q.title, sub: q.promptPlain.slice(0, 90), note: "", session: q.sessionTitle });
+  renderExamView();
+}
+function finishExam() {
+  if (!examSession) return;
+  examSession.questions.forEach((q, i) => {
+    const a = examSession.answers[i];
+    if (a === q.correct) wrongIds.delete(q.id);
+    else if (a !== undefined) wrongIds.add(q.id);
+  });
+  saveWrongIds();
+  examSession.finished = true;
+  clearInterval(examTimerInterval);
+  renderExamView();
+}
+function exitExam() { clearInterval(examTimerInterval); examSession = null; renderExamView(); }
+function retryWrongExam() {
+  const wrongQs = examSession.questions.filter((q, i) => examSession.answers[i] !== q.correct);
+  if (!wrongQs.length) { showToast("🎉 Bạn đã đúng 100%!"); return; }
+  startExam(wrongQs);
+}
+function bookmarkAllWrongExam() {
+  const wrongQs = examSession.questions.filter((q, i) => examSession.answers[i] !== q.correct);
+  if (!wrongQs.length) return;
+  const now = new Date().toISOString();
+  wrongQs.forEach(q => {
+    delete bmState.deleted[q.id];
+    bmState.items[q.id] = { id: q.id, kind: "question", title: q.title, sub: q.promptPlain.slice(0, 90), note: "Sai khi làm bài thi", session: q.sessionTitle, addedAt: now, updatedAt: now };
+  });
+  onBookmarksChanged();
+  renderExamView();
+  showToast(`★ Đã Bookmark ${wrongQs.length} câu làm sai!`);
+}
+
+function renderExamResult(root) {
+  const s = examSession;
+  const total = s.questions.length;
+  let correctCnt = 0;
+  s.questions.forEach((q, i) => { if (s.answers[i] === q.correct) correctCnt++; });
+  const wrongCnt = total - correctCnt;
+  const pct = Math.round((correctCnt / total) * 100);
+
+  root.innerHTML = `
+    <div style="max-width:860px;margin:0 auto;">
+      <div class="exam-score-box">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);">KẾT QUẢ BÀI THI JLPT N1</div>
+        <div class="exam-score-big">${correctCnt} / ${total} (${pct}%)</div>
+        <div style="font-size:13px;color:var(--text-2);margin-top:4px;">
+          ⏱️ ${formatDuration(s.elapsedSec)} · ✅ Đúng: ${correctCnt} · ❌ Sai/Bỏ trống: ${wrongCnt}
+        </div>
+        <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px;">
+          <button class="btn btn-primary" onclick="exitExam()">🔄 Tạo đề thi mới</button>
+          ${wrongCnt > 0 ? `<button class="btn" onclick="retryWrongExam()">🔁 Làm lại ${wrongCnt} câu sai</button>` : ""}
+          ${wrongCnt > 0 ? `<button class="btn btn-gold" onclick="bookmarkAllWrongExam()">★ Bookmark tất cả câu sai</button>` : ""}
+        </div>
+      </div>
+
+      ${s.questions.map((q, i) => {
+        const u = s.answers[i];
+        const ok = u === q.correct;
+        const isBm = !!bmState.items[q.id];
+        return `
+          <div class="review-item ${ok ? 'is-right' : 'is-wrong'}">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+              <div><strong>Câu ${i + 1}:</strong> ${ok ? "✅ Đúng" : `❌ Sai (Chọn: ${u || "Bỏ trống"} · Đáp án: ${q.correct})`}</div>
+              <button class="bm-btn ${isBm?'bookmarked':''}" onclick="toggleExamQuestionBookmark(${i})">${isBm ? "★ Đã lưu" : "☆ Bookmark"}</button>
+            </div>
+            <div style="margin-bottom:6px;font-size:14.5px;">${q.promptHtml}</div>
+            <div style="font-size:13px;margin-bottom:6px;">
+              ${q.options.map((o, oi) => {
+                const n = oi + 1;
+                const st = n === q.correct ? "color:var(--green-text);font-weight:700;" : (n === u ? "color:var(--red-text);text-decoration:line-through;" : "color:var(--text-2);");
+                return `<div style="${st}">${n === q.correct ? "✅" : (n === u ? "❌" : "•")} ${n}. ${escapeHtml(o)}</div>`;
+              }).join("")}
+            </div>
+            <details ${ok ? "" : "open"}>
+              <summary style="cursor:pointer;font-size:12.5px;color:var(--primary);font-weight:600;">Xem giải thích chi tiết</summary>
+              <div style="margin-top:6px;">${q.explanationHtml}</div>
+            </details>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+// ==================== BOOKMARKS & GOOGLE DRIVE SYNC ====================
 function loadBookmarksLocal() {
   try {
     const raw = localStorage.getItem(KEYS.BOOKMARKS);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      bmState = { items: parsed.items || {}, deleted: parsed.deleted || {} };
-      return;
-    }
-    // Migrate legacy v1 bookmarks if present
-    const legacy = localStorage.getItem(KEYS.LEGACY_BM);
-    if (legacy) {
-      const oldItems = JSON.parse(legacy);
-      bmState = { items: oldItems || {}, deleted: {} };
-      saveBookmarksLocal();
-    }
-  } catch {
-    bmState = { items: {}, deleted: {} };
-  }
+    if (raw) { const p = JSON.parse(raw); bmState = { items: p.items || {}, deleted: p.deleted || {} }; return; }
+    const leg = localStorage.getItem(KEYS.LEGACY_BM);
+    if (leg) { bmState = { items: JSON.parse(leg) || {}, deleted: {} }; saveBookmarksLocal(); }
+  } catch { bmState = { items: {}, deleted: {} }; }
 }
-
-function saveBookmarksLocal() {
-  localStorage.setItem(KEYS.BOOKMARKS, JSON.stringify(bmState));
-}
+function saveBookmarksLocal() { localStorage.setItem(KEYS.BOOKMARKS, JSON.stringify(bmState)); }
 
 function mergeBookmarkStates(local, remote) {
   const merged = { items: {}, deleted: {} };
   const allIds = new Set([
-    ...Object.keys(local.items || {}),
-    ...Object.keys(local.deleted || {}),
-    ...Object.keys(remote.items || {}),
-    ...Object.keys(remote.deleted || {})
+    ...Object.keys(local.items || {}), ...Object.keys(local.deleted || {}),
+    ...Object.keys(remote.items || {}), ...Object.keys(remote.deleted || {})
   ]);
-
   allIds.forEach(id => {
-    const lItem = local.items?.[id];
-    const rItem = remote.items?.[id];
-    const lDel = local.deleted?.[id] || "";
-    const rDel = remote.deleted?.[id] || "";
-
-    const lItemTs = lItem ? (lItem.updatedAt || lItem.addedAt || "1970-01-01") : "";
-    const rItemTs = rItem ? (rItem.updatedAt || rItem.addedAt || "1970-01-01") : "";
-    const maxItemTs = lItemTs >= rItemTs ? lItemTs : rItemTs;
-    const winningItem = lItemTs >= rItemTs ? lItem : rItem;
+    const lItem = local.items?.[id], rItem = remote.items?.[id];
+    const lDel = local.deleted?.[id] || "", rDel = remote.deleted?.[id] || "";
+    const lTs = lItem ? (lItem.updatedAt || lItem.addedAt || "1970-01-01") : "";
+    const rTs = rItem ? (rItem.updatedAt || rItem.addedAt || "1970-01-01") : "";
+    const maxItemTs = lTs >= rTs ? lTs : rTs;
+    const winItem = lTs >= rTs ? lItem : rItem;
     const maxDelTs = lDel >= rDel ? lDel : rDel;
-
-    if (maxDelTs && maxDelTs > maxItemTs) {
-      merged.deleted[id] = maxDelTs;
-    } else if (winningItem) {
-      merged.items[id] = winningItem;
-    }
+    if (maxDelTs && maxDelTs > maxItemTs) merged.deleted[id] = maxDelTs;
+    else if (winItem) merged.items[id] = winItem;
   });
   return merged;
 }
 
 function onBookmarksChanged() {
   saveBookmarksLocal();
-  syncUI();
+  syncBookmarkBadgesOnly();
+  if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) {
+    renderSidebar(getFilteredItems(currentTab));
+  }
   if (accessToken) {
-    document.getElementById("bmSyncInfo").textContent = "⏳ Đang chờ lưu lên Drive...";
+    document.getElementById("bmSyncInfo").textContent = "⏳ Đang lưu lên Drive...";
     clearTimeout(pushTimer);
     pushTimer = setTimeout(() => syncBookmarksWithDrive(false), 1200);
   }
 }
 
 function toggleBookmarkByData(data) {
-  const id = data.id;
-  if (!id) return;
+  if (!data.id) return;
   const now = new Date().toISOString();
-  if (bmState.items[id]) {
-    delete bmState.items[id];
-    bmState.deleted[id] = now;
+  if (bmState.items[data.id]) {
+    delete bmState.items[data.id];
+    bmState.deleted[data.id] = now;
   } else {
-    delete bmState.deleted[id];
-    bmState.items[id] = {
-      id,
-      kind: data.kind || "term",
-      title: data.title || id,
-      sub: data.sub || "",
-      note: data.note || "",
-      session: data.session || "",
-      addedAt: now,
-      updatedAt: now
+    delete bmState.deleted[data.id];
+    bmState.items[data.id] = {
+      id: data.id, kind: data.kind || "term", title: data.title || data.id,
+      sub: data.sub || "", note: data.note || "", session: data.session || "",
+      addedAt: now, updatedAt: now
     };
   }
   onBookmarksChanged();
-}
-
-function toggleBookmarkEl(el) {
-  toggleBookmarkByData({
-    id: el.dataset.bmId,
-    kind: el.dataset.bmKind,
-    title: el.dataset.bmTitle,
-    sub: el.dataset.bmSub,
-    note: el.dataset.bmNote,
-    session: el.dataset.bmSession
-  });
 }
 
 function addCustomBookmark() {
@@ -1287,10 +2120,7 @@ function addCustomBookmark() {
   const now = new Date().toISOString();
   const id = "custom::" + w;
   delete bmState.deleted[id];
-  bmState.items[id] = {
-    id, kind: "custom", title: w, sub: "", note: n,
-    session: "Tự thêm", addedAt: now, updatedAt: now
-  };
+  bmState.items[id] = { id, kind: "custom", title: w, sub: "", note: n, session: "Tự thêm", addedAt: now, updatedAt: now };
   document.getElementById("customWord").value = "";
   document.getElementById("customNote").value = "";
   onBookmarksChanged();
@@ -1303,7 +2133,7 @@ function removeBookmark(id) {
   onBookmarksChanged();
 }
 
-function syncUI() {
+function syncBookmarkBadgesOnly() {
   const items = bmState.items;
   const count = Object.keys(items).length;
   document.getElementById("bmCount").textContent = count;
@@ -1312,242 +2142,186 @@ function syncUI() {
   document.querySelectorAll("[data-bm-id]").forEach(el => {
     const isBm = !!items[el.dataset.bmId];
     el.classList.toggle("bookmarked", isBm);
-    if (el.classList.contains("bm-btn-card")) {
-      el.textContent = isBm ? "★ Đã bookmark" : "☆ Bookmark";
-    } else if (el.classList.contains("bm-btn")) {
-      el.textContent = isBm ? "★" : "☆";
-    } else if (el.classList.contains("jp-pill")) {
+    if (el.classList.contains("bm-btn-card")) el.textContent = isBm ? "★ Đã bookmark" : "☆ Bookmark";
+    else if (el.classList.contains("bm-btn")) el.textContent = isBm ? "★" : "☆";
+    else if (el.classList.contains("jp-pill")) {
       const star = el.querySelector(".pill-star");
       if (star) star.textContent = isBm ? "★" : "☆";
     }
   });
-
   document.querySelectorAll("[data-bm-card]").forEach(card => {
-    const id = card.dataset.bmCard;
-    const hasInnerBm = !!card.querySelector(".bookmarked");
-    card.classList.toggle("is-bookmarked", !!items[id] || hasInnerBm);
+    card.classList.toggle("is-bookmarked", !!items[card.dataset.bmCard] || !!card.querySelector(".bookmarked"));
   });
-
   document.querySelectorAll("[data-bm-row]").forEach(row => {
     row.classList.toggle("is-bookmarked", !!items[row.dataset.bmRow]);
   });
-
   renderDrawerList();
-  applyFilters();
 }
 
 function renderDrawerList() {
   const listEl = document.getElementById("bmList");
   const q = (document.getElementById("bmDrawerSearch")?.value || "").trim().toLowerCase();
   let items = Object.values(bmState.items).sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""));
-  if (q) {
-    items = items.filter(it =>
-      (it.title + " " + it.sub + " " + it.note + " " + it.session).toLowerCase().includes(q)
-    );
-  }
+  if (q) items = items.filter(it => (it.title + " " + it.sub + " " + it.note + " " + it.session).toLowerCase().includes(q));
   if (!items.length) {
-    listEl.innerHTML = '<p style="color:#6b7280;font-size:13px;">Chưa có mục nào khớp. Hãy bấm ☆ ở bất kỳ câu hỏi, Cheat Sheet hoặc từ tiếng Nhật nào!</p>';
+    listEl.innerHTML = '<p style="color:var(--muted);font-size:12.5px;text-align:center;">Chưa có mục nào được bookmark.</p>';
     return;
   }
   listEl.innerHTML = items.map(item => `
     <div class="bm-item">
       <div class="bm-item-top">
-        <div>
+        <div style="min-width:0;">
           <div class="bm-item-title">${escapeHtml(item.title)}</div>
           ${item.sub ? `<div class="bm-item-sub">${escapeHtml(item.sub)}</div>` : ""}
           ${item.note ? `<div class="bm-item-sub">${escapeHtml(item.note)}</div>` : ""}
           <div class="bm-item-meta">${escapeHtml(item.session)}</div>
         </div>
-        <button onclick='removeBookmark(${JSON.stringify(item.id)})' title="Xóa bookmark">✕</button>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-icon" onclick='speakJapanese(${JSON.stringify(item.title)})' title="Nghe">🔊</button>
+          <button class="btn btn-icon" onclick='removeBookmark(${JSON.stringify(item.id)})' title="Xóa">✕</button>
+        </div>
       </div>
     </div>
   `).join("");
 }
 
-// ==================== GOOGLE DRIVE API + OAUTH 2.0 ====================
+// ==================== DRIVE API (PUBLIC API KEY + OAUTH 2.0) ====================
+function handleSyncClick() {
+  if (accessToken) syncAllFromDrive();
+  else connectGoogleDrive();
+}
+
+async function fetchPublicMarkdownWithApiKey() {
+  if (!appConfig.apiKey) return false;
+  setSyncStatus("⏳", "Đang tải .md...", "syncing");
+  try {
+    const key = encodeURIComponent(appConfig.apiKey);
+    const q = encodeURIComponent(`'${appConfig.folderId}' in parents and trashed = false`);
+    const listRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime%20desc&key=${key}`);
+    if (!listRes.ok) throw new Error("Public API Key fetch failed");
+    const data = await listRes.json();
+    const byName = {};
+    (data.files || []).forEach(f => { if (!byName[f.name]) byName[f.name] = f; });
+
+    await Promise.all(Object.entries(DEFAULT_CONFIG.files).map(async ([tabId, meta]) => {
+      const fid = byName[meta.name]?.id || meta.fallbackId;
+      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fid}?alt=media&key=${key}`);
+      if (r.ok) mdStore[tabId] = await r.text();
+    }));
+
+    localStorage.setItem(KEYS.MD_CACHE, JSON.stringify(mdStore));
+    localStorage.setItem(KEYS.LAST_SYNC, new Date().toISOString());
+    rebuildAllContent();
+    setSyncStatus("🌐", "Đã tải .md (Public)", "ok");
+    return true;
+  } catch (e) {
+    console.warn("Public API Key load error:", e);
+    return false;
+  }
+}
+
 function connectGoogleDrive() {
-  if (!appConfig.clientId) {
-    showToast("⚠️ Chưa cấu hình Google OAuth Client ID. Mở Cài đặt ⚙️ để nhập!");
-    openSettings();
-    return;
-  }
-  if (!window.google || !google.accounts || !google.accounts.oauth2) {
-    showToast("⏳ Đang tải Google Identity Services, thử lại sau 2 giây...");
-    return;
-  }
+  if (!appConfig.clientId) { openSettings(); return; }
+  if (!window.google?.accounts?.oauth2) { showToast("⏳ Đang tải Google Auth, thử lại sau 2 giây..."); return; }
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: appConfig.clientId,
     scope: "https://www.googleapis.com/auth/drive",
     callback: async (resp) => {
-      if (resp.error) {
-        setSyncBadge("❌ Lỗi đăng nhập", "err");
-        showToast("Lỗi OAuth: " + resp.error);
-        return;
-      }
+      if (resp.error) { setSyncStatus("🔴", "Lỗi OAuth", "err"); showToast("Lỗi OAuth: " + resp.error); return; }
       accessToken = resp.access_token;
-      tokenExpiresAt = Date.now() + ((resp.expires_in || 3500) * 1000);
-      document.getElementById("driveAuthBtn").style.display = "none";
-      document.getElementById("refreshBtn").style.display = "inline-flex";
-      document.getElementById("connectCard").style.display = "none";
       await syncAllFromDrive();
     }
   });
-  tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
+  tokenClient.requestAccessToken({ prompt: "" });
 }
 
 async function driveFetch(url, options = {}) {
   if (!accessToken) throw new Error("Chưa đăng nhập Google Drive");
-  const headers = Object.assign({}, options.headers || {}, {
-    Authorization: "Bearer " + accessToken
-  });
+  const headers = Object.assign({}, options.headers || {}, { Authorization: "Bearer " + accessToken });
   const res = await fetch(url, Object.assign({}, options, { headers }));
-  if (res.status === 401) {
-    accessToken = null;
-    document.getElementById("driveAuthBtn").style.display = "inline-flex";
-    setSyncBadge("🔑 Hết phiên, đăng nhập lại", "warn");
-    throw new Error("Phiên đăng nhập hết hạn");
-  }
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Drive API ${res.status}: ${txt.slice(0, 140)}`);
-  }
+  if (res.status === 401) { accessToken = null; setSyncStatus("🔑", "Đăng nhập lại", "warn"); throw new Error("Hết phiên đăng nhập"); }
+  if (!res.ok) throw new Error(`Drive API ${res.status}`);
   return res;
 }
 
-async function listFolderFiles() {
-  const q = encodeURIComponent(`'${appConfig.folderId}' in parents and trashed = false`);
-  const fields = encodeURIComponent("files(id,name,mimeType,modifiedTime)");
-  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&orderBy=modifiedTime desc&pageSize=100`;
-  const res = await driveFetch(url);
-  const data = await res.json();
-  return data.files || [];
-}
-
-async function downloadDriveFileText(fileId) {
-  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
-  return await res.text();
-}
-
 async function syncAllFromDrive() {
-  if (!accessToken) {
-    connectGoogleDrive();
-    return;
-  }
-  setSyncBadge("⏳ Đang đồng bộ Drive...", "syncing");
+  if (!accessToken) { connectGoogleDrive(); return; }
+  setSyncStatus("⏳", "Đang đồng bộ...", "syncing");
   try {
-    const files = await listFolderFiles();
+    const q = encodeURIComponent(`'${appConfig.folderId}' in parents and trashed = false`);
+    const listRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime%20desc&pageSize=100`);
+    const files = (await listRes.json()).files || [];
     const byName = {};
-    files.forEach(f => {
-      if (!byName[f.name]) byName[f.name] = f; // newest first due to orderBy
-    });
+    files.forEach(f => { if (!byName[f.name]) byName[f.name] = f; });
 
-    // Fetch 3 markdown files in parallel
-    const entries = Object.entries(DEFAULT_CONFIG.files);
-    await Promise.all(entries.map(async ([tabId, meta]) => {
-      const f = byName[meta.name];
-      const fileId = f ? f.id : meta.fallbackId;
-      if (fileId) {
-        mdStore[tabId] = await downloadDriveFileText(fileId);
+    await Promise.all(Object.entries(DEFAULT_CONFIG.files).map(async ([tabId, meta]) => {
+      const fid = byName[meta.name]?.id || meta.fallbackId;
+      if (fid) {
+        const r = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fid}?alt=media`);
+        mdStore[tabId] = await r.text();
       }
     }));
 
-    // Cache markdown locally for offline use
     localStorage.setItem(KEYS.MD_CACHE, JSON.stringify(mdStore));
     localStorage.setItem(KEYS.LAST_SYNC, new Date().toISOString());
-
-    // Find bookmark file ID
-    const bmFile = byName[appConfig.bookmarkFileName];
-    bookmarkDriveFileId = bmFile ? bmFile.id : null;
+    bookmarkDriveFileId = byName[appConfig.bookmarkFileName]?.id || null;
 
     await syncBookmarksWithDrive(false);
     rebuildAllContent();
 
     const t = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-    setSyncBadge(`☁️ Đã đồng bộ (${t})`, "ok");
-    showToast(`✅ Đã tải 3 file .md (${parsedQuizBank.length} câu thi) & đồng bộ Bookmark!`);
+    setSyncStatus("🟢", `Đã đồng bộ (${t})`, "ok");
+    showToast(`✅ Đã đồng bộ 3 file .md (${parsedQuizBank.length} câu thi) & Bookmark!`);
   } catch (err) {
-    console.error(err);
-    setSyncBadge("⚠️ Lỗi đồng bộ", "err");
-    showToast("Lỗi đồng bộ Drive: " + err.message, 4000);
+    setSyncStatus("🔴", "Lỗi đồng bộ", "err");
+    showToast("Lỗi đồng bộ: " + err.message, 3600);
   }
 }
 
 async function syncBookmarksWithDrive(manual = false) {
   if (!accessToken) {
-    if (manual) showToast("Hãy kết nối Google Drive trước để đồng bộ Bookmark!");
+    if (manual) { connectGoogleDrive(); }
     return;
   }
   try {
-    document.getElementById("bmSyncInfo").textContent = "⏳ Đang đồng bộ với Drive...";
-    // Locate bookmark file if not yet known
+    document.getElementById("bmSyncInfo").textContent = "⏳ Đang đồng bộ...";
     if (!bookmarkDriveFileId) {
       const q = encodeURIComponent(`'${appConfig.folderId}' in parents and name = '${appConfig.bookmarkFileName}' and trashed = false`);
-      const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`);
-      const data = await res.json();
-      if (data.files && data.files.length) {
-        bookmarkDriveFileId = data.files[0].id;
-      }
+      const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`);
+      const d = await res.json();
+      if (d.files?.length) bookmarkDriveFileId = d.files[0].id;
     }
-
-    // Pull remote and merge
     if (bookmarkDriveFileId) {
-      const remoteTxt = await downloadDriveFileText(bookmarkDriveFileId);
+      const r = await driveFetch(`https://www.googleapis.com/drive/v3/files/${bookmarkDriveFileId}?alt=media`);
       try {
-        const remoteParsed = JSON.parse(remoteTxt);
-        const remoteState = remoteParsed.items ? remoteParsed : { items: remoteParsed, deleted: {} };
-        bmState = mergeBookmarkStates(bmState, remoteState);
+        const parsed = JSON.parse(await r.text());
+        bmState = mergeBookmarkStates(bmState, parsed.items ? parsed : { items: parsed, deleted: {} });
         saveBookmarksLocal();
-        syncUI();
-      } catch (e) {
-        console.warn("Remote bookmark JSON parse skipped:", e);
-      }
+        syncBookmarkBadgesOnly();
+      } catch {}
     }
-
-    // Push merged state back to Drive
-    const payload = JSON.stringify({
-      version: 2,
-      updatedAt: new Date().toISOString(),
-      items: bmState.items,
-      deleted: bmState.deleted
-    }, null, 2);
-
+    const payload = JSON.stringify({ version: 2, updatedAt: new Date().toISOString(), items: bmState.items, deleted: bmState.deleted }, null, 2);
     if (bookmarkDriveFileId) {
-      await driveFetch(
-        `https://www.googleapis.com/upload/drive/v3/files/${bookmarkDriveFileId}?uploadType=media`,
-        { method: "PATCH", headers: { "Content-Type": "application/json; charset=UTF-8" }, body: payload }
-      );
+      await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${bookmarkDriveFileId}?uploadType=media`, {
+        method: "PATCH", headers: { "Content-Type": "application/json; charset=UTF-8" }, body: payload
+      });
     } else {
-      const metadata = {
-        name: appConfig.bookmarkFileName,
-        parents: [appConfig.folderId],
-        mimeType: "application/json"
-      };
-      const boundary = "jlpt_bm_boundary_" + Date.now();
-      const body =
-        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
-        JSON.stringify(metadata) +
-        `\r\n--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
-        payload +
-        `\r\n--${boundary}--`;
-      const res = await driveFetch(
-        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
-        { method: "POST", headers: { "Content-Type": `multipart/related; boundary=${boundary}` }, body }
-      );
-      const created = await res.json();
-      bookmarkDriveFileId = created.id;
+      const b = "jlpt_bm_" + Date.now();
+      const body = `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ name: appConfig.bookmarkFileName, parents: [appConfig.folderId], mimeType: "application/json" })}\r\n--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${payload}\r\n--${b}--`;
+      const res = await driveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", {
+        method: "POST", headers: { "Content-Type": `multipart/related; boundary=${b}` }, body
+      });
+      bookmarkDriveFileId = (await res.json()).id;
     }
-
     const t = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-    document.getElementById("bmSyncInfo").textContent = `☁️ Đã đồng bộ lên Drive (${t})`;
-    if (manual) showToast("☁️ Đã đồng bộ Bookmark thành công!");
+    document.getElementById("bmSyncInfo").textContent = `☁️ Đã đồng bộ (${t})`;
+    if (manual) showToast("☁️ Đã đồng bộ Bookmark lên Drive!");
   } catch (err) {
-    console.error(err);
-    document.getElementById("bmSyncInfo").textContent = "⚠️ Lỗi đồng bộ (đã lưu local)";
-    if (manual) showToast("Lỗi đồng bộ Bookmark: " + err.message);
+    document.getElementById("bmSyncInfo").textContent = "⚠️ Lỗi đồng bộ (đã lưu máy)";
+    if (manual) showToast("Lỗi: " + err.message);
   }
 }
 
-// Local Markdown file fallback
 function loadLocalMarkdownFiles(event) {
   const files = Array.from(event.target.files || []);
   if (!files.length) return;
@@ -1555,399 +2329,40 @@ function loadLocalMarkdownFiles(event) {
   files.forEach(file => {
     const reader = new FileReader();
     reader.onload = () => {
-      const name = file.name.toUpperCase();
-      if (name.includes("01") || name.includes("TU_VUNG")) mdStore.tuvung = reader.result;
-      else if (name.includes("02") || name.includes("NGU_PHAP")) mdStore.nguphap = reader.result;
-      else if (name.includes("03") || name.includes("DOC_HIEU")) mdStore.dochieu = reader.result;
+      const n = file.name.toUpperCase();
+      if (n.includes("01") || n.includes("TU_VUNG")) mdStore.tuvung = reader.result;
+      else if (n.includes("02") || n.includes("NGU_PHAP")) mdStore.nguphap = reader.result;
+      else if (n.includes("03") || n.includes("DOC_HIEU")) mdStore.dochieu = reader.result;
       else mdStore.tuvung = reader.result;
-      loaded++;
-      if (loaded === files.length) {
+      if (++loaded === files.length) {
         localStorage.setItem(KEYS.MD_CACHE, JSON.stringify(mdStore));
         rebuildAllContent();
-        setSyncBadge("📂 Đang dùng file nội bộ", "warn");
-        showToast(`✅ Đã nạp ${loaded} file Markdown (${parsedQuizBank.length} câu thi)!`);
+        closeSettings();
+        setSyncStatus("📂", "File nội bộ", "warn");
+        showToast(`✅ Đã nạp ${loaded} file .md (${parsedQuizBank.length} câu thi)!`);
       }
     };
     reader.readAsText(file, "utf-8");
   });
 }
 
-// ==================== EXAM / QUIZ ENGINE ====================
-function renderExamView() {
-  const root = document.getElementById("examRoot");
-  if (!root) return;
-
-  if (!parsedQuizBank.length) {
-    root.innerHTML = `<div class="exam-setup-card" style="text-align:center;">
-      <h2>📝 Làm bài thi Từ vựng &amp; Ngữ pháp N1</h2>
-      <p style="color:var(--muted);">Chưa có dữ liệu câu hỏi. Hãy kết nối Google Drive (hoặc nạp file <code>01_TU_VUNG_N1_GMN.md</code>, <code>02_NGU_PHAP_N1_GMN.md</code>) để tạo đề thi ngẫu nhiên!</p>
-      <button class="btn-primary" onclick="connectGoogleDrive()">☁️ Kết nối Google Drive ngay</button>
-    </div>`;
-    return;
-  }
-
-  if (examSession) {
-    if (examSession.finished) renderExamResult(root);
-    else renderExamActive(root);
-    return;
-  }
-
-  const vocabCnt = parsedQuizBank.filter(q => q.tabId === "tuvung").length;
-  const gramCnt = parsedQuizBank.filter(q => q.tabId === "nguphap").length;
-  const bmCnt = parsedQuizBank.filter(q => !!bmState.items[q.id]).length;
-  const poolSize = getFilteredExamPool(examConfig.source).length;
-
-  root.innerHTML = `
-    <div class="exam-setup-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-        <h2 style="margin:0;color:#7c3aed;">📝 Tạo đề thi thử JLPT N1</h2>
-        <span style="font-size:13px;color:var(--muted);">Ngân hàng hiện có: <strong>${parsedQuizBank.length} câu</strong> (${vocabCnt} Từ vựng · ${gramCnt} Ngữ pháp · ${bmCnt} Bookmark)</span>
-      </div>
-
-      <div class="exam-setup-grid">
-        <div class="exam-field">
-          <label>1. Chọn phần thi</label>
-          <div class="pill-group">
-            <button class="choice-pill ${examConfig.source==='all'?'active':''}" onclick="setExamConfig('source','all')">Tất cả (${parsedQuizBank.length})</button>
-            <button class="choice-pill ${examConfig.source==='tuvung'?'active':''}" onclick="setExamConfig('source','tuvung')">📘 Từ vựng (${vocabCnt})</button>
-            <button class="choice-pill ${examConfig.source==='nguphap'?'active':''}" onclick="setExamConfig('source','nguphap')">📗 Ngữ pháp (${gramCnt})</button>
-            <button class="choice-pill ${examConfig.source==='bookmarked'?'active':''}" onclick="setExamConfig('source','bookmarked')">★ Đã Bookmark (${bmCnt})</button>
-          </div>
-        </div>
-
-        <div class="exam-field">
-          <label>2. Số câu ngẫu nhiên (tối đa ${poolSize})</label>
-          <div class="pill-group" style="align-items:center;">
-            ${[5, 10, 20, 30].map(n =>
-              `<button class="choice-pill ${examConfig.count===n?'active':''}" onclick="setExamConfig('count',${n})">${n} câu</button>`
-            ).join("")}
-            <button class="choice-pill ${examConfig.count==='all'?'active':''}" onclick="setExamConfig('count','all')">Tất cả</button>
-            <input class="custom-count-input" type="number" min="1" max="${Math.max(1, poolSize)}" placeholder="Tùy ý" value="${typeof examConfig.count==='number' && ![5,10,20,30].includes(examConfig.count) ? examConfig.count : ''}" oninput="setCustomExamCount(this.value)">
-          </div>
-        </div>
-
-        <div class="exam-field">
-          <label>3. Chế độ chấm điểm</label>
-          <div class="pill-group">
-            <button class="choice-pill ${examConfig.mode==='instant'?'active':''}" onclick="setExamConfig('mode','instant')">⚡ Chấm ngay từng câu</button>
-            <button class="choice-pill ${examConfig.mode==='submit'?'active':''}" onclick="setExamConfig('mode','submit')">🎯 Nộp bài mới chấm (Thi thật)</button>
-          </div>
-        </div>
-      </div>
-
-      <div style="text-align:center;margin-top:18px;">
-        <button class="btn-primary" onclick="startExam()" ${poolSize === 0 ? "disabled" : ""} style="background:#7c3aed;border-color:#7c3aed;padding:11px 28px;font-size:15px;font-weight:700;">
-          🚀 Bắt đầu làm bài (${examConfig.count === 'all' ? poolSize : Math.min(Number(examConfig.count)||10, poolSize)} câu)
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-function getFilteredExamPool(source) {
-  if (source === "tuvung") return parsedQuizBank.filter(q => q.tabId === "tuvung");
-  if (source === "nguphap") return parsedQuizBank.filter(q => q.tabId === "nguphap");
-  if (source === "bookmarked") return parsedQuizBank.filter(q => !!bmState.items[q.id]);
-  return [...parsedQuizBank];
-}
-
-function setExamConfig(key, val) {
-  examConfig[key] = val;
-  renderExamView();
-}
-
-function setCustomExamCount(val) {
-  const n = parseInt(val, 10);
-  if (n > 0) {
-    examConfig.count = n;
-    renderExamView();
-  }
-}
-
-function shuffleArray(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function startExam(customList = null) {
-  const pool = customList || getFilteredExamPool(examConfig.source);
-  if (!pool.length) {
-    showToast("Không có câu hỏi nào trong mục đã chọn!");
-    return;
-  }
-  const desired = customList ? pool.length : (examConfig.count === "all" ? pool.length : Math.min(Number(examConfig.count) || 10, pool.length));
-  const selected = shuffleArray(pool).slice(0, desired);
-
-  examSession = {
-    questions: selected,
-    answers: {}, // index -> 1..4
-    currentIdx: 0,
-    mode: examConfig.mode,
-    startedAt: Date.now(),
-    elapsedSec: 0,
-    finished: false
-  };
-  clearInterval(examTimerInterval);
-  examTimerInterval = setInterval(() => {
-    if (!examSession || examSession.finished) return;
-    examSession.elapsedSec = Math.floor((Date.now() - examSession.startedAt) / 1000);
-    const tEl = document.getElementById("examTimer");
-    if (tEl) tEl.textContent = formatDuration(examSession.elapsedSec);
-  }, 1000);
-
-  renderExamView();
-}
-
-function formatDuration(sec) {
-  const m = String(Math.floor(sec / 60)).padStart(2, "0");
-  const s = String(sec % 60).padStart(2, "0");
-  return `${m}:${s}`;
-}
-
-function renderExamActive(root) {
-  const s = examSession;
-  const q = s.questions[s.currentIdx];
-  const total = s.questions.length;
-  const userAns = s.answers[s.currentIdx];
-  const showFeedback = s.mode === "instant" && userAns !== undefined;
-  const answeredCount = Object.keys(s.answers).length;
-  const pct = Math.round(((s.currentIdx + 1) / total) * 100);
-  const isBm = !!bmState.items[q.id];
-
-  root.innerHTML = `
-    <div class="exam-active-card">
-      <div class="exam-header-bar">
-        <div>
-          <strong>Câu ${s.currentIdx + 1} / ${total}</strong>
-          <span style="color:var(--muted);font-size:13px;margin-left:8px;">Đã trả lời: ${answeredCount}/${total}</span>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span style="font-size:13px;font-weight:700;color:#4b5563;">⏱️ <span id="examTimer">${formatDuration(s.elapsedSec)}</span></span>
-          <button onclick="finishExam()" class="btn-primary" style="background:#10b981;border-color:#10b981;">✅ Nộp bài</button>
-          <button onclick="exitExam()">✕ Thoát</button>
-        </div>
-      </div>
-
-      <div class="exam-progress-track"><div class="exam-progress-fill" style="width:${pct}%"></div></div>
-
-      <div class="exam-q-meta">
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          <span class="exam-tag ${q.tabId==='nguphap'?'grammar':''}">${q.categoryLabel}</span>
-          <span style="font-size:12.5px;color:var(--muted);">${escapeHtml(q.title)}</span>
-        </div>
-        <button class="bm-btn ${isBm?'bookmarked':''}" onclick="toggleExamQuestionBookmark(${s.currentIdx})">
-          ${isBm ? "★ Đã bookmark" : "☆ Bookmark câu này"}
-        </button>
-      </div>
-
-      <div class="exam-prompt">${q.promptHtml}</div>
-
-      <div class="exam-options">
-        ${q.options.map((opt, idx) => {
-          const num = idx + 1;
-          let cls = "exam-opt-btn";
-          if (showFeedback) {
-            if (num === q.correct) cls += " correct";
-            else if (num === userAns) cls += " wrong";
-          } else if (num === userAns) {
-            cls += " selected";
-          }
-          return `<button class="${cls}" ${showFeedback ? "disabled" : ""} onclick="selectExamOption(${num})">
-            <span class="exam-opt-num">${num}</span>
-            <span>${escapeHtml(opt)}</span>
-          </button>`;
-        }).join("")}
-      </div>
-
-      ${showFeedback ? `
-        <div style="margin-top:12px;">
-          <div style="font-weight:700;margin-bottom:6px;color:${userAns===q.correct?'#047857':'#b91c1c'};">
-            ${userAns === q.correct ? "✅ Chính xác!" : `❌ Chưa đúng! Đáp án đúng là số ${q.correct}.`}
-          </div>
-          <div class="q-answer" style="display:block;">${q.explanationHtml}</div>
-        </div>
-      ` : ""}
-
-      <div class="exam-nav">
-        <button onclick="moveExamQuestion(-1)" ${s.currentIdx === 0 ? "disabled" : ""}>← Câu trước</button>
-        ${s.currentIdx < total - 1
-          ? `<button class="btn-primary" onclick="moveExamQuestion(1)">Câu tiếp theo →</button>`
-          : `<button class="btn-primary" style="background:#10b981;border-color:#10b981;" onclick="finishExam()">🏁 Hoàn thành &amp; Xem điểm</button>`
-        }
-      </div>
-
-      <div class="exam-dots">
-        ${s.questions.map((item, i) => {
-          const a = s.answers[i];
-          let dCls = "exam-dot";
-          if (i === s.currentIdx) dCls += " current";
-          if (a !== undefined) {
-            if (s.mode === "instant") dCls += (a === item.correct ? " dot-correct" : " dot-wrong");
-            else dCls += " answered";
-          }
-          return `<button class="${dCls}" onclick="goToExamQuestion(${i})">${i + 1}</button>`;
-        }).join("")}
-      </div>
-    </div>
-  `;
-}
-
-function selectExamOption(num) {
-  if (!examSession || examSession.finished) return;
-  examSession.answers[examSession.currentIdx] = num;
-  renderExamView();
-}
-
-function moveExamQuestion(delta) {
-  if (!examSession) return;
-  const next = examSession.currentIdx + delta;
-  if (next >= 0 && next < examSession.questions.length) {
-    examSession.currentIdx = next;
-    renderExamView();
-  }
-}
-
-function goToExamQuestion(idx) {
-  if (!examSession) return;
-  examSession.currentIdx = idx;
-  renderExamView();
-}
-
-function toggleExamQuestionBookmark(idx) {
-  const q = examSession?.questions[idx];
-  if (!q) return;
-  toggleBookmarkByData({
-    id: q.id, kind: "question", title: q.title,
-    sub: q.promptPlain.slice(0, 95), note: "", session: q.sessionTitle
-  });
-  renderExamView();
-}
-
-function finishExam() {
-  if (!examSession) return;
-  examSession.finished = true;
-  clearInterval(examTimerInterval);
-  renderExamView();
-}
-
-function exitExam() {
-  clearInterval(examTimerInterval);
-  examSession = null;
-  renderExamView();
-}
-
-function retryWrongExam() {
-  if (!examSession) return;
-  const wrongQs = examSession.questions.filter((q, i) => examSession.answers[i] !== q.correct);
-  if (!wrongQs.length) {
-    showToast("🎉 Bạn đã đúng 100%, không có câu sai!");
-    return;
-  }
-  startExam(wrongQs);
-}
-
-function bookmarkAllWrongExam() {
-  if (!examSession) return;
-  const wrongQs = examSession.questions.filter((q, i) => examSession.answers[i] !== q.correct);
-  if (!wrongQs.length) return;
-  const now = new Date().toISOString();
-  wrongQs.forEach(q => {
-    delete bmState.deleted[q.id];
-    bmState.items[q.id] = {
-      id: q.id, kind: "question", title: q.title,
-      sub: q.promptPlain.slice(0, 95), note: "Sai khi làm bài thi",
-      session: q.sessionTitle, addedAt: now, updatedAt: now
-    };
-  });
-  onBookmarksChanged();
-  renderExamView();
-  showToast(`★ Đã Bookmark ${wrongQs.length} câu làm sai!`);
-}
-
-function renderExamResult(root) {
-  const s = examSession;
-  const total = s.questions.length;
-  let correctCnt = 0;
-  s.questions.forEach((q, i) => {
-    if (s.answers[i] === q.correct) correctCnt++;
-  });
-  const wrongCnt = total - correctCnt;
-  const pct = Math.round((correctCnt / total) * 100);
-
-  root.innerHTML = `
-    <div class="exam-result-card">
-      <div class="exam-score-box">
-        <div style="font-size:14px;color:var(--muted);margin-bottom:4px;">KẾT QUẢ BÀI THI JLPT N1</div>
-        <div class="exam-score-big">${correctCnt} / ${total} (${pct}%)</div>
-        <div style="font-size:13.5px;color:#4b5563;margin-top:6px;">
-          ⏱️ Thời gian: <strong>${formatDuration(s.elapsedSec)}</strong> · ✅ Đúng: <strong>${correctCnt}</strong> · ❌ Sai/Bỏ trống: <strong>${wrongCnt}</strong>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px;">
-          <button class="btn-primary" onclick="exitExam()" style="background:#7c3aed;border-color:#7c3aed;">🔄 Tạo đề thi mới</button>
-          ${wrongCnt > 0 ? `<button onclick="retryWrongExam()">🔁 Làm lại ${wrongCnt} câu sai</button>` : ""}
-          ${wrongCnt > 0 ? `<button class="btn-bookmark-drawer" onclick="bookmarkAllWrongExam()">★ Bookmark tất cả câu sai</button>` : ""}
-        </div>
-      </div>
-
-      <h3 style="margin:0 0 12px;">📋 Chi tiết từng câu</h3>
-      ${s.questions.map((q, i) => {
-        const u = s.answers[i];
-        const ok = u === q.correct;
-        const isBm = !!bmState.items[q.id];
-        return `
-          <div class="review-item ${ok ? 'is-right' : 'is-wrong'}">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-              <div>
-                <strong>Câu ${i + 1}:</strong> ${ok ? "✅ Đúng" : `❌ Sai (Bạn chọn: ${u ? u : "Bỏ trống"} · Đáp án: ${q.correct})`}
-                <span class="exam-tag ${q.tabId==='nguphap'?'grammar':''}" style="margin-left:6px;">${q.categoryLabel}</span>
-              </div>
-              <button class="bm-btn ${isBm?'bookmarked':''}" onclick="toggleExamQuestionBookmark(${i})">
-                ${isBm ? "★ Đã bookmark" : "☆ Bookmark"}
-              </button>
-            </div>
-            <div style="margin-bottom:8px;">${q.promptHtml}</div>
-            <div style="font-size:13.5px;margin-bottom:8px;color:#374151;">
-              ${q.options.map((opt, oi) => {
-                const n = oi + 1;
-                const mark = n === q.correct ? "✅" : (n === u ? "❌" : "•");
-                const style = n === q.correct ? "color:#047857;font-weight:700;" : (n === u ? "color:#b91c1c;text-decoration:line-through;" : "");
-                return `<div style="${style}">${mark} ${n}. ${escapeHtml(opt)}</div>`;
-              }).join("")}
-            </div>
-            <details ${ok ? "" : "open"}>
-              <summary style="cursor:pointer;font-size:13px;color:var(--primary);font-weight:600;">Xem giải thích chi tiết</summary>
-              <div style="margin-top:6px;">${q.explanationHtml}</div>
-            </details>
-          </div>
-        `;
-      }).join("")}
-    </div>
-  `;
-}
-
-// ==================== UI NAVIGATION & FILTERS ====================
+// ==================== UI ACTIONS & KEYBOARD SHORTCUTS ====================
 function switchTab(tabId) {
   currentTab = tabId;
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
-  document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.id === "panel-" + tabId));
-  const isExam = tabId === "exam";
-  document.getElementById("studyControlsRow").style.display = isExam ? "none" : "flex";
-  document.getElementById("studyHintBar").style.display = isExam ? "none" : "block";
-  if (!isExam) {
-    updateSessionJump();
-    applyFilters();
-  } else {
-    renderExamView();
-  }
+  if (tabId === "flashcard") buildFlashcardDeck();
+  renderCurrentView();
+}
+
+function onSearchOrFilterChange() {
+  activeItemIdx[currentTab] = 0;
+  renderCurrentView();
 }
 
 function toggleQuizMode() {
-  document.body.classList.toggle("quiz-mode");
-  document.getElementById("quizBtn").classList.toggle("active", document.body.classList.contains("quiz-mode"));
+  quizHideMode = !quizHideMode;
+  document.body.classList.toggle("quiz-mode", quizHideMode);
+  document.getElementById("quizBtn").classList.toggle("btn-active-green", quizHideMode);
 }
 
 function toggleOneAns(btn) {
@@ -1957,132 +2372,154 @@ function toggleOneAns(btn) {
 
 function toggleFilterBookmarked() {
   onlyBookmarked = !onlyBookmarked;
-  document.getElementById("filterBmBtn").classList.toggle("active", onlyBookmarked);
-  applyFilters();
+  document.getElementById("filterBmBtn").classList.toggle("btn-active-gold", onlyBookmarked);
+  onSearchOrFilterChange();
 }
 
-function applyFilters() {
-  const q = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
-  document.querySelectorAll(".q-card").forEach(card => {
-    const matchSearch = !q || card.textContent.toLowerCase().includes(q);
-    const matchBm = !onlyBookmarked || card.classList.contains("is-bookmarked");
-    card.style.display = (matchSearch && matchBm) ? "" : "none";
-  });
-  document.querySelectorAll("tr[data-bm-row]").forEach(row => {
-    const matchSearch = !q || row.textContent.toLowerCase().includes(q);
-    const matchBm = !onlyBookmarked || row.classList.contains("is-bookmarked");
-    row.style.display = (matchSearch && matchBm) ? "" : "none";
-  });
-  document.querySelectorAll(".section-card").forEach(sec => {
-    const matchSearch = !q || sec.textContent.toLowerCase().includes(q);
-    const hasBm = !!sec.querySelector(".bookmarked");
-    const matchBm = !onlyBookmarked || hasBm;
-    sec.style.display = (matchSearch && matchBm) ? "" : "none";
-  });
+function toggleMobileSidebar() {
+  document.getElementById("sidebar").classList.toggle("mobile-open");
+  document.getElementById("sidebarBackdrop").classList.toggle("open");
 }
-
-function openDrawer() {
-  document.getElementById("drawer").classList.add("open");
-  document.getElementById("drawerBackdrop").classList.add("open");
+function closeMobileSidebar() {
+  document.getElementById("sidebar").classList.remove("mobile-open");
+  document.getElementById("sidebarBackdrop").classList.remove("open");
 }
-function closeDrawer() {
-  document.getElementById("drawer").classList.remove("open");
-  document.getElementById("drawerBackdrop").classList.remove("open");
-}
+function openDrawer() { document.getElementById("drawer").classList.add("open"); document.getElementById("drawerBackdrop").classList.add("open"); }
+function closeDrawer() { document.getElementById("drawer").classList.remove("open"); document.getElementById("drawerBackdrop").classList.remove("open"); }
 
 function openSettings() {
   document.getElementById("cfgClientId").value = appConfig.clientId;
+  document.getElementById("cfgApiKey").value = appConfig.apiKey || "";
   document.getElementById("cfgFolderId").value = appConfig.folderId;
   document.getElementById("cfgBmFile").value = appConfig.bookmarkFileName;
   document.getElementById("currentOriginDisplay").textContent = window.location.origin;
   document.getElementById("settingsModal").classList.add("open");
   document.getElementById("settingsBackdrop").classList.add("open");
 }
-function closeSettings() {
-  document.getElementById("settingsModal").classList.remove("open");
-  document.getElementById("settingsBackdrop").classList.remove("open");
-}
+function closeSettings() { document.getElementById("settingsModal").classList.remove("open"); document.getElementById("settingsBackdrop").classList.remove("open"); }
 function saveSettings() {
   appConfig.clientId = document.getElementById("cfgClientId").value.trim();
+  appConfig.apiKey = document.getElementById("cfgApiKey").value.trim();
   appConfig.folderId = document.getElementById("cfgFolderId").value.trim() || DEFAULT_CONFIG.folderId;
   appConfig.bookmarkFileName = document.getElementById("cfgBmFile").value.trim() || "jlpt_bookmarks.json";
   localStorage.setItem(KEYS.CONFIG, JSON.stringify(appConfig));
   closeSettings();
   showToast("✅ Đã lưu cài đặt!");
+  if (appConfig.apiKey && !accessToken) fetchPublicMarkdownWithApiKey();
 }
 function clearLocalCache() {
   localStorage.removeItem(KEYS.MD_CACHE);
   mdStore = { tuvung: "", nguphap: "", dochieu: "" };
   rebuildAllContent();
   closeSettings();
-  showToast("🗑️ Đã xóa cache .md trên thiết bị.");
+  showToast("🗑️ Đã xóa cache .md");
 }
 
-// Export / Import
 function exportMarkdown() {
   const items = Object.values(bmState.items);
-  if (!items.length) { showToast("Chưa có bookmark nào để xuất!"); return; }
-  let md = "# DANH SÁCH TỪ VỰNG & CÂU ĐÃ BOOKMARK (JLPT N1)\n\n";
-  md += "| Mục đã lưu | Ghi chú / Nghĩa | Nguồn |\n| :--- | :--- | :--- |\n";
+  if (!items.length) { showToast("Chưa có bookmark nào!"); return; }
+  let md = "# DANH SÁCH BOOKMARK JLPT N1\n\n| Mục | Ghi chú / Nghĩa | Nguồn |\n| :--- | :--- | :--- |\n";
   items.forEach(it => {
     const note = [it.sub, it.note].filter(Boolean).join(" — ").replace(/\|/g, "/");
     md += `| **${it.title.replace(/\|/g, "/")}** | ${note} | ${it.session.replace(/\|/g, "/")} |\n`;
   });
   downloadFile("JLPT_N1_BOOKMARKS.md", md, "text/markdown;charset=utf-8");
 }
-
 function exportJson() {
   downloadFile("jlpt_bookmarks.json", JSON.stringify({ version: 2, items: bmState.items, deleted: bmState.deleted }, null, 2), "application/json");
 }
-
 function importJson(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
     try {
-      const parsed = JSON.parse(reader.result);
-      const imported = parsed.items ? parsed : { items: parsed, deleted: {} };
-      bmState = mergeBookmarkStates(bmState, imported);
+      const p = JSON.parse(r.result);
+      bmState = mergeBookmarkStates(bmState, p.items ? p : { items: p, deleted: {} });
       onBookmarksChanged();
-      showToast("✅ Đã khôi phục & gộp Bookmark thành công!");
-    } catch {
-      showToast("❌ File JSON không hợp lệ.");
-    }
+      showToast("✅ Đã khôi phục Bookmark!");
+    } catch { showToast("❌ File JSON không hợp lệ."); }
   };
-  reader.readAsText(file);
+  r.readAsText(f);
 }
-
-function downloadFile(filename, content, mime) {
-  const blob = new Blob([content], { type: mime });
+function downloadFile(name, content, mime) {
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = name; a.click();
 }
 
-// ==================== BOOTSTRAP ====================
+// Global click for [data-bm-id]
 document.addEventListener("click", (e) => {
-  const target = e.target.closest("[data-bm-id]");
-  if (target) {
+  const t = e.target.closest("[data-bm-id]");
+  if (t) {
     e.stopPropagation();
-    toggleBookmarkEl(target);
+    toggleBookmarkByData({
+      id: t.dataset.bmId, kind: t.dataset.bmKind, title: t.dataset.bmTitle,
+      sub: t.dataset.bmSub, note: t.dataset.bmNote, session: t.dataset.bmSession
+    });
   }
 });
 
-// Load cached bookmarks & markdown immediately (works offline!)
+// Keyboard shortcuts for ultra-fast PC study & exam
+document.addEventListener("keydown", (e) => {
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+
+  if (currentTab === "exam" && examSession && !examSession.finished) {
+    if (["1", "2", "3", "4"].includes(e.key)) {
+      const s = examSession;
+      if (!(s.mode === "instant" && s.answers[s.currentIdx] !== undefined)) {
+        selectExamOption(parseInt(e.key, 10));
+      }
+    } else if (e.key === "ArrowRight") moveExamQuestion(1);
+    else if (e.key === "ArrowLeft") moveExamQuestion(-1);
+    return;
+  }
+
+  if (currentTab === "flashcard" && fcDeck.length) {
+    if (e.key === " ") { e.preventDefault(); flipFlashcard(); }
+    else if (e.key === "ArrowRight") stepFlashcard(1);
+    else if (e.key === "ArrowLeft") stepFlashcard(-1);
+    return;
+  }
+
+  if (["tuvung", "nguphap", "dochieu"].includes(currentTab) && studyViewMode === "focus") {
+    if (e.key === "ArrowRight") stepItem(1);
+    else if (e.key === "ArrowLeft") stepItem(-1);
+    else if (e.key === " " && quizHideMode) {
+      e.preventDefault();
+      const btn = document.getElementById("focusRevealBtn");
+      if (btn) toggleOneAns(btn);
+    } else if (e.key.toLowerCase() === "b") {
+      const list = getFilteredItems(currentTab);
+      const item = list[activeItemIdx[currentTab]];
+      if (item && item.type === "question") {
+        toggleBookmarkByData({ id: item.id, kind: "question", title: item.title, sub: item.preview, note: "", session: item.sessionTitle });
+        renderCurrentView();
+      }
+    }
+  }
+});
+
+// ==================== BOOTSTRAP ====================
+initTheme();
+document.getElementById("viewModeBtn").textContent = studyViewMode === "focus" ? "🎯 1 câu" : "📜 Cuộn";
 loadBookmarksLocal();
+
 try {
   const cachedMd = JSON.parse(localStorage.getItem(KEYS.MD_CACHE) || "null");
   if (cachedMd && (cachedMd.tuvung || cachedMd.nguphap || cachedMd.dochieu)) {
     mdStore = cachedMd;
     const last = localStorage.getItem(KEYS.LAST_SYNC);
     const label = last ? new Date(last).toLocaleDateString("vi-VN") : "Cache";
-    setSyncBadge(`📦 Đang xem Cache (${label})`, "warn");
+    setSyncStatus("📦", `Cache (${label})`, "warn");
   }
 } catch {}
 
 rebuildAllContent();
+
+// If a public Read-only API Key is configured, fetch latest .md automatically with ZERO login!
+if (appConfig.apiKey) {
+  fetchPublicMarkdownWithApiKey();
+}
 </script>
 </body>
 </html>
