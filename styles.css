@@ -1114,3 +1114,63 @@
   color: var(--indigo);
   margin-bottom: 6px;
 }
+
+/* MINI STUDY DASHBOARD BAR */
+.mini-dash {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.dash-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dash-stat.clickable { cursor: pointer; }
+.dash-stat.clickable:hover { border-color: var(--vermilion); }
+.dash-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.dash-val {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.dash-val.accent { color: var(--vermilion); }
+.dash-val.ok { color: var(--matcha); }
+.btn-active-vermilion {
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+  color: #FFFDF9;
+}
+.btn-active-indigo {
+  background: var(--indigo);
+  border-color: var(--indigo);
+  color: #FFFDF9;
+}
+.mazii-link {
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  color: var(--indigo);
+  background: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.mazii-link:hover { border-color: var(--indigo); background: var(--indigo-soft); }
+
+@media (max-width: 720px) {
+  .mini-dash { grid-template-columns: repeat(2, 1fr); }
+}

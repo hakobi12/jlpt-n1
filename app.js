@@ -38,8 +38,13 @@ const KEYS = {
   WRONG_IDS: "jlpt_n1_wrong_ids_v1",
   DONE_IDS: "jlpt_n1_done_ids_v1",
   MASTERED_IDS: "jlpt_n1_mastered_ids_v1",
+  WRONG_MAP: "jlpt_n1_wrong_map_v2",
+  DONE_MAP: "jlpt_n1_done_map_v2",
+  MASTERED_MAP: "jlpt_n1_mastered_map_v2",
   LAST_READ: "jlpt_n1_last_read_v1",
   EXAM_HISTORY: "jlpt_n1_exam_history_v1",
+  EXAM_DATE: "jlpt_n1_exam_date_v1",
+  ACTIVE_EXAM: "jlpt_n1_active_exam_v1",
   NOTES: "jlpt_n1_notes_v1",
   FONT_SCALE: "jlpt_n1_font_scale_v1",
   TTS_RATE: "jlpt_n1_tts_rate_v1",
@@ -47,16 +52,21 @@ const KEYS = {
 };
 
 let fbAuth = null, fbDb = null, currentUser = null, unsubFirestore = null, pushTimer = null;
+let activeUid = "guest";
 let isApplyingRemote = false;
 let lastFetchError = "";
 
 let bmState = { items: {}, deleted: {} };
-let wrongIds = loadSetFromStorage(KEYS.WRONG_IDS);
-let doneIds = loadSetFromStorage(KEYS.DONE_IDS);
-let masteredIds = loadSetFromStorage(KEYS.MASTERED_IDS);
+let wrongMap = {};
+let doneMap = {};
+let masteredMap = {};
+let wrongIds = new Set();
+let doneIds = new Set();
+let masteredIds = new Set();
 let lastReadMap = loadJsonFromStorage(KEYS.LAST_READ, {});
-let examHistory = loadJsonFromStorage(KEYS.EXAM_HISTORY, []);
-let notesMap = loadJsonFromStorage(KEYS.NOTES, {});
+let examHistory = [];
+let notesMap = {};
+let examTargetDate = localStorage.getItem(KEYS.EXAM_DATE) || "2026-12-06";
 let ttsRate = parseFloat(localStorage.getItem(KEYS.TTS_RATE) || "0.95") || 0.95;
 let fontScale = parseFloat(localStorage.getItem(KEYS.FONT_SCALE) || "1") || 1;
 let mdStore = { tuvung: "", nguphap: "", dochieu: "" };
@@ -66,6 +76,8 @@ let cheatWordsBank = [];
 
 let currentTab = "tuvung";
 let onlyBookmarked = false;
+let onlyUndone = false;
+let onlyWrong = false;
 let quizHideMode = false;
 let scrollSpyBound = false;
 
@@ -80,7 +92,7 @@ let fcFlipped = false;
 
 const JP_RE = /[\u3040-\u30ff\u4e00-\u9fff]/;
 
-// ==================== UTILITIES ====================
+// ==================== UTILITIES & PER-UID TIMESTAMPED STORAGE ====================
 function escapeHtml(s) {
   return String(s || "").replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
@@ -96,34 +108,105 @@ function setSyncStatus(label, cls = "") {
   document.getElementById("syncLabel").textContent = label;
   pill.className = "sync-pill" + (cls ? " " + cls : "");
 }
-function loadSetFromStorage(key) {
-  try { return new Set(JSON.parse(localStorage.getItem(key) || "[]")); }
-  catch { return new Set(); }
+function scopedKey(baseKey, uid = activeUid) {
+  return uid === "guest" ? baseKey : `${baseKey}::${uid}`;
 }
 function loadJsonFromStorage(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key) || "null") || fallback; }
   catch { return fallback; }
 }
+function arrayToFlagMap(arr) {
+  const map = {};
+  (arr || []).forEach(id => { map[id] = { active: true, updatedAt: "2026-01-01T00:00:00.000Z" }; });
+  return map;
+}
+function flagMapToSet(map) {
+  const s = new Set();
+  Object.entries(map || {}).forEach(([k, v]) => { if (v && v.active) s.add(k); });
+  return s;
+}
+function mergeFlagMaps(localMap, remoteMap) {
+  const out = {};
+  const keys = new Set([...Object.keys(localMap || {}), ...Object.keys(remoteMap || {})]);
+  keys.forEach(k => {
+    const l = localMap?.[k], r = remoteMap?.[k];
+    if (!l) out[k] = r;
+    else if (!r) out[k] = l;
+    else out[k] = ((l.updatedAt || "") >= (r.updatedAt || "")) ? l : r;
+  });
+  return out;
+}
+function mergeNotesMaps(localMap, remoteMap) {
+  const out = {};
+  const keys = new Set([...Object.keys(localMap || {}), ...Object.keys(remoteMap || {})]);
+  keys.forEach(k => {
+    const l = localMap?.[k], r = remoteMap?.[k];
+    const lObj = typeof l === "string" ? { text: l, updatedAt: "2026-01-01T00:00:00.000Z" } : l;
+    const rObj = typeof r === "string" ? { text: r, updatedAt: "2026-01-01T00:00:00.000Z" } : r;
+    if (!lObj) out[k] = rObj;
+    else if (!rObj) out[k] = lObj;
+    else out[k] = ((lObj.updatedAt || "") >= (rObj.updatedAt || "")) ? lObj : rObj;
+  });
+  return out;
+}
+function refreshDerivedSets() {
+  wrongIds = flagMapToSet(wrongMap);
+  doneIds = flagMapToSet(doneMap);
+  masteredIds = flagMapToSet(masteredMap);
+}
+function setFlagState(map, id, active) {
+  map[id] = { active: !!active, updatedAt: new Date().toISOString() };
+  refreshDerivedSets();
+}
+function loadUserStateForUid(uid) {
+  activeUid = uid || "guest";
+  const rawBm = localStorage.getItem(scopedKey(KEYS.BOOKMARKS, activeUid));
+  if (rawBm) {
+    try { const p = JSON.parse(rawBm); bmState = { items: p.items || {}, deleted: p.deleted || {} }; }
+    catch { bmState = { items: {}, deleted: {} }; }
+  } else if (activeUid === "guest" && localStorage.getItem(KEYS.LEGACY_BM)) {
+    try { bmState = { items: JSON.parse(localStorage.getItem(KEYS.LEGACY_BM)) || {}, deleted: {} }; }
+    catch { bmState = { items: {}, deleted: {} }; }
+  } else {
+    bmState = { items: {}, deleted: {} };
+  }
+
+  wrongMap = loadJsonFromStorage(scopedKey(KEYS.WRONG_MAP, activeUid), null) ||
+    (activeUid === "guest" ? arrayToFlagMap(loadJsonFromStorage(KEYS.WRONG_IDS, [])) : {});
+  doneMap = loadJsonFromStorage(scopedKey(KEYS.DONE_MAP, activeUid), null) ||
+    (activeUid === "guest" ? arrayToFlagMap(loadJsonFromStorage(KEYS.DONE_IDS, [])) : {});
+  masteredMap = loadJsonFromStorage(scopedKey(KEYS.MASTERED_MAP, activeUid), null) ||
+    (activeUid === "guest" ? arrayToFlagMap(loadJsonFromStorage(KEYS.MASTERED_IDS, [])) : {});
+  examHistory = loadJsonFromStorage(scopedKey(KEYS.EXAM_HISTORY, activeUid), []);
+  notesMap = loadJsonFromStorage(scopedKey(KEYS.NOTES, activeUid), {});
+  refreshDerivedSets();
+}
+function saveBookmarksLocal() { localStorage.setItem(scopedKey(KEYS.BOOKMARKS), JSON.stringify(bmState)); }
 function saveWrongIds(skipCloud = false) {
-  localStorage.setItem(KEYS.WRONG_IDS, JSON.stringify([...wrongIds]));
+  localStorage.setItem(scopedKey(KEYS.WRONG_MAP), JSON.stringify(wrongMap));
   if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
 }
 function saveDoneIds(skipCloud = false) {
-  localStorage.setItem(KEYS.DONE_IDS, JSON.stringify([...doneIds]));
+  localStorage.setItem(scopedKey(KEYS.DONE_MAP), JSON.stringify(doneMap));
   if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
 }
 function saveMasteredIds(skipCloud = false) {
-  localStorage.setItem(KEYS.MASTERED_IDS, JSON.stringify([...masteredIds]));
+  localStorage.setItem(scopedKey(KEYS.MASTERED_MAP), JSON.stringify(masteredMap));
   if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
 }
 function saveExamHistory(skipCloud = false) {
   examHistory = (examHistory || []).slice(0, 15);
-  localStorage.setItem(KEYS.EXAM_HISTORY, JSON.stringify(examHistory));
+  localStorage.setItem(scopedKey(KEYS.EXAM_HISTORY), JSON.stringify(examHistory));
   if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
 }
 function saveNotesMap(skipCloud = false) {
-  localStorage.setItem(KEYS.NOTES, JSON.stringify(notesMap));
+  localStorage.setItem(scopedKey(KEYS.NOTES), JSON.stringify(notesMap));
   if (!skipCloud && currentUser && !isApplyingRemote) scheduleCloudPush();
+}
+function getNoteText(id) {
+  const n = notesMap[id];
+  if (!n || n.deleted) return "";
+  return typeof n === "string" ? n : (n.text || "");
 }
 function toggleNoteBox(idx) {
   const box = document.getElementById("note-box-" + idx);
@@ -134,8 +217,9 @@ function toggleNoteBox(idx) {
 }
 function updateQuestionNote(id, text, btnId) {
   const val = String(text || "").trim();
-  if (val) notesMap[id] = { text: val, updatedAt: new Date().toISOString() };
-  else delete notesMap[id];
+  const now = new Date().toISOString();
+  if (val) notesMap[id] = { text: val, deleted: false, updatedAt: now };
+  else notesMap[id] = { text: "", deleted: true, updatedAt: now };
   saveNotesMap();
   const btn = document.getElementById(btnId);
   if (btn) btn.classList.toggle("has-note", !!val);
@@ -156,10 +240,22 @@ function syncPreferencePills() {
   document.querySelectorAll("#ttsRatePills .choice-pill").forEach(b => b.classList.toggle("active", Number(b.dataset.rate) === ttsRate));
 }
 function toggleDoneItem(id) {
-  if (doneIds.has(id)) doneIds.delete(id);
-  else doneIds.add(id);
+  setFlagState(doneMap, id, !doneIds.has(id));
   saveDoneIds();
   renderCurrentView(true);
+}
+function editExamTargetDate() {
+  const next = prompt("Nhập ngày thi JLPT N1 mục tiêu (định dạng YYYY-MM-DD):", examTargetDate);
+  if (next && /^\d{4}-\d{2}-\d{2}$/.test(next.trim())) {
+    examTargetDate = next.trim();
+    localStorage.setItem(KEYS.EXAM_DATE, examTargetDate);
+    renderCurrentView(true);
+    showToast("Đã cập nhật ngày thi mục tiêu: " + examTargetDate);
+  }
+}
+function maziiUrl(word) {
+  const clean = String(word || "").replace(/<[^>]+>/g, "").replace(/（[^）]*）|\([^)]*\)/g, "").trim();
+  return "https://mazii.net/vi-VN/search/word/javi/" + encodeURIComponent(clean);
 }
 function speakJapanese(text) {
   if (!("speechSynthesis" in window)) { showToast("Trình duyệt không hỗ trợ đọc tiếng Nhật."); return; }
@@ -468,6 +564,17 @@ function extractReadingQuestions(mdText) {
             if (b["1"] && b["2"] && b["3"] && b["4"]) options = [b["1"], b["2"], b["3"], b["4"]];
           }
         }
+        if (options.length !== 4) {
+          // Support table-formatted options like `| **1. 西田さん** | ... |`
+          const tblOpts = {};
+          promptMd.split("\n").forEach(line => {
+            const tm = line.match(/^\|\s*\*\*([1-4])\.\s*([^|*]+)\*\*/);
+            if (tm && !tblOpts[tm[1]]) tblOpts[tm[1]] = tm[2].trim();
+          });
+          if (tblOpts["1"] && tblOpts["2"] && tblOpts["3"] && tblOpts["4"]) {
+            options = [tblOpts["1"], tblOpts["2"], tblOpts["3"], tblOpts["4"]];
+          }
+        }
         if (options.length !== 4) return;
 
         const cleanPromptMd = kept.join("\n").trim();
@@ -522,8 +629,41 @@ function getFilteredItems(tabId) {
   return (tabItems[tabId] || []).filter(item => {
     const matchQ = !q || item.searchText.includes(q);
     const matchBm = !onlyBookmarked || isItemBookmarked(item);
-    return matchQ && matchBm;
+    const matchUndone = !onlyUndone || (item.type === "question" && !doneIds.has(item.id));
+    const matchWrong = !onlyWrong || (item.type === "question" && wrongIds.has(item.id));
+    return matchQ && matchBm && matchUndone && matchWrong;
   });
+}
+
+function renderMiniDashboardHtml() {
+  const allQs = [...tabItems.tuvung, ...tabItems.nguphap, ...tabItems.dochieu].filter(it => it.type === "question");
+  const totalQ = allQs.length;
+  const doneQ = allQs.filter(it => doneIds.has(it.id)).length;
+  const avgPct = examHistory.length ? Math.round(examHistory.reduce((s, h) => s + (h.pct || 0), 0) / examHistory.length) : null;
+  const targetMs = new Date(examTargetDate + "T00:00:00").getTime();
+  const daysLeft = Math.ceil((targetMs - Date.now()) / 86400000);
+  const daysText = isNaN(daysLeft) ? "--" : (daysLeft > 0 ? `Còn ${daysLeft} ngày` : (daysLeft === 0 ? "Hôm nay!" : "Đã qua"));
+
+  return `
+    <div class="mini-dash">
+      <div class="dash-stat clickable" onclick="editExamTargetDate()" title="Bấm để đổi ngày thi mục tiêu">
+        <span class="dash-label">Đếm ngược JLPT N1 (${escapeHtml(examTargetDate)})</span>
+        <span class="dash-val accent">${daysText}</span>
+      </div>
+      <div class="dash-stat">
+        <span class="dash-label">Tiến độ đã học</span>
+        <span class="dash-val ok">${doneQ} / ${totalQ} câu</span>
+      </div>
+      <div class="dash-stat">
+        <span class="dash-label">Flashcard đã thuộc</span>
+        <span class="dash-val">${masteredIds.size} thẻ</span>
+      </div>
+      <div class="dash-stat">
+        <span class="dash-label">Điểm TB thi thử (${examHistory.length} bài)</span>
+        <span class="dash-val">${avgPct !== null ? avgPct + "%" : "Chưa thi"}</span>
+      </div>
+    </div>
+  `;
 }
 
 function isItemBookmarked(item) {
@@ -583,8 +723,8 @@ function renderCurrentView(preserveScroll = false) {
 
   // Resume last-read banner if user has saved position > 0 on this tab
   const savedIdx = lastReadMap[currentTab];
-  let html = "";
-  if (!preserveScroll && savedIdx > 0 && savedIdx < list.length && !onlyBookmarked && !(document.getElementById("searchInput")?.value || "").trim()) {
+  let html = renderMiniDashboardHtml();
+  if (!preserveScroll && savedIdx > 0 && savedIdx < list.length && !onlyBookmarked && !onlyUndone && !onlyWrong && !(document.getElementById("searchInput")?.value || "").trim()) {
     const savedItem = list[savedIdx];
     html += `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--indigo);border-radius:6px;padding:9px 14px;margin-bottom:14px;font-size:13px;">
@@ -604,8 +744,7 @@ function renderCurrentView(preserveScroll = false) {
     }
     const isBm = !!bmState.items[item.id];
     const isDone = doneIds.has(item.id);
-    const noteObj = notesMap[item.id];
-    const noteText = typeof noteObj === "string" ? noteObj : (noteObj?.text || "");
+    const noteText = getNoteText(item.id);
     html += `
       <article class="study-card ${isBm ? 'is-bookmarked' : ''} ${isDone ? 'is-done' : ''}" id="list-item-${idx}" data-idx="${idx}" data-bm-card="${escapeHtml(item.id)}">
         <div class="card-head">
@@ -836,6 +975,7 @@ function renderFlashcardView() {
       <div class="fc-controls">
         <button class="btn" onclick="stepFlashcard(-1)" ${fcIdx <= 0 ? "disabled" : ""}>Trước</button>
         ${speakText ? `<button class="btn" onclick='speakJapanese(${JSON.stringify(speakText)})'>${ICONS.volume}<span>Nghe</span></button>` : ""}
+        ${!isQ ? `<a class="mazii-link" href="${maziiUrl(card.title)}" target="_blank" rel="noopener" title="Tra từ trên Mazii">Mazii</a>` : ""}
         <button class="btn btn-primary" onclick="flipFlashcard()">${fcFlipped ? "Úp thẻ" : "Lật xem đáp án"}</button>
         <button class="btn" onclick="markFlashcardAgain()" style="border-color:var(--vermilion);color:var(--vermilion);" title="Đưa thẻ này lặp lại sau 3 thẻ">Chưa thuộc (lặp lại)</button>
         <button class="btn btn-active-matcha" onclick="markFlashcardMastered()" title="Đánh dấu đã thuộc và ẩn khỏi vòng ôn">${ICONS.check}<span>${isMastered ? "Bỏ đã thuộc" : "Đã thuộc"}</span></button>
@@ -849,11 +989,11 @@ function toggleShowMastered() { fcConfig.showMastered = !fcConfig.showMastered; 
 function markFlashcardMastered() {
   const card = fcDeck[fcIdx]; if (!card) return;
   if (masteredIds.has(card.id)) {
-    masteredIds.delete(card.id);
+    setFlagState(masteredMap, card.id, false);
     saveMasteredIds();
     showToast("Đã đưa thẻ trở lại danh sách cần ôn");
   } else {
-    masteredIds.add(card.id);
+    setFlagState(masteredMap, card.id, true);
     saveMasteredIds();
     if (!fcConfig.showMastered) fcDeck.splice(fcIdx, 1);
     else fcIdx = Math.min(fcIdx + 1, fcDeck.length - 1);
@@ -865,7 +1005,7 @@ function markFlashcardMastered() {
 }
 function markFlashcardAgain() {
   const card = fcDeck[fcIdx]; if (!card) return;
-  masteredIds.delete(card.id);
+  setFlagState(masteredMap, card.id, false);
   saveMasteredIds();
   fcDeck.splice(fcIdx, 1);
   const reinsertAt = Math.min(fcIdx + 3, fcDeck.length);
@@ -876,7 +1016,7 @@ function markFlashcardAgain() {
   renderFlashcardView();
 }
 function resetMasteredInSource() {
-  getRawFlashcardSource().forEach(c => masteredIds.delete(c.id));
+  getRawFlashcardSource().forEach(c => setFlagState(masteredMap, c.id, false));
   saveMasteredIds();
   buildFlashcardDeck();
   renderFlashcardView();
@@ -1032,20 +1172,14 @@ function shuffleArray(arr) {
 }
 function formatDuration(sec) { const s = Math.max(0, sec); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
 
-function startExam(customList = null) {
-  const pool = customList || getFilteredExamPool(examConfig.source, examConfig.day);
-  if (!pool.length) { showToast("Không có câu hỏi nào."); return; }
-  const desired = customList ? pool.length : (examConfig.count === "all" ? pool.length : Math.min(Number(examConfig.count) || 10, pool.length));
-  const selected = shuffleArray(pool).slice(0, desired);
-  // N1 pace: 30s per vocab, 45s per grammar
-  const limitSec = selected.reduce((sum, q) => sum + (q.tabId === "dochieu" ? 90 : (q.tabId === "nguphap" ? 45 : 30)), 0);
-  const scopeLabel = customList ? "Làm lại câu sai" : `${examConfig.day === "all" ? "Tất cả" : examConfig.day} · ${examConfig.source}`;
+function persistActiveExam() {
+  try {
+    if (examSession && !examSession.finished) sessionStorage.setItem(KEYS.ACTIVE_EXAM, JSON.stringify(examSession));
+    else sessionStorage.removeItem(KEYS.ACTIVE_EXAM);
+  } catch {}
+}
 
-  examSession = {
-    questions: selected, answers: {}, currentIdx: 0,
-    mode: examConfig.mode, timerMode: examConfig.timerMode,
-    limitSec, scopeLabel, startedAt: Date.now(), elapsedSec: 0, finished: false
-  };
+function startExamTimer() {
   clearInterval(examTimerInterval);
   examTimerInterval = setInterval(() => {
     if (!examSession || examSession.finished) return;
@@ -1065,6 +1199,36 @@ function startExam(customList = null) {
       el.textContent = formatDuration(examSession.elapsedSec);
     }
   }, 1000);
+}
+
+function restoreActiveExam() {
+  try {
+    const raw = sessionStorage.getItem(KEYS.ACTIVE_EXAM);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved && Array.isArray(saved.questions) && saved.questions.length && !saved.finished) {
+      examSession = saved;
+      examSession.elapsedSec = Math.floor((Date.now() - examSession.startedAt) / 1000);
+      startExamTimer();
+    }
+  } catch {}
+}
+
+function startExam(customList = null) {
+  const pool = customList || getFilteredExamPool(examConfig.source, examConfig.day);
+  if (!pool.length) { showToast("Không có câu hỏi nào."); return; }
+  const desired = customList ? pool.length : (examConfig.count === "all" ? pool.length : Math.min(Number(examConfig.count) || 10, pool.length));
+  const selected = shuffleArray(pool).slice(0, desired);
+  const limitSec = selected.reduce((sum, q) => sum + (q.tabId === "dochieu" ? 90 : (q.tabId === "nguphap" ? 45 : 30)), 0);
+  const scopeLabel = customList ? "Làm lại câu sai" : `${examConfig.day === "all" ? "Tất cả" : examConfig.day} · ${examConfig.source}`;
+
+  examSession = {
+    questions: selected, answers: {}, currentIdx: 0,
+    mode: examConfig.mode, timerMode: examConfig.timerMode,
+    limitSec, scopeLabel, startedAt: Date.now(), elapsedSec: 0, finished: false
+  };
+  persistActiveExam();
+  startExamTimer();
   renderExamView();
 }
 
@@ -1155,13 +1319,13 @@ function selectExamOption(num) {
   if (!examSession || examSession.finished) return;
   const q = examSession.questions[examSession.currentIdx];
   examSession.answers[examSession.currentIdx] = num;
-  if (num === q.correct) wrongIds.delete(q.id);
-  else wrongIds.add(q.id);
+  setFlagState(wrongMap, q.id, num !== q.correct);
   saveWrongIds();
+  persistActiveExam();
   renderExamView();
 }
-function moveExamQuestion(d) { const n = examSession.currentIdx + d; if (n >= 0 && n < examSession.questions.length) { examSession.currentIdx = n; renderExamView(); } }
-function goToExamQuestion(i) { examSession.currentIdx = i; renderExamView(); }
+function moveExamQuestion(d) { const n = examSession.currentIdx + d; if (n >= 0 && n < examSession.questions.length) { examSession.currentIdx = n; persistActiveExam(); renderExamView(); } }
+function goToExamQuestion(i) { examSession.currentIdx = i; persistActiveExam(); renderExamView(); }
 function toggleExamQuestionBookmark(idx) {
   const q = examSession?.questions[idx]; if (!q) return;
   toggleBookmarkByData({ id: q.id, kind: "question", title: q.title, sub: q.promptPlain.slice(0, 100), note: "", session: q.sessionTitle });
@@ -1172,8 +1336,8 @@ function finishExam() {
   let correctCnt = 0;
   examSession.questions.forEach((q, i) => {
     const a = examSession.answers[i];
-    if (a === q.correct) { wrongIds.delete(q.id); correctCnt++; }
-    else if (a !== undefined) wrongIds.add(q.id);
+    if (a === q.correct) { setFlagState(wrongMap, q.id, false); correctCnt++; }
+    else if (a !== undefined) setFlagState(wrongMap, q.id, true);
   });
   saveWrongIds();
   const total = examSession.questions.length;
@@ -1190,10 +1354,11 @@ function finishExam() {
   });
   saveExamHistory();
   examSession.finished = true;
+  persistActiveExam();
   clearInterval(examTimerInterval);
   renderExamView();
 }
-function exitExam() { clearInterval(examTimerInterval); examSession = null; renderExamView(); }
+function exitExam() { clearInterval(examTimerInterval); examSession = null; persistActiveExam(); renderExamView(); }
 function retryWrongExam() {
   const wrongQs = examSession.questions.filter((q, i) => examSession.answers[i] !== q.correct);
   if (!wrongQs.length) { showToast("Bạn đã đúng 100%"); return; }
@@ -1262,16 +1427,6 @@ function renderExamResult(root) {
 }
 
 // ==================== BOOKMARKS & FIRESTORE SYNC ====================
-function loadBookmarksLocal() {
-  try {
-    const raw = localStorage.getItem(KEYS.BOOKMARKS);
-    if (raw) { const p = JSON.parse(raw); bmState = { items: p.items || {}, deleted: p.deleted || {} }; return; }
-    const leg = localStorage.getItem(KEYS.LEGACY_BM);
-    if (leg) { bmState = { items: JSON.parse(leg) || {}, deleted: {} }; saveBookmarksLocal(); }
-  } catch { bmState = { items: {}, deleted: {} }; }
-}
-function saveBookmarksLocal() { localStorage.setItem(KEYS.BOOKMARKS, JSON.stringify(bmState)); }
-
 function mergeBookmarkStates(local, remote) {
   const merged = { items: {}, deleted: {} };
   const allIds = new Set([...Object.keys(local.items || {}), ...Object.keys(local.deleted || {}), ...Object.keys(remote.items || {}), ...Object.keys(remote.deleted || {})]);
@@ -1370,7 +1525,8 @@ function renderDrawerList() {
             ${cleanNote ? `<div class="bm-item-sub">${escapeHtml(cleanNote)}</div>` : ""}
             <div class="bm-item-meta">${escapeHtml(item.session)}</div>
           </div>
-          <div style="display:flex;gap:4px;flex-shrink:0;">
+          <div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">
+            ${!isQ ? `<a class="mazii-link" href="${maziiUrl(item.title)}" target="_blank" rel="noopener" title="Tra từ trên Mazii">Mazii</a>` : ""}
             ${isQ && fullQ ? `<button class="btn btn-icon" onclick='jumpToBookmarkedItem(${JSON.stringify(item.id)})' title="Xem câu đầy đủ">${ICONS.eye}</button>` : ""}
             ${speakTxt ? `<button class="btn btn-icon" onclick='speakJapanese(${JSON.stringify(speakTxt)})' title="Nghe đọc">${ICONS.volume}</button>` : ""}
             <button class="btn btn-icon" onclick='removeBookmark(${JSON.stringify(item.id)})' title="Xóa">${ICONS.close}</button>
@@ -1415,42 +1571,66 @@ function initFirebase() {
   fbDb = firebase.firestore();
 
   fbAuth.onAuthStateChanged((user) => {
+    const prevUid = activeUid;
     currentUser = user;
     updateAuthUI();
     if (unsubFirestore) { unsubFirestore(); unsubFirestore = null; }
+
     if (user) {
+      // Load this Gmail's isolated local cache (prevents cross-account leakage!)
+      loadUserStateForUid(user.uid);
+      syncBookmarkBadgesOnly();
+      if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderCurrentView(true);
+
       document.getElementById("bmSyncInfo").textContent = `Đồng bộ realtime (${user.email})`;
       const docRef = fbDb.collection("users").doc(user.uid);
       unsubFirestore = docRef.onSnapshot((snap) => {
         if (snap.exists) {
           const data = snap.data() || {};
           const remoteBm = data.bookmarks?.items ? data.bookmarks : { items: data.bookmarks || {}, deleted: {} };
-          const merged = mergeBookmarkStates(bmState, remoteBm);
-          const mergedWrong = new Set([...wrongIds, ...(data.wrongIds || [])]);
-          const mergedDone = new Set([...doneIds, ...(data.doneIds || [])]);
-          const mergedMastered = new Set([...masteredIds, ...(data.masteredIds || [])]);
+          const remoteWrong = data.wrongMap || arrayToFlagMap(data.wrongIds || []);
+          const remoteDone = data.doneMap || arrayToFlagMap(data.doneIds || []);
+          const remoteMastered = data.masteredMap || arrayToFlagMap(data.masteredIds || []);
+
+          const mergedBm = mergeBookmarkStates(bmState, remoteBm);
+          const mergedWrongMap = mergeFlagMaps(wrongMap, remoteWrong);
+          const mergedDoneMap = mergeFlagMaps(doneMap, remoteDone);
+          const mergedMasteredMap = mergeFlagMaps(masteredMap, remoteMastered);
+          const mergedNotes = mergeNotesMaps(notesMap, data.notes || {});
           const seenTs = new Set();
           const mergedHist = [...(examHistory || []), ...(data.examHistory || [])]
             .filter(h => h && h.ts && !seenTs.has(h.ts) && seenTs.add(h.ts))
             .sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 15);
-          const mergedNotes = Object.assign({}, data.notes || {}, notesMap);
-          Object.entries(data.notes || {}).forEach(([k, v]) => {
-            const loc = notesMap[k];
-            if (!loc || ((v?.updatedAt || "") > (loc?.updatedAt || ""))) mergedNotes[k] = v;
-          });
+
           isApplyingRemote = true;
-          bmState = merged; wrongIds = mergedWrong; doneIds = mergedDone; masteredIds = mergedMastered; examHistory = mergedHist; notesMap = mergedNotes;
+          bmState = mergedBm;
+          wrongMap = mergedWrongMap;
+          doneMap = mergedDoneMap;
+          masteredMap = mergedMasteredMap;
+          examHistory = mergedHist;
+          notesMap = mergedNotes;
+          refreshDerivedSets();
+
           saveBookmarksLocal(); saveWrongIds(true); saveDoneIds(true); saveMasteredIds(true); saveExamHistory(true); saveNotesMap(true);
           syncBookmarkBadgesOnly();
           if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderCurrentView(true);
           else if (currentTab === "exam" && !examSession) renderExamView();
+          else if (currentTab === "flashcard") { buildFlashcardDeck(); renderFlashcardView(); }
           isApplyingRemote = false;
-          if (Object.keys(merged.items).length !== Object.keys(remoteBm.items || {}).length) scheduleCloudPush();
+
+          if (!data.doneMap || Object.keys(mergedBm.items).length !== Object.keys(remoteBm.items || {}).length) {
+            scheduleCloudPush();
+          }
         } else {
           pushUserCloudState(false);
         }
       }, () => { document.getElementById("bmSyncInfo").textContent = "Lỗi đồng bộ đám mây"; });
     } else {
+      if (prevUid !== "guest") {
+        loadUserStateForUid("guest");
+        syncBookmarkBadgesOnly();
+        renderCurrentView(true);
+      }
       document.getElementById("bmSyncInfo").textContent = "Lưu trên máy (Đăng nhập Gmail để đồng bộ)";
     }
   });
@@ -1495,6 +1675,7 @@ async function pushUserCloudState(manual = false) {
     await fbDb.collection("users").doc(currentUser.uid).set({
       email: currentUser.email || "", updatedAt: new Date().toISOString(),
       bookmarks: { items: bmState.items, deleted: bmState.deleted },
+      wrongMap, doneMap, masteredMap,
       wrongIds: [...wrongIds],
       doneIds: [...doneIds],
       masteredIds: [...masteredIds],
@@ -1551,6 +1732,16 @@ function toggleOneAns(btn) { const a = btn.nextElementSibling; if (a) a.classLis
 function toggleFilterBookmarked() {
   onlyBookmarked = !onlyBookmarked;
   document.getElementById("filterBmBtn").classList.toggle("btn-active-gold", onlyBookmarked);
+  renderCurrentView();
+}
+function toggleFilterUndone() {
+  onlyUndone = !onlyUndone;
+  document.getElementById("filterUndoneBtn").classList.toggle("btn-active-indigo", onlyUndone);
+  renderCurrentView();
+}
+function toggleFilterWrong() {
+  onlyWrong = !onlyWrong;
+  document.getElementById("filterWrongBtn").classList.toggle("btn-active-vermilion", onlyWrong);
   renderCurrentView();
 }
 function toggleMobileSidebar() { document.getElementById("sidebar").classList.toggle("mobile-open"); document.getElementById("sidebarBackdrop").classList.toggle("open"); }
@@ -1624,7 +1815,8 @@ document.addEventListener("keydown", (e) => {
 // ==================== BOOTSTRAP ====================
 initTheme();
 document.documentElement.style.setProperty("--font-scale", String(fontScale));
-loadBookmarksLocal();
+loadUserStateForUid("guest");
+restoreActiveExam();
 try {
   const cachedMd = JSON.parse(localStorage.getItem(KEYS.MD_CACHE) || "null");
   if (cachedMd && (cachedMd.tuvung || cachedMd.nguphap || cachedMd.dochieu)) {

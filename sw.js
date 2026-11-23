@@ -1,4 +1,4 @@
-const CACHE_NAME = "jlpt-n1-washi-v2";
+const CACHE_NAME = "jlpt-n1-washi-v3";
 const PRECACHE_URLS = [
   "./",
   "./index.html",
