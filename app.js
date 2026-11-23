@@ -82,6 +82,8 @@ let onlyUndone = false;
 let onlyWrong = false;
 let quizHideMode = false;
 let scrollSpyBound = false;
+let autoReadObserver = null;
+let autoReadTimers = new Map();
 
 let examConfig = { source: "all", day: "all", count: 10, mode: "instant", timerMode: "up" };
 let examSession = null;
@@ -449,8 +451,12 @@ function buildTabItems(tabId, mdText) {
         }
         const qId = `q::${tabId}::${sIdx}::${blk.title}`;
         const jpSentence = (promptPlain.split("\n").find(l => JP_RE.test(l)) || "").trim();
+        const dayMatch = sTitle.match(/NGÀY\s*\d+/i);
+        const dayTag = dayMatch ? dayMatch[0].toUpperCase().replace(/\s+/, " ") : "KHÁC";
+        const ansM = (parts.length >= 2 ? parts.slice(1).join("\n") : bMd).match(/Đáp án(?:\s*\(★\))?:\**\s*`?([1-4])/);
+        const correctNum = ansM ? parseInt(ansM[1], 10) : 0;
         items.push({
-          id: qId, tabId, type: "question", sessionTitle: sTitle, title: blk.title,
+          id: qId, tabId, dayTag, correctNum, type: "question", sessionTitle: sTitle, title: blk.title,
           shortLabel: blk.title.replace(/`\[[^\]]+\]`/g, "").trim(),
           preview: jpSentence || promptPlain.slice(0, 120),
           jpText: jpSentence, promptHtml, answerHtml,
@@ -670,6 +676,34 @@ function renderMiniDashboardHtml() {
   const daysLeft = Math.ceil((targetMs - Date.now()) / 86400000);
   const daysText = isNaN(daysLeft) ? "--" : (daysLeft > 0 ? `Còn ${daysLeft} ngày` : (daysLeft === 0 ? "Hôm nay!" : "Đã qua"));
 
+  // Compute day-by-day progress across all 3 skills
+  const dayStats = {};
+  allQs.forEach(q => {
+    const d = q.dayTag || "KHÁC";
+    if (d === "KHÁC") return;
+    if (!dayStats[d]) dayStats[d] = { total: 0, done: 0 };
+    dayStats[d].total++;
+    if (doneIds.has(q.id)) dayStats[d].done++;
+  });
+  const sortedDays = Object.keys(dayStats).sort((a, b) => a.localeCompare(b, "vi", { numeric: true }));
+  const dayStripHtml = sortedDays.length ? `
+    <div class="day-prog-strip">
+      ${sortedDays.map(d => {
+        const st = dayStats[d];
+        const pct = st.total ? Math.round((st.done / st.total) * 100) : 0;
+        return `
+          <div class="day-chip" onclick="jumpToDay('${d}')" title="Nhảy tới ${d} (hoặc bấm để xem tiến độ)">
+            <div class="day-chip-top">
+              <span>${d}</span>
+              <span style="color:${pct===100?'var(--matcha)':'var(--muted)'};">${pct}% (${st.done}/${st.total})</span>
+            </div>
+            <div class="day-chip-bar"><div class="day-chip-fill" style="width:${pct}%"></div></div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  ` : "";
+
   return `
     <div class="mini-dash">
       <div class="dash-stat clickable" onclick="editExamTargetDate()" title="Bấm để đổi ngày thi mục tiêu">
@@ -677,19 +711,150 @@ function renderMiniDashboardHtml() {
         <span class="dash-val accent">${daysText}</span>
       </div>
       <div class="dash-stat">
-        <span class="dash-label">Tiến độ đã học</span>
-        <span class="dash-val ok">${doneQ} / ${totalQ} câu</span>
+        <span class="dash-label">Tiến độ đã học (tự đếm)</span>
+        <span class="dash-val ok" id="dashDoneVal">${doneQ} / ${totalQ} câu</span>
       </div>
       <div class="dash-stat">
-        <span class="dash-label">Flashcard đã thuộc</span>
-        <span class="dash-val">${masteredIds.size} thẻ</span>
+        <span class="dash-label">Flashcard thuộc · Thi TB</span>
+        <span class="dash-val">${masteredIds.size} thẻ · ${avgPct !== null ? avgPct + "%" : "--"}</span>
       </div>
-      <div class="dash-stat">
-        <span class="dash-label">Điểm TB thi thử (${examHistory.length} bài)</span>
-        <span class="dash-val">${avgPct !== null ? avgPct + "%" : "Chưa thi"}</span>
+      <div class="dash-drill-card" onclick="startQuick5MinDrill()" title="Tự chọn 10 câu yếu nhất (Hay sai → Bookmark → Chưa học)">
+        <span class="dash-label" style="color:var(--vermilion);">Ôn cấp tốc 5 phút</span>
+        <span class="dash-val accent" style="font-size:15px;">Luyện 10 câu yếu nhất →</span>
       </div>
     </div>
+    ${dayStripHtml}
   `;
+}
+
+function jumpToDay(dayTag) {
+  const list = getFilteredItems(currentTab);
+  const idx = list.findIndex(it => (it.dayTag || "") === dayTag || (it.sessionTitle || "").toUpperCase().includes(dayTag));
+  if (idx !== -1) {
+    scrollToStudyItem(idx);
+  } else {
+    showToast(`Không có mục nào của ${dayTag} trong tab hiện tại`);
+  }
+}
+
+function startQuick5MinDrill() {
+  if (!parsedQuizBank.length) { showToast("Đang tải ngân hàng câu hỏi..."); return; }
+  const picked = [];
+  const used = new Set();
+  const addFrom = (arr) => {
+    for (const q of shuffleArray(arr)) {
+      if (picked.length >= 10) break;
+      if (!used.has(q.id)) { used.add(q.id); picked.push(q); }
+    }
+  };
+  addFrom(parsedQuizBank.filter(q => wrongIds.has(q.id)));
+  addFrom(parsedQuizBank.filter(q => !!bmState.items[q.id]));
+  addFrom(parsedQuizBank.filter(q => !doneIds.has(q.id)));
+  addFrom(parsedQuizBank);
+
+  examConfig.mode = "instant";
+  examConfig.timerMode = "countdown";
+  switchTab("exam");
+  startExam(picked, "Ôn cấp tốc 5 phút (10 câu yếu nhất)");
+}
+
+function markSessionDone(sessionTitle) {
+  const items = (tabItems[currentTab] || []).filter(it => it.type === "question" && it.sessionTitle === sessionTitle);
+  if (!items.length) return;
+  const allDone = items.every(it => doneIds.has(it.id));
+  items.forEach(it => setFlagState(doneMap, it.id, !allDone));
+  saveDoneIds();
+  renderCurrentView(true);
+  showToast(allDone ? `Đã bỏ đánh dấu buổi (${items.length} câu)` : `Đã đánh dấu xong cả buổi (${items.length} câu)`);
+}
+
+function markQuestionDoneSilently(qId) {
+  if (!qId || doneIds.has(qId)) return;
+  setFlagState(doneMap, qId, true);
+  saveDoneIds();
+
+  // Update card button & sidebar dot in-place without re-rendering (zero scroll jump!)
+  const card = document.querySelector(`.study-card[data-q-id="${CSS.escape(qId)}"]`);
+  if (card) {
+    card.classList.add("is-done");
+    const btn = card.querySelector(".done-btn");
+    if (btn) {
+      btn.classList.add("is-done");
+      btn.innerHTML = `${ICONS.check}<span>Đã học</span>`;
+    }
+    const idx = card.dataset.idx;
+    const nav = document.getElementById("nav-item-" + idx);
+    if (nav && !nav.querySelector(".dot-done-mini")) {
+      const badges = nav.querySelector(".nav-badges");
+      if (badges) badges.insertAdjacentHTML("afterbegin", '<span class="dot-done-mini" title="Đã học xong"></span>');
+    }
+  }
+  const dashVal = document.getElementById("dashDoneVal");
+  if (dashVal) {
+    const allQs = [...tabItems.tuvung, ...tabItems.nguphap, ...tabItems.dochieu].filter(it => it.type === "question");
+    const doneQ = allQs.filter(it => doneIds.has(it.id)).length;
+    dashVal.textContent = `${doneQ} / ${allQs.length} câu`;
+  }
+}
+
+function setupAutoReadObserver() {
+  if (autoReadObserver) { autoReadObserver.disconnect(); autoReadObserver = null; }
+  autoReadTimers.forEach(t => clearTimeout(t));
+  autoReadTimers.clear();
+  if (!("IntersectionObserver" in window)) return;
+
+  const isMobile = window.innerWidth <= 960;
+  autoReadObserver = new IntersectionObserver((entries) => {
+    if (quizHideMode) return; // Trong chế độ Tự nhẩm chỉ tính xong khi chọn đáp án / hiện đáp án
+    entries.forEach(entry => {
+      const qId = entry.target.dataset.qId;
+      if (!qId || doneIds.has(qId)) return;
+      if (entry.isIntersecting) {
+        if (!autoReadTimers.has(qId)) {
+          autoReadTimers.set(qId, setTimeout(() => {
+            autoReadTimers.delete(qId);
+            if (!quizHideMode) markQuestionDoneSilently(qId);
+          }, 2500));
+        }
+      } else if (autoReadTimers.has(qId)) {
+        clearTimeout(autoReadTimers.get(qId));
+        autoReadTimers.delete(qId);
+      }
+    });
+  }, { root: isMobile ? null : document.getElementById("stageScroll"), threshold: 0.4 });
+
+  document.querySelectorAll("#stageRoot .study-card[data-q-id]").forEach(el => {
+    if (!doneIds.has(el.dataset.qId)) autoReadObserver.observe(el);
+  });
+}
+
+function answerInlineQuestion(btn, qId, picked, correctNum) {
+  const bar = btn.closest(".inline-quiz-bar");
+  if (!bar) return;
+  const wrap = bar.closest(".q-answer-wrap");
+  const isOk = picked === correctNum;
+  bar.querySelectorAll(".inline-opt-btn").forEach(b => {
+    const n = parseInt(b.dataset.opt, 10);
+    b.disabled = true;
+    if (n === correctNum) b.classList.add("correct");
+    else if (n === picked) b.classList.add("wrong");
+  });
+  const msg = bar.querySelector(".inline-quiz-msg");
+  if (msg) {
+    msg.textContent = isOk ? "Chính xác!" : `Sai (Đáp án: ${correctNum})`;
+    msg.style.color = isOk ? "var(--matcha)" : "var(--vermilion)";
+  }
+  const ans = wrap?.querySelector(".q-answer");
+  if (ans) ans.classList.add("revealed");
+
+  if (isOk) {
+    setFlagState(wrongMap, qId, false);
+    saveWrongIds();
+    markQuestionDoneSilently(qId);
+  } else {
+    setFlagState(wrongMap, qId, true);
+    saveWrongIds();
+  }
 }
 
 function isItemBookmarked(item) {
@@ -765,14 +930,16 @@ function renderCurrentView(preserveScroll = false) {
     if (item.sessionTitle !== lastSess) {
       lastSess = item.sessionTitle;
       const st = sessStats[lastSess];
-      const progBadge = st && st.total ? `<span class="sess-prog">${st.done} / ${st.total} đã học</span>` : "";
+      const progBadge = st && st.total
+        ? `<span class="sess-head-right"><span class="sess-prog">${st.done} / ${st.total} đã học</span><button class="sess-done-all-btn" onclick='markSessionDone(${JSON.stringify(lastSess)})' title="Đánh dấu xong / bỏ xong toàn bộ buổi này">${st.done === st.total ? "Bỏ xong buổi" : "✓ Xong cả buổi"}</button></span>`
+        : "";
       html += `<h1 class="session-heading"><span>${escapeHtml(lastSess)}</span>${progBadge}</h1>`;
     }
     const isBm = !!bmState.items[item.id];
     const isDone = doneIds.has(item.id);
     const noteText = getNoteText(item.id);
     html += `
-      <article class="study-card ${isBm ? 'is-bookmarked' : ''} ${isDone ? 'is-done' : ''}" id="list-item-${idx}" data-idx="${idx}" data-bm-card="${escapeHtml(item.id)}">
+      <article class="study-card ${isBm ? 'is-bookmarked' : ''} ${isDone ? 'is-done' : ''}" id="list-item-${idx}" data-idx="${idx}" ${item.type === "question" ? `data-q-id="${escapeHtml(item.id)}"` : ""} data-bm-card="${escapeHtml(item.id)}">
         <div class="card-head">
           <h2 class="card-title">${escapeHtml(item.shortLabel || item.title)}</h2>
           <div class="card-actions">
@@ -781,7 +948,7 @@ function renderCurrentView(preserveScroll = false) {
               <button class="note-btn ${noteText ? 'has-note' : ''}" id="note-btn-${idx}" onclick="toggleNoteBox(${idx})" title="Ghi chú mẹo nhớ cá nhân">
                 ${ICONS.note}<span>Ghi chú</span>
               </button>
-              <button class="done-btn ${isDone ? 'is-done' : ''}" onclick='toggleDoneItem(${JSON.stringify(item.id)})' title="Đánh dấu đã học xong câu này">
+              <button class="done-btn ${isDone ? 'is-done' : ''}" onclick='toggleDoneItem(${JSON.stringify(item.id)})' title="Đánh dấu đã học xong câu này (tự động tích khi đọc qua ≥ 2.5s)">
                 ${ICONS.check}<span>${isDone ? "Đã học" : "Xong"}</span>
               </button>
               <button class="bm-btn bm-btn-card ${isBm ? 'bookmarked' : ''}" data-bm-id="${escapeHtml(item.id)}"
@@ -795,7 +962,14 @@ function renderCurrentView(preserveScroll = false) {
         </div>
         ${item.promptHtml ? `<div class="jp-prompt">${item.promptHtml}</div>` : ""}
         <div class="q-answer-wrap">
-          ${item.promptHtml ? `<button class="btn toggle-ans-btn" onclick="toggleOneAns(this)">${ICONS.eye}<span>Hiện / Ẩn đáp án</span></button>` : ""}
+          ${item.promptHtml && item.correctNum >= 1 && item.correctNum <= 4 ? `
+            <div class="inline-quiz-bar">
+              <span style="font-size:12px;color:var(--muted);font-weight:600;">Chọn nhanh:</span>
+              ${[1,2,3,4].map(n => `<button class="inline-opt-btn" data-opt="${n}" onclick='answerInlineQuestion(this, ${JSON.stringify(item.id)}, ${n}, ${item.correctNum})'>${n}</button>`).join("")}
+              <span class="inline-quiz-msg"></span>
+            </div>
+          ` : ""}
+          ${item.promptHtml ? `<button class="btn toggle-ans-btn" onclick='toggleOneAns(this, ${JSON.stringify(item.id)})'>${ICONS.eye}<span>Hiện / Ẩn đáp án</span></button>` : ""}
           <div class="q-answer">${item.answerHtml}</div>
         </div>
         ${item.type === "question" ? `
@@ -810,6 +984,7 @@ function renderCurrentView(preserveScroll = false) {
   if (preserveScroll) scrollEl.scrollTop = prevTop;
   syncBookmarkBadgesOnly();
   bindScrollSpy();
+  setupAutoReadObserver();
 }
 
 function bindScrollSpy() {
@@ -1318,13 +1493,13 @@ function restoreActiveExam() {
   } catch {}
 }
 
-function startExam(customList = null) {
+function startExam(customList = null, customScope = null) {
   const pool = customList || getFilteredExamPool(examConfig.source, examConfig.day);
   if (!pool.length) { showToast("Không có câu hỏi nào."); return; }
   const desired = customList ? pool.length : (examConfig.count === "all" ? pool.length : Math.min(Number(examConfig.count) || 10, pool.length));
   const selected = shuffleArray(pool).slice(0, desired);
   const limitSec = selected.reduce((sum, q) => sum + (q.tabId === "dochieu" ? 90 : (q.tabId === "nguphap" ? 45 : 30)), 0);
-  const scopeLabel = customList ? "Làm lại câu sai" : `${examConfig.day === "all" ? "Tất cả" : examConfig.day} · ${examConfig.source}`;
+  const scopeLabel = customScope || (customList ? "Làm lại câu sai" : `${examConfig.day === "all" ? "Tất cả" : examConfig.day} · ${examConfig.source}`);
 
   examSession = {
     questions: selected, answers: {}, currentIdx: 0,
@@ -1423,8 +1598,10 @@ function selectExamOption(num) {
   if (!examSession || examSession.finished) return;
   const q = examSession.questions[examSession.currentIdx];
   examSession.answers[examSession.currentIdx] = num;
-  setFlagState(wrongMap, q.id, num !== q.correct);
+  const isOk = num === q.correct;
+  setFlagState(wrongMap, q.id, !isOk);
   saveWrongIds();
+  if (isOk) { setFlagState(doneMap, q.id, true); saveDoneIds(); }
   persistActiveExam();
   renderExamView();
 }
@@ -1440,10 +1617,11 @@ function finishExam() {
   let correctCnt = 0;
   examSession.questions.forEach((q, i) => {
     const a = examSession.answers[i];
-    if (a === q.correct) { setFlagState(wrongMap, q.id, false); correctCnt++; }
+    if (a === q.correct) { setFlagState(wrongMap, q.id, false); setFlagState(doneMap, q.id, true); correctCnt++; }
     else if (a !== undefined) setFlagState(wrongMap, q.id, true);
   });
   saveWrongIds();
+  saveDoneIds();
   const total = examSession.questions.length;
   const pct = total ? Math.round((correctCnt / total) * 100) : 0;
   const now = new Date();
@@ -1833,7 +2011,13 @@ function toggleQuizMode() {
   document.body.classList.toggle("quiz-mode", quizHideMode);
   document.getElementById("quizBtn").classList.toggle("btn-active-matcha", quizHideMode);
 }
-function toggleOneAns(btn) { const a = btn.nextElementSibling; if (a) a.classList.toggle("revealed"); }
+function toggleOneAns(btn, qId) {
+  const a = btn.nextElementSibling;
+  if (a) {
+    a.classList.toggle("revealed");
+    if (a.classList.contains("revealed") && qId) markQuestionDoneSilently(qId);
+  }
+}
 function toggleFilterBookmarked() {
   onlyBookmarked = !onlyBookmarked;
   document.getElementById("filterBmBtn").classList.toggle("btn-active-gold", onlyBookmarked);

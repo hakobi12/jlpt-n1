@@ -1174,3 +1174,111 @@
 @media (max-width: 720px) {
   .mini-dash { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* QUICK 5-MIN DRILL & DAY PROGRESS STRIP */
+.dash-drill-card {
+  background: var(--vermilion-soft);
+  border: 1px solid var(--vermilion-border);
+  border-radius: 7px;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.dash-drill-card:hover {
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+}
+.dash-drill-card:hover .dash-label,
+.dash-drill-card:hover .dash-val { color: #FFFDF9; }
+
+.day-prog-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+}
+.day-chip {
+  flex: 0 0 auto;
+  min-width: 122px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.day-chip:hover { border-color: var(--vermilion); }
+.day-chip-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+.day-chip-bar {
+  height: 4px;
+  background: var(--surface-2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.day-chip-fill {
+  height: 100%;
+  background: var(--matcha);
+  transition: width 0.25s;
+}
+
+/* INLINE INTERACTIVE QUIZ (IN TỰ NHẨM MODE) */
+.inline-quiz-bar {
+  display: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 0 10px;
+}
+body.quiz-mode .inline-quiz-bar { display: flex; }
+.inline-opt-btn {
+  min-width: 44px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.14s, background 0.14s, color 0.14s;
+}
+.inline-opt-btn:hover:not(:disabled) { border-color: var(--indigo); background: var(--indigo-soft); color: var(--indigo); }
+.inline-opt-btn.correct { border-color: var(--matcha); background: var(--matcha); color: #FFFDF9; }
+.inline-opt-btn.wrong { border-color: var(--vermilion); background: var(--vermilion); color: #FFFDF9; }
+.inline-quiz-msg {
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-left: 4px;
+}
+.sess-head-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.sess-done-all-btn {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.sess-done-all-btn:hover { border-color: var(--matcha); color: var(--matcha); background: var(--matcha-soft); }
