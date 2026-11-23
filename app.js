@@ -29,8 +29,10 @@ const FIREBASE_CONFIG = {
 const DRIVE_FILES = {
   tuvung: { name: "01_TU_VUNG_N1_GMN.md", id: "1QW3cPCy6GOAXRtvYbuvD-CukwqatJlqF" },
   nguphap: { name: "02_NGU_PHAP_N1_GMN.md", id: "1rgAp3b6pfnQ81fmHesR2pvhGxLYuVha5" },
-  dochieu: { name: "03_DOC_HIEU_N1_GMN.md", id: "1u2xccVEuH2nWIrvc5_Eiv3HvCJVpXwgy" }
+  dochieu: { name: "03_DOC_HIEU_N1_GMN.md", id: "1u2xccVEuH2nWIrvc5_Eiv3HvCJVpXwgy" },
+  nghehieu: { name: "04_NGHE_HIEU_N1_GMN.md", id: "1yLQhDFhiJbrdOUTT32Y0Zr4Oj64BF_26" }
 };
+const STUDY_TABS = ["tuvung", "nguphap", "dochieu", "nghehieu"];
 
 const KEYS = {
   BOOKMARKS: "jlpt_n1_bookmarks_v2",
@@ -71,8 +73,8 @@ let notesMap = {};
 let examTargetDate = localStorage.getItem(KEYS.EXAM_DATE) || "2026-12-06";
 let ttsRate = parseFloat(localStorage.getItem(KEYS.TTS_RATE) || "0.95") || 0.95;
 let fontScale = parseFloat(localStorage.getItem(KEYS.FONT_SCALE) || "1") || 1;
-let mdStore = { tuvung: "", nguphap: "", dochieu: "" };
-let tabItems = { tuvung: [], nguphap: [], dochieu: [] };
+let mdStore = { tuvung: "", nguphap: "", dochieu: "", nghehieu: "" };
+let tabItems = { tuvung: [], nguphap: [], dochieu: [], nghehieu: [] };
 let parsedQuizBank = [];
 let cheatWordsBank = [];
 
@@ -634,7 +636,7 @@ function extractReadingQuestions(mdText) {
 }
 
 function findStudyItemById(id) {
-  for (const t of ["tuvung", "nguphap", "dochieu"]) {
+  for (const t of STUDY_TABS) {
     const f = (tabItems[t] || []).find(it => it.id === id);
     if (f) return f;
   }
@@ -646,6 +648,7 @@ function rebuildAllContent() {
   tabItems.tuvung = buildTabItems("tuvung", mdStore.tuvung);
   tabItems.nguphap = buildTabItems("nguphap", mdStore.nguphap);
   tabItems.dochieu = buildTabItems("dochieu", mdStore.dochieu);
+  tabItems.nghehieu = buildTabItems("nghehieu", mdStore.nghehieu);
   parsedQuizBank = [
     ...extractQuizQuestions("tuvung", mdStore.tuvung),
     ...extractQuizQuestions("nguphap", mdStore.nguphap),
@@ -668,7 +671,7 @@ function getFilteredItems(tabId) {
 }
 
 function renderMiniDashboardHtml() {
-  const allQs = [...tabItems.tuvung, ...tabItems.nguphap, ...tabItems.dochieu].filter(it => it.type === "question");
+  const allQs = STUDY_TABS.flatMap(t => tabItems[t] || []).filter(it => it.type === "question");
   const totalQ = allQs.length;
   const doneQ = allQs.filter(it => doneIds.has(it.id)).length;
   const avgPct = examHistory.length ? Math.round(examHistory.reduce((s, h) => s + (h.pct || 0), 0) / examHistory.length) : null;
@@ -791,7 +794,7 @@ function markQuestionDoneSilently(qId) {
   }
   const dashVal = document.getElementById("dashDoneVal");
   if (dashVal) {
-    const allQs = [...tabItems.tuvung, ...tabItems.nguphap, ...tabItems.dochieu].filter(it => it.type === "question");
+    const allQs = STUDY_TABS.flatMap(t => tabItems[t] || []).filter(it => it.type === "question");
     const doneQ = allQs.filter(it => doneIds.has(it.id)).length;
     dashVal.textContent = `${doneQ} / ${allQs.length} câu`;
   }
@@ -868,7 +871,7 @@ function isItemBookmarked(item) {
 function renderCurrentView(preserveScroll = false) {
   const scrollEl = document.getElementById("stageScroll");
   const prevTop = preserveScroll ? scrollEl.scrollTop : 0;
-  const isStudyTab = ["tuvung", "nguphap", "dochieu"].includes(currentTab);
+  const isStudyTab = STUDY_TABS.includes(currentTab);
   document.getElementById("sidebar").classList.toggle("hidden-mode", !isStudyTab);
   const root = document.getElementById("stageRoot");
   root.classList.toggle("wide", currentTab === "exam");
@@ -996,7 +999,7 @@ function bindScrollSpy() {
     const scrollY = window.innerWidth <= 960 ? window.scrollY : stageEl.scrollTop;
     document.getElementById("scrollTopBtn").classList.toggle("show", scrollY > 360);
 
-    if (!["tuvung", "nguphap", "dochieu"].includes(currentTab)) return;
+    if (!STUDY_TABS.includes(currentTab)) return;
     clearTimeout(spyTimer);
     spyTimer = setTimeout(() => {
       const cards = document.querySelectorAll("#stageRoot .study-card[data-idx]");
@@ -1066,7 +1069,7 @@ function scrollToStudyItem(idx) {
 }
 
 function jumpToBookmarkedItem(id) {
-  for (const t of ["tuvung", "nguphap", "dochieu"]) {
+  for (const t of STUDY_TABS) {
     const idx = (tabItems[t] || []).findIndex(it => it.id === id);
     if (idx !== -1) {
       closeDrawer();
@@ -1729,7 +1732,7 @@ function mergeBookmarkStates(local, remote) {
 function onBookmarksChanged() {
   saveBookmarksLocal();
   syncBookmarkBadgesOnly();
-  if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderSidebar(getFilteredItems(currentTab));
+  if (STUDY_TABS.includes(currentTab)) renderSidebar(getFilteredItems(currentTab));
   if (currentUser && !isApplyingRemote) {
     document.getElementById("bmSyncInfo").textContent = "Đang đồng bộ lên Gmail...";
     scheduleCloudPush();
@@ -1839,7 +1842,7 @@ async function fetchPublicMarkdownFiles(manual = false) {
     if (manual) showToast(`Đã tải 3 file .md mới nhất (${parsedQuizBank.length} câu thi)`);
   } catch (err) {
     lastFetchError = err.message || String(err);
-    const hasCache = !!(mdStore.tuvung || mdStore.nguphap || mdStore.dochieu);
+    const hasCache = STUDY_TABS.some(t => !!mdStore[t]);
     setSyncStatus(hasCache ? "Đang dùng Cache" : "Lỗi tải bài", hasCache ? "warn" : "err");
     if (!hasCache) renderCurrentView();
     if (manual) showToast("Không tải được từ Drive: " + lastFetchError, 4000);
@@ -1862,7 +1865,7 @@ function initFirebase() {
       // Load this Gmail's isolated local cache (prevents cross-account leakage!)
       loadUserStateForUid(user.uid);
       syncBookmarkBadgesOnly();
-      if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderCurrentView(true);
+      if (STUDY_TABS.includes(currentTab)) renderCurrentView(true);
 
       document.getElementById("bmSyncInfo").textContent = `Đồng bộ realtime (${user.email})`;
       const docRef = fbDb.collection("users").doc(user.uid);
@@ -1895,7 +1898,7 @@ function initFirebase() {
 
           saveBookmarksLocal(); saveWrongIds(true); saveDoneIds(true); saveMasteredIds(true); saveExamHistory(true); saveNotesMap(true);
           syncBookmarkBadgesOnly();
-          if (["tuvung", "nguphap", "dochieu"].includes(currentTab)) renderCurrentView(true);
+          if (STUDY_TABS.includes(currentTab)) renderCurrentView(true);
           else if (currentTab === "exam" && !examSession) renderExamView();
           else if (currentTab === "flashcard") { buildFlashcardDeck(); renderFlashcardView(); }
           isApplyingRemote = false;
@@ -1984,6 +1987,7 @@ function loadLocalMarkdownFiles(event) {
       if (n.includes("01") || n.includes("TU_VUNG")) mdStore.tuvung = r.result;
       else if (n.includes("02") || n.includes("NGU_PHAP")) mdStore.nguphap = r.result;
       else if (n.includes("03") || n.includes("DOC_HIEU")) mdStore.dochieu = r.result;
+      else if (n.includes("04") || n.includes("NGHE_HIEU")) mdStore.nghehieu = r.result;
       else mdStore.tuvung = r.result;
       if (++loaded === files.length) {
         localStorage.setItem(KEYS.MD_CACHE, JSON.stringify(mdStore));
@@ -2049,7 +2053,7 @@ function openSettings() {
   document.getElementById("settingsBackdrop").classList.add("open");
 }
 function closeSettings() { document.getElementById("settingsModal").classList.remove("open"); document.getElementById("settingsBackdrop").classList.remove("open"); }
-function clearLocalCache() { localStorage.removeItem(KEYS.MD_CACHE); mdStore = { tuvung: "", nguphap: "", dochieu: "" }; rebuildAllContent(); closeSettings(); showToast("Đã xóa cache .md"); }
+function clearLocalCache() { localStorage.removeItem(KEYS.MD_CACHE); mdStore = { tuvung: "", nguphap: "", dochieu: "", nghehieu: "" }; rebuildAllContent(); closeSettings(); showToast("Đã xóa cache .md"); }
 
 function exportMarkdown() {
   const items = Object.values(bmState.items);
@@ -2108,8 +2112,8 @@ loadUserStateForUid("guest");
 restoreActiveExam();
 try {
   const cachedMd = JSON.parse(localStorage.getItem(KEYS.MD_CACHE) || "null");
-  if (cachedMd && (cachedMd.tuvung || cachedMd.nguphap || cachedMd.dochieu)) {
-    mdStore = cachedMd;
+  if (cachedMd && STUDY_TABS.some(t => !!cachedMd[t])) {
+    mdStore = Object.assign({ tuvung: "", nguphap: "", dochieu: "", nghehieu: "" }, cachedMd);
     setSyncStatus("Đang dùng Cache", "warn");
   }
 } catch {}
