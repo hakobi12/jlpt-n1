@@ -11,7 +11,9 @@ const ICONS = {
   shuffle: '<svg class="ico" viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>',
   refresh: '<svg class="ico" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
   check: '<svg class="ico" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
-  note: '<svg class="ico" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
+  note: '<svg class="ico" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  play: '<svg class="ico ico-fill" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg>',
+  pause: '<svg class="ico ico-fill" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
 };
 
 // ==================== CONFIGURATION ====================
@@ -85,10 +87,15 @@ let examConfig = { source: "all", day: "all", count: 10, mode: "instant", timerM
 let examSession = null;
 let examTimerInterval = null;
 
-let fcConfig = { source: "bookmarks", showMastered: false };
+let fcConfig = { source: "bookmarks", showMastered: false, delaySec: 3 };
 let fcDeck = [];
 let fcIdx = 0;
 let fcFlipped = false;
+let fcAutoPlaying = false;
+let fcAutoRunId = 0;
+let fcAutoTimer = null;
+let fcAutoStatus = "";
+let fcWakeLock = null;
 
 const JP_RE = /[\u3040-\u30ff\u4e00-\u9fff]/;
 
@@ -266,6 +273,25 @@ function speakJapanese(text) {
   u.lang = "ja-JP";
   u.rate = ttsRate;
   window.speechSynthesis.speak(u);
+}
+
+function speakJapaneseAsync(text) {
+  return new Promise((resolve) => {
+    const clean = String(text || "").replace(/<[^>]+>/g, "").replace(/（[^）]*）|\([^)]*\)|[★☆①②③④＿＿＿\s]+/g, " ").trim();
+    if (!clean || !("speechSynthesis" in window)) { resolve(); return; }
+    let settled = false;
+    const done = () => { if (!settled) { settled = true; clearTimeout(guard); resolve(); } };
+    const guard = setTimeout(done, Math.max(4500, clean.length * 260));
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(clean);
+      u.lang = "ja-JP";
+      u.rate = ttsRate;
+      u.onend = done;
+      u.onerror = done;
+      window.speechSynthesis.speak(u);
+    } catch { done(); }
+  });
 }
 
 // ==================== THEME ====================
@@ -916,10 +942,22 @@ function renderFlashcardView() {
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <span class="tag-pill done">Đã thuộc: ${masteredInSource}/${rawTotal.length}</span>
+        <button class="btn ${fcAutoPlaying?'btn-active-vermilion':'btn-indigo'}" onclick="toggleFlashcardAutoplay()" style="font-size:12px;padding:4px 10px;" title="Nghe thụ động: tự đọc tiếng Nhật → chờ nhẩm → tự lật nghĩa → chuyển thẻ">
+          ${fcAutoPlaying ? ICONS.pause : ICONS.play}<span>${fcAutoPlaying ? "Dừng phát" : "Nghe thụ động"}</span>
+        </button>
+        <select onchange="setFcDelaySec(this.value)" title="Thời gian dừng để tự nhẩm" style="padding:4px 6px;border:1px solid var(--border-strong);border-radius:5px;background:var(--surface);color:var(--ink);font-size:12px;font-family:inherit;">
+          <option value="2" ${fcConfig.delaySec===2?'selected':''}>Nhẩm 2s</option>
+          <option value="3" ${fcConfig.delaySec===3?'selected':''}>Nhẩm 3s</option>
+          <option value="5" ${fcConfig.delaySec===5?'selected':''}>Nhẩm 5s</option>
+        </select>
         <button class="btn ${fcConfig.showMastered?'btn-active-matcha':''}" onclick="toggleShowMastered()" style="font-size:12px;padding:4px 9px;">${fcConfig.showMastered ? "Đang hiện cả đã thuộc" : "Ẩn đã thuộc"}</button>
         ${fcDeck.length ? `<button class="btn" onclick="shuffleFlashcards()" style="font-size:12px;padding:4px 9px;">${ICONS.shuffle}<span>Xáo</span></button>` : ""}
       </div>
     </div>
+    ${fcAutoPlaying ? `<div style="background:var(--indigo-soft);border:1px solid var(--border);border-left:3px solid var(--indigo);border-radius:6px;padding:7px 12px;margin-bottom:10px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <span><strong>Chế độ nghe thụ động:</strong> ${escapeHtml(fcAutoStatus || "Đang phát...")}</span>
+      <span style="color:var(--muted);font-size:11.5px;">Tự giữ sáng màn hình</span>
+    </div>` : ""}
   `;
 
   if (!fcDeck.length) {
@@ -1023,10 +1061,76 @@ function resetMasteredInSource() {
   showToast("Đã đặt lại toàn bộ thẻ để ôn vòng mới");
 }
 
-function switchFlashcardSource(s) { fcConfig.source = s; buildFlashcardDeck(); renderFlashcardView(); }
+function setFcDelaySec(v) { fcConfig.delaySec = parseInt(v, 10) || 3; }
+
+function stopFlashcardAutoplay(silent = false) {
+  fcAutoPlaying = false;
+  fcAutoRunId++;
+  fcAutoStatus = "";
+  clearTimeout(fcAutoTimer);
+  if ("speechSynthesis" in window) { try { window.speechSynthesis.cancel(); } catch {} }
+  if (fcWakeLock) { try { fcWakeLock.release(); } catch {} fcWakeLock = null; }
+  if (!silent && currentTab === "flashcard") renderFlashcardView();
+}
+
+function sleepFc(ms, runId) {
+  return new Promise(resolve => {
+    clearTimeout(fcAutoTimer);
+    fcAutoTimer = setTimeout(() => resolve(fcAutoPlaying && fcAutoRunId === runId), ms);
+  });
+}
+
+async function toggleFlashcardAutoplay() {
+  if (fcAutoPlaying) {
+    stopFlashcardAutoplay(false);
+    showToast("Đã dừng chế độ nghe thụ động");
+    return;
+  }
+  if (!fcDeck.length) { showToast("Chưa có thẻ để phát"); return; }
+
+  fcAutoPlaying = true;
+  const runId = ++fcAutoRunId;
+  if (navigator.wakeLock?.request) {
+    try { fcWakeLock = await navigator.wakeLock.request("screen"); } catch {}
+  }
+
+  while (fcAutoPlaying && fcAutoRunId === runId && currentTab === "flashcard" && fcDeck.length) {
+    if (fcIdx >= fcDeck.length) fcIdx = 0;
+    const card = fcDeck[fcIdx];
+    const isQ = card.kind === "question";
+    const fullQ = isQ ? findStudyItemById(card.id) : null;
+    const speakText = isQ ? (fullQ?.jpText || card.sub || "") : card.title;
+
+    // 1. Mặt trước + đọc tiếng Nhật
+    fcFlipped = false;
+    fcAutoStatus = `Thẻ ${fcIdx + 1}/${fcDeck.length} — Đang đọc tiếng Nhật...`;
+    renderFlashcardView();
+    if (speakText) await speakJapaneseAsync(speakText);
+    if (!fcAutoPlaying || fcAutoRunId !== runId) break;
+
+    // 2. Dừng cho người học tự nhẩm
+    fcAutoStatus = `Thẻ ${fcIdx + 1}/${fcDeck.length} — Tự nhẩm (${fcConfig.delaySec}s)...`;
+    renderFlashcardView();
+    if (!(await sleepFc(fcConfig.delaySec * 1000, runId))) break;
+
+    // 3. Tự lật mặt sau + nhắc lại âm đọc 1 lần nữa
+    fcFlipped = true;
+    fcAutoStatus = `Thẻ ${fcIdx + 1}/${fcDeck.length} — Đang hiện đáp án & nghĩa`;
+    renderFlashcardView();
+    if (speakText && !isQ) await speakJapaneseAsync(speakText);
+    if (!fcAutoPlaying || fcAutoRunId !== runId) break;
+    if (!(await sleepFc((fcConfig.delaySec + 1.5) * 1000, runId))) break;
+
+    // 4. Chuyển sang thẻ tiếp theo (quay vòng khi hết bộ)
+    fcIdx = (fcIdx + 1) % fcDeck.length;
+  }
+  if (fcAutoRunId === runId) stopFlashcardAutoplay(false);
+}
+
+function switchFlashcardSource(s) { stopFlashcardAutoplay(true); fcConfig.source = s; buildFlashcardDeck(); renderFlashcardView(); }
 function flipFlashcard() { fcFlipped = !fcFlipped; renderFlashcardView(); }
-function stepFlashcard(d) { const n = fcIdx + d; if (n >= 0 && n < fcDeck.length) { fcIdx = n; fcFlipped = false; renderFlashcardView(); } }
-function shuffleFlashcards() { fcDeck = shuffleArray(fcDeck); fcIdx = 0; fcFlipped = false; renderFlashcardView(); showToast("Đã xáo trộn bộ thẻ"); }
+function stepFlashcard(d) { stopFlashcardAutoplay(true); const n = fcIdx + d; if (n >= 0 && n < fcDeck.length) { fcIdx = n; fcFlipped = false; renderFlashcardView(); } }
+function shuffleFlashcards() { stopFlashcardAutoplay(true); fcDeck = shuffleArray(fcDeck); fcIdx = 0; fcFlipped = false; renderFlashcardView(); showToast("Đã xáo trộn bộ thẻ"); }
 
 // ==================== EXAM ENGINE (DAY FILTER, STAR FILTER, COUNTDOWN, HISTORY) ====================
 function getAvailableExamDays() {
@@ -1716,6 +1820,7 @@ function loadLocalMarkdownFiles(event) {
 
 // ==================== UI ACTIONS & SHORTCUTS ====================
 function switchTab(tabId) {
+  if (currentTab === "flashcard" && tabId !== "flashcard") stopFlashcardAutoplay(true);
   currentTab = tabId;
   document.querySelectorAll(".tab-btn, .bnav-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
   if (tabId === "flashcard") buildFlashcardDeck();
