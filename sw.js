@@ -1,4 +1,4 @@
-const CACHE_NAME = "jlpt-n1-washi-v5";
+const CACHE_NAME = "jlpt-n1-washi-v6";
 const PRECACHE_URLS = [
   "./",
   "./index.html",
@@ -30,6 +30,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
 
   if (
+    url.pathname.startsWith("/api/") ||
     url.hostname.includes("googleapis.com") ||
     url.hostname.includes("firebaseapp.com") ||
     url.hostname.includes("firebaseio.com") ||

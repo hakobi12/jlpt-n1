@@ -26,12 +26,7 @@ const FIREBASE_CONFIG = {
   appId: "1:45519602571:web:32f315924014fd99c1658e"
 };
 
-const DRIVE_FILES = {
-  tuvung: { name: "01_TU_VUNG_N1_GMN.md", id: "1QW3cPCy6GOAXRtvYbuvD-CukwqatJlqF" },
-  nguphap: { name: "02_NGU_PHAP_N1_GMN.md", id: "1rgAp3b6pfnQ81fmHesR2pvhGxLYuVha5" },
-  dochieu: { name: "03_DOC_HIEU_N1_GMN.md", id: "1u2xccVEuH2nWIrvc5_Eiv3HvCJVpXwgy" },
-  nghehieu: { name: "04_NGHE_HIEU_N1_GMN.md", id: "1yLQhDFhiJbrdOUTT32Y0Zr4Oj64BF_26" }
-};
+const ADMIN_EMAIL = "hakobi12@gmail.com";
 const STUDY_TABS = ["tuvung", "nguphap", "dochieu", "nghehieu"];
 
 const KEYS = {
@@ -55,10 +50,14 @@ const KEYS = {
   THEME: "jlpt_n1_theme_v1"
 };
 
-let fbAuth = null, fbDb = null, currentUser = null, unsubFirestore = null, pushTimer = null;
+let fbAuth = null, fbDb = null, currentUser = null, unsubFirestore = null, unsubMemberDoc = null, unsubAdminMembers = null, pushTimer = null;
 let activeUid = "guest";
 let isApplyingRemote = false;
 let lastFetchError = "";
+let accessState = { access: "preview", status: "guest", role: "guest", expiresAt: "", totalCounts: {} };
+let adminMembers = [];
+let activeAdminTab = "pending";
+let lastFetchedAccessKey = "";
 
 let bmState = { items: {}, deleted: {} };
 let wrongMap = {};
@@ -983,11 +982,51 @@ function renderCurrentView(preserveScroll = false) {
       </article>
     `;
   });
-  root.innerHTML = html;
+  root.innerHTML = html + (accessState.access !== "full" ? renderPaywallCardHtml(currentTab) : "");
   if (preserveScroll) scrollEl.scrollTop = prevTop;
   syncBookmarkBadgesOnly();
   bindScrollSpy();
   setupAutoReadObserver();
+}
+
+function isAdminUser() {
+  return !!(currentUser && (currentUser.email || "").toLowerCase() === ADMIN_EMAIL);
+}
+
+function renderPaywallCardHtml(tabId) {
+  const total = accessState.totalCounts?.[tabId] || 0;
+  const remaining = Math.max(0, total - 1);
+  const st = accessState.status || "guest";
+  const tabLabels = { tuvung: "Từ vựng", nguphap: "Ngữ pháp", dochieu: "Đọc hiểu", nghehieu: "Nghe hiểu" };
+  const label = tabLabels[tabId] || "bài học";
+
+  if (st === "pending") {
+    return `
+      <div class="paywall-card">
+        <span class="paywall-status">Đang chờ Admin duyệt</span>
+        <h3>Tài khoản ${escapeHtml(currentUser?.email || "")} đã gửi yêu cầu</h3>
+        <p>Bạn đang xem miễn phí bài đầu tiên của mục <strong>${label}</strong>${remaining ? ` (còn <strong>${remaining} bài</strong> đang khóa)` : ""}. Hệ thống sẽ <strong>tự động mở khóa toàn bộ ngay lập tức</strong> khi Admin (<code>${ADMIN_EMAIL}</code>) bấm duyệt.</p>
+        <button class="btn" onclick="fetchPublicMarkdownFiles(true)">${ICONS.refresh}<span>Kiểm tra lại trạng thái</span></button>
+      </div>
+    `;
+  }
+  if (st === "blocked" || st === "expired") {
+    return `
+      <div class="paywall-card">
+        <span class="paywall-status blocked">${st === "expired" ? "Tài khoản đã hết hạn" : "Tài khoản chưa được cấp quyền"}</span>
+        <h3>Quyền truy cập toàn bộ đang tạm khóa</h3>
+        <p>Vui lòng liên hệ Admin (<code>${ADMIN_EMAIL}</code>) để gia hạn hoặc mở lại quyền truy cập cho Gmail <strong>${escapeHtml(currentUser?.email || "")}</strong>.</p>
+      </div>
+    `;
+  }
+  return `
+    <div class="paywall-card">
+      <span class="paywall-status">Chế độ xem thử miễn phí</span>
+      <h3>Đăng nhập Gmail để mở khóa toàn bộ ${remaining ? remaining + " bài " + label + " còn lại" : "khóa học JLPT N1"}</h3>
+      <p>Khách chưa đăng nhập chỉ xem được <strong>1 bài đầu tiên</strong> của mỗi kỹ năng. Đăng nhập Gmail để gửi yêu cầu xét duyệt và mở khóa toàn bộ bài học, Flashcard SRS, Nghe thụ động &amp; Phòng thi thử N1.</p>
+      <button class="btn btn-primary" onclick="signInWithGmail()" style="padding:9px 22px;font-size:14px;">${ICONS.user}<span>Đăng nhập Gmail ngay</span></button>
+    </div>
+  `;
 }
 
 function bindScrollSpy() {
@@ -1822,30 +1861,52 @@ function renderDrawerList() {
   }).join("");
 }
 
-// ==================== PUBLIC DRIVE FETCH + FIREBASE ====================
+// ==================== SERVER-GATED CONTENT FETCH + FIREBASE + ADMIN ====================
 async function fetchPublicMarkdownFiles(manual = false) {
   setSyncStatus("Đang tải...", "syncing");
   lastFetchError = "";
   try {
-    const key = encodeURIComponent(FIREBASE_CONFIG.apiKey);
-    const cacheBust = Date.now();
-    await Promise.all(Object.entries(DRIVE_FILES).map(async ([tabId, meta]) => {
-      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${meta.id}?alt=media&key=${key}&_=${cacheBust}`);
-      if (!r.ok) throw new Error(`${meta.name} (HTTP ${r.status})`);
-      mdStore[tabId] = await r.text();
-    }));
-    localStorage.setItem(KEYS.MD_CACHE, JSON.stringify(mdStore));
-    localStorage.setItem(KEYS.LAST_SYNC, new Date().toISOString());
+    const headers = {};
+    if (currentUser) {
+      try {
+        const token = await currentUser.getIdToken();
+        if (token) headers.Authorization = "Bearer " + token;
+      } catch {}
+    }
+    const r = await fetch(`/api/content?_=${Date.now()}`, { headers });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+
+    accessState = {
+      access: data.access || "preview",
+      status: data.status || "guest",
+      role: data.role || "guest",
+      expiresAt: data.expiresAt || "",
+      totalCounts: data.totalCounts || {}
+    };
+    mdStore = Object.assign({ tuvung: "", nguphap: "", dochieu: "", nghehieu: "" }, data.files || {});
+
+    if (accessState.access === "full" && currentUser) {
+      localStorage.setItem(scopedKey(KEYS.MD_CACHE, currentUser.uid), JSON.stringify(mdStore));
+      localStorage.setItem(KEYS.LAST_SYNC, new Date().toISOString());
+    }
     rebuildAllContent();
+
     const t = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-    setSyncStatus(`Mới nhất (${t})`, "ok");
-    if (manual) showToast(`Đã tải 3 file .md mới nhất (${parsedQuizBank.length} câu thi)`);
+    if (accessState.access === "full") {
+      setSyncStatus(`Full (${t})`, "ok");
+      if (manual) showToast(`Đã tải toàn bộ 4 file bài học (${parsedQuizBank.length} câu thi)`);
+    } else {
+      const labelMap = { guest: "Xem thử (1 bài)", pending: "Chờ duyệt", expired: "Hết hạn", blocked: "Đã khóa" };
+      setSyncStatus(labelMap[accessState.status] || "Xem thử", "warn");
+      if (manual) showToast("Đang ở chế độ xem thử (1 bài đầu mỗi mục)");
+    }
   } catch (err) {
     lastFetchError = err.message || String(err);
     const hasCache = STUDY_TABS.some(t => !!mdStore[t]);
     setSyncStatus(hasCache ? "Đang dùng Cache" : "Lỗi tải bài", hasCache ? "warn" : "err");
     if (!hasCache) renderCurrentView();
-    if (manual) showToast("Không tải được từ Drive: " + lastFetchError, 4000);
+    if (manual) showToast("Không tải được dữ liệu: " + lastFetchError, 4000);
   }
 }
 
@@ -1855,18 +1916,28 @@ function initFirebase() {
   fbAuth = firebase.auth();
   fbDb = firebase.firestore();
 
-  fbAuth.onAuthStateChanged((user) => {
+  fbAuth.onAuthStateChanged(async (user) => {
     const prevUid = activeUid;
     currentUser = user;
     updateAuthUI();
     if (unsubFirestore) { unsubFirestore(); unsubFirestore = null; }
+    if (unsubMemberDoc) { unsubMemberDoc(); unsubMemberDoc = null; }
+    if (unsubAdminMembers) { unsubAdminMembers(); unsubAdminMembers = null; }
+
+    const adminBtn = document.getElementById("adminNavBtn");
+    if (adminBtn) adminBtn.style.display = isAdminUser() ? "inline-flex" : "none";
 
     if (user) {
-      // Load this Gmail's isolated local cache (prevents cross-account leakage!)
+      const email = (user.email || "").toLowerCase();
       loadUserStateForUid(user.uid);
+      // Restore this user's own cached full content if present while fetching fresh from /api/content
+      try {
+        const cached = JSON.parse(localStorage.getItem(scopedKey(KEYS.MD_CACHE, user.uid)) || "null");
+        if (cached && STUDY_TABS.some(t => !!cached[t])) { mdStore = Object.assign({ tuvung: "", nguphap: "", dochieu: "", nghehieu: "" }, cached); rebuildAllContent(); }
+      } catch {}
       syncBookmarkBadgesOnly();
-      if (STUDY_TABS.includes(currentTab)) renderCurrentView(true);
 
+      // 1. Realtime personal study data sync (users/{uid})
       document.getElementById("bmSyncInfo").textContent = `Đồng bộ realtime (${user.email})`;
       const docRef = fbDb.collection("users").doc(user.uid);
       unsubFirestore = docRef.onSnapshot((snap) => {
@@ -1888,12 +1959,8 @@ function initFirebase() {
             .sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 15);
 
           isApplyingRemote = true;
-          bmState = mergedBm;
-          wrongMap = mergedWrongMap;
-          doneMap = mergedDoneMap;
-          masteredMap = mergedMasteredMap;
-          examHistory = mergedHist;
-          notesMap = mergedNotes;
+          bmState = mergedBm; wrongMap = mergedWrongMap; doneMap = mergedDoneMap;
+          masteredMap = mergedMasteredMap; examHistory = mergedHist; notesMap = mergedNotes;
           refreshDerivedSets();
 
           saveBookmarksLocal(); saveWrongIds(true); saveDoneIds(true); saveMasteredIds(true); saveExamHistory(true); saveNotesMap(true);
@@ -1910,15 +1977,205 @@ function initFirebase() {
           pushUserCloudState(false);
         }
       }, () => { document.getElementById("bmSyncInfo").textContent = "Lỗi đồng bộ đám mây"; });
+
+      // 2. Membership / Admin access watcher
+      if (isAdminUser()) {
+        fetchPublicMarkdownFiles(false);
+        unsubAdminMembers = fbDb.collection("members").onSnapshot((qs) => {
+          adminMembers = qs.docs.map(d => Object.assign({ id: d.id }, d.data()));
+          adminMembers.sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""));
+          const pendingCnt = adminMembers.filter(m => m.status === "pending").length;
+          const badge = document.getElementById("pendingBadge");
+          if (badge) { badge.textContent = pendingCnt; badge.style.display = pendingCnt > 0 ? "inline-block" : "none"; }
+          if (document.getElementById("adminModal")?.classList.contains("open")) renderAdminPanelBody();
+        });
+      } else {
+        const memRef = fbDb.collection("members").doc(email);
+        unsubMemberDoc = memRef.onSnapshot(async (snap) => {
+          if (!snap.exists) {
+            const now = new Date().toISOString();
+            try {
+              await memRef.set({
+                email,
+                displayName: user.displayName || "",
+                photoURL: user.photoURL || "",
+                status: "pending",
+                expiresAt: "",
+                note: "",
+                createdAt: now,
+                updatedAt: now
+              });
+            } catch (e) { console.warn("Create pending member error:", e); }
+            fetchPublicMarkdownFiles(false);
+            return;
+          }
+          const d = snap.data() || {};
+          const key = `${email}::${d.status}::${d.expiresAt || ""}`;
+          if (key !== lastFetchedAccessKey) {
+            lastFetchedAccessKey = key;
+            fetchPublicMarkdownFiles(false);
+          }
+        }, () => { fetchPublicMarkdownFiles(false); });
+      }
     } else {
+      lastFetchedAccessKey = "";
       if (prevUid !== "guest") {
         loadUserStateForUid("guest");
+        mdStore = { tuvung: "", nguphap: "", dochieu: "", nghehieu: "" };
         syncBookmarkBadgesOnly();
-        renderCurrentView(true);
       }
       document.getElementById("bmSyncInfo").textContent = "Lưu trên máy (Đăng nhập Gmail để đồng bộ)";
+      fetchPublicMarkdownFiles(false);
     }
   });
+}
+
+// ==================== ADMIN PANEL (hakobi12@gmail.com) ====================
+function openAdminPanel() {
+  if (!isAdminUser()) return;
+  document.getElementById("adminModal").classList.add("open");
+  document.getElementById("adminBackdrop").classList.add("open");
+  renderAdminPanelBody();
+}
+function closeAdminPanel() {
+  document.getElementById("adminModal").classList.remove("open");
+  document.getElementById("adminBackdrop").classList.remove("open");
+}
+function switchAdminTab(tab) {
+  activeAdminTab = tab;
+  document.querySelectorAll(".admin-tab-btn").forEach(b => b.classList.toggle("active", b.dataset.atab === tab));
+  renderAdminPanelBody();
+}
+function renderAdminPanelBody() {
+  const pending = adminMembers.filter(m => m.status === "pending");
+  const all = adminMembers;
+  document.getElementById("admCntPending").textContent = pending.length;
+  document.getElementById("admCntAll").textContent = all.length;
+  const body = document.getElementById("adminBody");
+
+  if (activeAdminTab === "pending") {
+    if (!pending.length) {
+      body.innerHTML = `<p style="text-align:center;color:var(--muted);padding:24px 0;font-size:13px;">Không có tài khoản nào đang chờ duyệt.</p>`;
+      return;
+    }
+    body.innerHTML = pending.map(m => `
+      <div class="member-row">
+        <div class="member-info">
+          <div class="member-email">${escapeHtml(m.email)}</div>
+          <div class="member-meta">${escapeHtml(m.displayName || "Chưa có tên")} · Yêu cầu lúc ${m.createdAt ? new Date(m.createdAt).toLocaleString("vi-VN") : "--"}</div>
+        </div>
+        <div class="member-actions">
+          <button class="btn btn-active-matcha" onclick='adminApproveMember(${JSON.stringify(m.email)}, 0)' style="padding:4px 9px;font-size:12px;">Duyệt (Vĩnh viễn)</button>
+          <button class="btn" onclick='adminApproveMember(${JSON.stringify(m.email)}, 30)' style="padding:4px 9px;font-size:12px;">+30 ngày</button>
+          <button class="btn" onclick='adminSetMemberStatus(${JSON.stringify(m.email)}, "blocked")' style="padding:4px 9px;font-size:12px;color:var(--vermilion);">Từ chối</button>
+        </div>
+      </div>
+    `).join("");
+    return;
+  }
+
+  if (activeAdminTab === "add") {
+    body.innerHTML = `
+      <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:8px;">
+        Nhập 1 hoặc nhiều địa chỉ Gmail (mỗi dòng 1 email) để cấp quyền trước. Người dùng chỉ cần đăng nhập Gmail đó là vào dùng Full ngay lập tức.
+      </div>
+      <textarea id="admBulkEmails" class="admin-textarea" placeholder="hocvien1@gmail.com&#10;hocvien2@gmail.com"></textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+        <select id="admDuration" style="padding:6px 10px;border:1px solid var(--border-strong);border-radius:6px;background:var(--bg);color:var(--ink);font-family:inherit;font-size:13px;">
+          <option value="0">Thời hạn: Vĩnh viễn</option>
+          <option value="14">Thời hạn: 14 ngày</option>
+          <option value="30">Thời hạn: 30 ngày</option>
+          <option value="90">Thời hạn: 90 ngày</option>
+        </select>
+        <input id="admNote" type="text" placeholder="Ghi chú (VD: Lớp N1 14 ngày)" style="flex:1;min-width:160px;padding:6px 10px;border:1px solid var(--border-strong);border-radius:6px;background:var(--bg);color:var(--ink);font-family:inherit;font-size:13px;">
+        <button class="btn btn-primary" onclick="adminBulkAddMembers()">Cấp quyền ngay</button>
+      </div>
+    `;
+    return;
+  }
+
+  // All members tab
+  const q = (document.getElementById("admSearch")?.value || "").trim().toLowerCase();
+  const filtered = q ? all.filter(m => (m.email + " " + (m.displayName || "") + " " + (m.note || "")).toLowerCase().includes(q)) : all;
+  body.innerHTML = `
+    <input id="admSearch" type="text" value="${escapeHtml(q)}" oninput="renderAdminPanelBody()" placeholder="Tìm theo Gmail, tên hoặc ghi chú..." style="width:100%;padding:7px 10px;border:1px solid var(--border-strong);border-radius:6px;background:var(--bg);color:var(--ink);font-size:13px;margin-bottom:10px;">
+    ${filtered.length ? filtered.map(m => {
+      const expLabel = m.expiresAt ? `Hạn: ${new Date(m.expiresAt).toLocaleDateString("vi-VN")}` : "Vĩnh viễn";
+      return `
+        <div class="member-row">
+          <div class="member-info">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span class="status-chip ${escapeHtml(m.status)}">${m.status === "approved" ? "Đã duyệt" : (m.status === "pending" ? "Chờ duyệt" : "Đã khóa")}</span>
+              <span class="member-email">${escapeHtml(m.email)}</span>
+            </div>
+            <div class="member-meta">${escapeHtml(m.displayName || "")} ${m.note ? "· " + escapeHtml(m.note) : ""} · ${expLabel}</div>
+          </div>
+          <div class="member-actions">
+            ${m.status !== "approved"
+              ? `<button class="btn btn-active-matcha" onclick='adminApproveMember(${JSON.stringify(m.email)}, 0)' style="padding:4px 8px;font-size:11.5px;">Duyệt</button>`
+              : `<button class="btn" onclick='adminSetMemberStatus(${JSON.stringify(m.email)}, "blocked")' style="padding:4px 8px;font-size:11.5px;color:var(--vermilion);">Khóa</button>`}
+            <button class="btn" onclick='adminDeleteMember(${JSON.stringify(m.email)})' style="padding:4px 8px;font-size:11.5px;">Xóa</button>
+          </div>
+        </div>
+      `;
+    }).join("") : '<p style="text-align:center;color:var(--muted);font-size:13px;">Không có thành viên nào.</p>'}
+  `;
+}
+
+async function adminApproveMember(email, days = 0) {
+  if (!isAdminUser() || !fbDb) return;
+  const now = new Date();
+  const expiresAt = days > 0 ? new Date(now.getTime() + days * 86400000).toISOString() : "";
+  await fbDb.collection("members").doc(email.toLowerCase()).set({
+    email: email.toLowerCase(),
+    status: "approved",
+    expiresAt,
+    approvedBy: ADMIN_EMAIL,
+    updatedAt: now.toISOString()
+  }, { merge: true });
+  showToast(`Đã duyệt ${email}`);
+}
+
+async function adminSetMemberStatus(email, status) {
+  if (!isAdminUser() || !fbDb) return;
+  await fbDb.collection("members").doc(email.toLowerCase()).set({
+    status,
+    updatedAt: new Date().toISOString()
+  }, { merge: true });
+  showToast(`Đã cập nhật ${email} → ${status}`);
+}
+
+async function adminDeleteMember(email) {
+  if (!isAdminUser() || !fbDb) return;
+  if (!confirm(`Xóa quyền của ${email}?`)) return;
+  await fbDb.collection("members").doc(email.toLowerCase()).delete();
+  showToast(`Đã xóa ${email}`);
+}
+
+async function adminBulkAddMembers() {
+  if (!isAdminUser() || !fbDb) return;
+  const raw = document.getElementById("admBulkEmails")?.value || "";
+  const days = parseInt(document.getElementById("admDuration")?.value || "0", 10);
+  const note = (document.getElementById("admNote")?.value || "").trim();
+  const emails = [...new Set(raw.split(/[\n,;]+/).map(s => s.trim().toLowerCase()).filter(s => s.includes("@")))];
+  if (!emails.length) { showToast("Hãy nhập ít nhất 1 địa chỉ Gmail hợp lệ"); return; }
+
+  const now = new Date();
+  const expiresAt = days > 0 ? new Date(now.getTime() + days * 86400000).toISOString() : "";
+  await Promise.all(emails.map(email =>
+    fbDb.collection("members").doc(email).set({
+      email,
+      status: "approved",
+      expiresAt,
+      note,
+      approvedBy: ADMIN_EMAIL,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString()
+    }, { merge: true })
+  ));
+  document.getElementById("admBulkEmails").value = "";
+  showToast(`Đã cấp quyền cho ${emails.length} tài khoản Gmail`);
+  switchAdminTab("members");
 }
 
 function updateAuthUI() {
@@ -2110,17 +2367,8 @@ initTheme();
 document.documentElement.style.setProperty("--font-scale", String(fontScale));
 loadUserStateForUid("guest");
 restoreActiveExam();
-try {
-  const cachedMd = JSON.parse(localStorage.getItem(KEYS.MD_CACHE) || "null");
-  if (cachedMd && STUDY_TABS.some(t => !!cachedMd[t])) {
-    mdStore = Object.assign({ tuvung: "", nguphap: "", dochieu: "", nghehieu: "" }, cachedMd);
-    setSyncStatus("Đang dùng Cache", "warn");
-  }
-} catch {}
-
 rebuildAllContent();
 initFirebase();
-fetchPublicMarkdownFiles(false);
 
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   navigator.serviceWorker.register("./sw.js").catch(() => {});
