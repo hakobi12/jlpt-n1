@@ -47,6 +47,7 @@ const KEYS = {
   NOTES: "jlpt_n1_notes_v1",
   FONT_SCALE: "jlpt_n1_font_scale_v1",
   TTS_RATE: "jlpt_n1_tts_rate_v1",
+  TTS_VOICE: "jlpt_n1_tts_voice_v1",
   THEME: "jlpt_n1_theme_v1"
 };
 
@@ -71,6 +72,7 @@ let examHistory = [];
 let notesMap = {};
 let examTargetDate = localStorage.getItem(KEYS.EXAM_DATE) || "2026-12-06";
 let ttsRate = parseFloat(localStorage.getItem(KEYS.TTS_RATE) || "0.95") || 0.95;
+let ttsVoice = localStorage.getItem(KEYS.TTS_VOICE) || "female";
 let fontScale = parseFloat(localStorage.getItem(KEYS.FONT_SCALE) || "1") || 1;
 let mdStore = { tuvung: "", nguphap: "", dochieu: "", nghehieu: "" };
 let tabItems = { tuvung: [], nguphap: [], dochieu: [], nghehieu: [] };
@@ -245,9 +247,20 @@ function setTtsRate(rate) {
   localStorage.setItem(KEYS.TTS_RATE, String(ttsRate));
   syncPreferencePills();
 }
+function setTtsVoice(voice, silent = false) {
+  ttsVoice = voice === "male" ? "male" : "female";
+  localStorage.setItem(KEYS.TTS_VOICE, ttsVoice);
+  syncPreferencePills();
+  if (currentTab === "flashcard" && !fcAutoPlaying) renderFlashcardView();
+  if (!silent) showToast(ttsVoice === "male" ? "Đã chọn giọng Nam bản xứ (Keita Neural)" : "Đã chọn giọng Nữ bản xứ (Nanami Neural)");
+}
+function testTtsVoice() {
+  speakJapanese("こんにちは。JLPT N1の合格を目指して、一緒に頑張りましょう。");
+}
 function syncPreferencePills() {
   document.querySelectorAll("#fontScalePills .choice-pill").forEach(b => b.classList.toggle("active", Number(b.dataset.scale) === fontScale));
   document.querySelectorAll("#ttsRatePills .choice-pill").forEach(b => b.classList.toggle("active", Number(b.dataset.rate) === ttsRate));
+  document.querySelectorAll("#ttsVoicePills .choice-pill").forEach(b => b.classList.toggle("active", b.dataset.voice === ttsVoice));
 }
 function toggleDoneItem(id) {
   setFlagState(doneMap, id, !doneIds.has(id));
@@ -282,7 +295,7 @@ function cleanJapaneseForTts(text) {
     .trim();
 }
 
-function splitJapaneseChunks(text, maxLen = 150) {
+function splitJapaneseChunks(text, maxLen = 380) {
   const clean = cleanJapaneseForTts(text);
   if (!clean) return [];
   if (clean.length <= maxLen) return [clean];
@@ -351,7 +364,9 @@ function pickBestJapaneseVoice() {
   const voices = window.speechSynthesis.getVoices() || [];
   const jaVoices = voices.filter(v => (v.lang || "").toLowerCase().startsWith("ja"));
   if (!jaVoices.length) return null;
-  const preferred = ["nanami", "keita", "google 日本語", "kyoko", "o-ren", "hattori", "natural"];
+  const preferred = ttsVoice === "male"
+    ? ["keita", "hattori", "ichiro", "otoya", "google 日本語", "natural"]
+    : ["nanami", "kyoko", "o-ren", "google 日本語", "haruka", "natural"];
   for (const kw of preferred) {
     const hit = jaVoices.find(v => (v.name || "").toLowerCase().includes(kw));
     if (hit) return hit;
@@ -388,9 +403,11 @@ function speakWithBrowserFallback(text, seq) {
 }
 
 async function fetchNaturalTtsUrl(chunk) {
-  if (ttsBlobCache.has(chunk)) return ttsBlobCache.get(chunk);
+  const voiceKey = ttsVoice === "male" ? "male" : "female";
+  const cacheKey = `${voiceKey}::${chunk}`;
+  if (ttsBlobCache.has(cacheKey)) return ttsBlobCache.get(cacheKey);
   if (!location.protocol.startsWith("http")) return null;
-  const res = await fetch(`/api/tts?q=${encodeURIComponent(chunk)}`);
+  const res = await fetch(`/api/tts?q=${encodeURIComponent(chunk)}&voice=${voiceKey}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const ct = (res.headers.get("content-type") || "").toLowerCase();
   if (!ct.includes("audio")) throw new Error("Non-audio TTS response");
@@ -403,7 +420,7 @@ async function fetchNaturalTtsUrl(chunk) {
     ttsBlobCache.delete(oldestKey);
     try { URL.revokeObjectURL(oldestUrl); } catch {}
   }
-  ttsBlobCache.set(chunk, url);
+  ttsBlobCache.set(cacheKey, url);
   return url;
 }
 
@@ -1364,6 +1381,10 @@ function renderFlashcardView() {
         <button class="btn ${fcAutoPlaying?'btn-active-vermilion':'btn-indigo'}" onclick="toggleFlashcardAutoplay()" style="font-size:12px;padding:4px 10px;" title="Nghe thụ động: tự đọc tiếng Nhật → chờ nhẩm → tự lật nghĩa → chuyển thẻ">
           ${fcAutoPlaying ? ICONS.pause : ICONS.play}<span>${fcAutoPlaying ? "Dừng phát" : "Nghe thụ động"}</span>
         </button>
+        <select onchange="setTtsVoice(this.value)" title="Chọn giọng đọc bản xứ (Neural)" style="padding:4px 6px;border:1px solid var(--border-strong);border-radius:5px;background:var(--surface);color:var(--ink);font-size:12px;font-family:inherit;">
+          <option value="female" ${ttsVoice==='female'?'selected':''}>Giọng Nữ · Nanami</option>
+          <option value="male" ${ttsVoice==='male'?'selected':''}>Giọng Nam · Keita</option>
+        </select>
         <select onchange="setFcDelaySec(this.value)" title="Thời gian dừng để tự nhẩm" style="padding:4px 6px;border:1px solid var(--border-strong);border-radius:5px;background:var(--surface);color:var(--ink);font-size:12px;font-family:inherit;">
           <option value="2" ${fcConfig.delaySec===2?'selected':''}>Nhẩm 2s</option>
           <option value="3" ${fcConfig.delaySec===3?'selected':''}>Nhẩm 3s</option>
