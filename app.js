@@ -85,6 +85,7 @@ let onlyUndone = false;
 let onlyWrong = false;
 let quizHideMode = false;
 let scrollSpyBound = false;
+let suppressScrollSpyUntil = 0;
 let autoReadObserver = null;
 let autoReadTimers = new Map();
 
@@ -1595,8 +1596,10 @@ function bindScrollSpy() {
     document.getElementById("scrollTopBtn").classList.toggle("show", scrollY > 360);
 
     if (!STUDY_TABS.includes(currentTab)) return;
+    if (Date.now() < suppressScrollSpyUntil) return;
     clearTimeout(spyTimer);
     spyTimer = setTimeout(() => {
+      if (Date.now() < suppressScrollSpyUntil) return;
       const cards = document.querySelectorAll("#stageRoot .study-card[data-idx]");
       if (!cards.length) return;
       const refTop = window.innerWidth <= 960 ? 110 : stageEl.getBoundingClientRect().top + 48;
@@ -1609,7 +1612,7 @@ function bindScrollSpy() {
       const navEl = document.getElementById("nav-item-" + activeIdx);
       if (navEl) {
         navEl.classList.add("active");
-        if (window.innerWidth > 960) navEl.scrollIntoView({ block: "nearest" });
+        if (window.innerWidth > 960) ensureSidebarItemVisible(navEl);
       }
       if (!onlyBookmarked && !(document.getElementById("searchInput")?.value || "").trim()) {
         lastReadMap[currentTab] = activeIdx;
@@ -1655,12 +1658,40 @@ function renderSidebar(list) {
   el.innerHTML = html;
 }
 
+function ensureSidebarItemVisible(navEl) {
+  const box = document.getElementById("sidebarList");
+  if (!box || !navEl) return;
+  const bRect = box.getBoundingClientRect();
+  const nRect = navEl.getBoundingClientRect();
+  if (nRect.top < bRect.top) {
+    box.scrollTop -= (bRect.top - nRect.top + 6);
+  } else if (nRect.bottom > bRect.bottom) {
+    box.scrollTop += (nRect.bottom - bRect.bottom + 6);
+  }
+}
+
 function scrollToStudyItem(idx) {
   closeMobileSidebar();
+  suppressScrollSpyUntil = Date.now() + 1400;
   document.querySelectorAll(".nav-item.active").forEach(el => el.classList.remove("active"));
-  document.getElementById("nav-item-" + idx)?.classList.add("active");
+  const navEl = document.getElementById("nav-item-" + idx);
+  if (navEl) {
+    navEl.classList.add("active");
+    if (window.innerWidth > 960) ensureSidebarItemVisible(navEl);
+  }
   const card = document.getElementById("list-item-" + idx);
-  if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!card) return;
+  if (window.innerWidth <= 960) {
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
+  } else {
+    const stageEl = document.getElementById("stageScroll");
+    if (stageEl) {
+      const targetTop = stageEl.scrollTop + (card.getBoundingClientRect().top - stageEl.getBoundingClientRect().top) - 12;
+      stageEl.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+    } else {
+      card.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
 }
 
 function jumpToBookmarkedItem(id) {
