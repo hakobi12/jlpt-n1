@@ -267,34 +267,202 @@ function maziiUrl(word) {
   const clean = String(word || "").replace(/<[^>]+>/g, "").replace(/（[^）]*）|\([^)]*\)/g, "").trim();
   return "https://mazii.net/vi-VN/search/word/javi/" + encodeURIComponent(clean);
 }
-function speakJapanese(text) {
-  if (!("speechSynthesis" in window)) { showToast("Trình duyệt không hỗ trợ đọc tiếng Nhật."); return; }
-  const clean = String(text || "").replace(/<[^>]+>/g, "").replace(/（[^）]*）|\([^)]*\)|[★☆①②③④＿＿＿\s]+/g, " ").trim();
-  if (!clean) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(clean);
-  u.lang = "ja-JP";
-  u.rate = ttsRate;
-  window.speechSynthesis.speak(u);
+// ==================== NATURAL NATIVE JAPANESE TTS (/api/tts + FALLBACK) ====================
+let ttsAudio = null;
+let ttsSpeakSeq = 0;
+let ttsCurrentCancel = null;
+const ttsBlobCache = new Map();
+
+function cleanJapaneseForTts(text) {
+  return String(text || "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/（[^）]*）|\([^)]*\)/g, "")
+    .replace(/[★☆①②③④＿＿＿_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function speakJapaneseAsync(text) {
+function splitJapaneseChunks(text, maxLen = 150) {
+  const clean = cleanJapaneseForTts(text);
+  if (!clean) return [];
+  if (clean.length <= maxLen) return [clean];
+  const parts = clean.split(/(?<=[。！？\n])/).map(s => s.trim()).filter(Boolean);
+  const chunks = [];
+  let buf = "";
+  for (const p of parts) {
+    if ((buf + p).length <= maxLen) {
+      buf += p;
+    } else {
+      if (buf) chunks.push(buf);
+      if (p.length <= maxLen) {
+        buf = p;
+      } else {
+        for (let i = 0; i < p.length; i += maxLen) chunks.push(p.slice(i, i + maxLen));
+        buf = "";
+      }
+    }
+  }
+  if (buf) chunks.push(buf);
+  return chunks;
+}
+
+function ensureTtsAudio() {
+  if (!ttsAudio) {
+    ttsAudio = new Audio();
+    ttsAudio.preload = "auto";
+  }
+  return ttsAudio;
+}
+
+function unlockTtsAudio() {
+  try {
+    const a = ensureTtsAudio();
+    if (a.paused && !a.src) {
+      // Silent 1-frame wav data URI to unlock audio on mobile Safari/Chrome inside user gesture
+      a.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+      const p = a.play();
+      if (p && p.catch) p.catch(() => {});
+    }
+  } catch {}
+}
+
+function stopJapaneseSpeech() {
+  ttsSpeakSeq++;
+  if (ttsCurrentCancel) {
+    const fn = ttsCurrentCancel;
+    ttsCurrentCancel = null;
+    try { fn(); } catch {}
+  }
+  if (ttsAudio) {
+    try {
+      ttsAudio.onended = null;
+      ttsAudio.onerror = null;
+      ttsAudio.pause();
+      ttsAudio.currentTime = 0;
+    } catch {}
+  }
+  if ("speechSynthesis" in window) {
+    try { window.speechSynthesis.cancel(); } catch {}
+  }
+}
+
+function pickBestJapaneseVoice() {
+  if (!("speechSynthesis" in window)) return null;
+  const voices = window.speechSynthesis.getVoices() || [];
+  const jaVoices = voices.filter(v => (v.lang || "").toLowerCase().startsWith("ja"));
+  if (!jaVoices.length) return null;
+  const preferred = ["nanami", "keita", "google 日本語", "kyoko", "o-ren", "hattori", "natural"];
+  for (const kw of preferred) {
+    const hit = jaVoices.find(v => (v.name || "").toLowerCase().includes(kw));
+    if (hit) return hit;
+  }
+  return jaVoices[0];
+}
+
+function speakWithBrowserFallback(text, seq) {
   return new Promise((resolve) => {
-    const clean = String(text || "").replace(/<[^>]+>/g, "").replace(/（[^）]*）|\([^)]*\)|[★☆①②③④＿＿＿\s]+/g, " ").trim();
-    if (!clean || !("speechSynthesis" in window)) { resolve(); return; }
+    if (seq !== ttsSpeakSeq || !("speechSynthesis" in window)) { resolve(); return; }
     let settled = false;
-    const done = () => { if (!settled) { settled = true; clearTimeout(guard); resolve(); } };
-    const guard = setTimeout(done, Math.max(4500, clean.length * 260));
+    const done = () => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(guard);
+        if (ttsCurrentCancel === done) ttsCurrentCancel = null;
+        resolve();
+      }
+    };
+    ttsCurrentCancel = done;
+    const guard = setTimeout(done, Math.max(4000, text.length * 240));
     try {
       window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(clean);
+      const u = new SpeechSynthesisUtterance(text);
       u.lang = "ja-JP";
       u.rate = ttsRate;
+      const v = pickBestJapaneseVoice();
+      if (v) u.voice = v;
       u.onend = done;
       u.onerror = done;
       window.speechSynthesis.speak(u);
     } catch { done(); }
   });
+}
+
+async function fetchNaturalTtsUrl(chunk) {
+  if (ttsBlobCache.has(chunk)) return ttsBlobCache.get(chunk);
+  if (!location.protocol.startsWith("http")) return null;
+  const res = await fetch(`/api/tts?q=${encodeURIComponent(chunk)}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const ct = (res.headers.get("content-type") || "").toLowerCase();
+  if (!ct.includes("audio")) throw new Error("Non-audio TTS response");
+  const blob = await res.blob();
+  if (!blob.size) throw new Error("Empty audio blob");
+  const url = URL.createObjectURL(blob);
+  if (ttsBlobCache.size >= 80) {
+    const oldestKey = ttsBlobCache.keys().next().value;
+    const oldestUrl = ttsBlobCache.get(oldestKey);
+    ttsBlobCache.delete(oldestKey);
+    try { URL.revokeObjectURL(oldestUrl); } catch {}
+  }
+  ttsBlobCache.set(chunk, url);
+  return url;
+}
+
+function playAudioUrlAsync(url, seq, estMs) {
+  return new Promise((resolve, reject) => {
+    if (seq !== ttsSpeakSeq) { resolve(); return; }
+    const a = ensureTtsAudio();
+    let settled = false;
+    const finish = (isErr = false) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(guard);
+      a.onended = null;
+      a.onerror = null;
+      if (ttsCurrentCancel === cancelFn) ttsCurrentCancel = null;
+      if (isErr) reject(new Error("Audio playback error"));
+      else resolve();
+    };
+    const cancelFn = () => {
+      try { a.pause(); } catch {}
+      finish(false);
+    };
+    ttsCurrentCancel = cancelFn;
+    const guard = setTimeout(() => finish(false), Math.max(5000, estMs));
+    a.onended = () => finish(false);
+    a.onerror = () => finish(true);
+    a.src = url;
+    a.playbackRate = ttsRate;
+    const p = a.play();
+    if (p && p.catch) p.catch(() => finish(true));
+  });
+}
+
+async function speakJapaneseAsync(text) {
+  const chunks = splitJapaneseChunks(text);
+  if (!chunks.length) return;
+  stopJapaneseSpeech();
+  const seq = ttsSpeakSeq;
+
+  for (const chunk of chunks) {
+    if (seq !== ttsSpeakSeq) return;
+    try {
+      const url = await fetchNaturalTtsUrl(chunk);
+      if (seq !== ttsSpeakSeq) return;
+      if (url) {
+        await playAudioUrlAsync(url, seq, Math.round((chunk.length * 220 + 2500) / Math.max(0.6, ttsRate)));
+        continue;
+      }
+    } catch {
+      // Fallback to best browser Japanese voice when offline or blocked
+    }
+    if (seq !== ttsSpeakSeq) return;
+    await speakWithBrowserFallback(chunk, seq);
+  }
+}
+
+function speakJapanese(text) {
+  unlockTtsAudio();
+  speakJapaneseAsync(text);
 }
 
 // ==================== THEME ====================
@@ -653,6 +821,7 @@ function rebuildAllContent() {
     ...extractQuizQuestions("nguphap", mdStore.nguphap),
     ...extractReadingQuestions(mdStore.dochieu)
   ];
+  if (currentTab === "flashcard" && !fcAutoPlaying) buildFlashcardDeck(true);
   renderCurrentView();
   syncBookmarkBadgesOnly();
 }
@@ -1125,7 +1294,7 @@ function jumpToBookmarkedItem(id) {
   }
 }
 
-// ==================== FLASHCARD ENGINE (SRS: ĐÃ THUỘC / ÔN LẠI) ====================
+// ==================== FLASHCARD ENGINE (SRS: ĐÃ THUỘC / ÔN LẠI / BỎ BOOKMARK) ====================
 function getRawFlashcardSource() {
   const allBms = Object.values(bmState.items);
   if (fcConfig.source === "bookmarks") return allBms.map(it => ({ ...it }));
@@ -1134,10 +1303,43 @@ function getRawFlashcardSource() {
   return cheatWordsBank.map(w => ({ ...w, kind: "word" }));
 }
 
-function buildFlashcardDeck() {
+function buildFlashcardDeck(preserveCurrent = false) {
+  const prevId = preserveCurrent && fcDeck[fcIdx] ? fcDeck[fcIdx].id : null;
   const raw = getRawFlashcardSource();
   fcDeck = fcConfig.showMastered ? raw : raw.filter(c => !masteredIds.has(c.id));
-  fcIdx = 0; fcFlipped = false;
+  if (prevId && fcDeck.length) {
+    const found = fcDeck.findIndex(c => c.id === prevId);
+    if (found !== -1) {
+      fcIdx = found;
+      return;
+    }
+    fcIdx = Math.min(fcIdx, fcDeck.length - 1);
+    fcFlipped = false;
+  } else {
+    fcIdx = 0;
+    fcFlipped = false;
+  }
+}
+
+function getFlashcardSpeakText(card) {
+  if (!card) return "";
+  if (card.kind === "question") {
+    const fullQ = findStudyItemById(card.id);
+    return fullQ?.jpText || card.sub || "";
+  }
+  return card.title || "";
+}
+
+function speakCurrentFlashcard() {
+  const card = fcDeck[fcIdx];
+  const txt = getFlashcardSpeakText(card);
+  if (txt) speakJapanese(txt);
+}
+
+function updateFcAutoStatusText(text) {
+  fcAutoStatus = text;
+  const el = document.getElementById("fcAutoStatusText");
+  if (el) el.textContent = text;
 }
 
 function renderFlashcardView() {
@@ -1168,11 +1370,11 @@ function renderFlashcardView() {
           <option value="5" ${fcConfig.delaySec===5?'selected':''}>Nhẩm 5s</option>
         </select>
         <button class="btn ${fcConfig.showMastered?'btn-active-matcha':''}" onclick="toggleShowMastered()" style="font-size:12px;padding:4px 9px;">${fcConfig.showMastered ? "Đang hiện cả đã thuộc" : "Ẩn đã thuộc"}</button>
-        ${fcDeck.length ? `<button class="btn" onclick="shuffleFlashcards()" style="font-size:12px;padding:4px 9px;">${ICONS.shuffle}<span>Xáo</span></button>` : ""}
+        ${fcDeck.length > 1 ? `<button class="btn" onclick="shuffleFlashcards()" style="font-size:12px;padding:4px 9px;">${ICONS.shuffle}<span>Xáo</span></button>` : ""}
       </div>
     </div>
     ${fcAutoPlaying ? `<div style="background:var(--indigo-soft);border:1px solid var(--border);border-left:3px solid var(--indigo);border-radius:6px;padding:7px 12px;margin-bottom:10px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-      <span><strong>Chế độ nghe thụ động:</strong> ${escapeHtml(fcAutoStatus || "Đang phát...")}</span>
+      <span><strong>Chế độ nghe thụ động:</strong> <span id="fcAutoStatusText">${escapeHtml(fcAutoStatus || "Đang phát...")}</span></span>
       <span style="color:var(--muted);font-size:11.5px;">Tự giữ sáng màn hình</span>
     </div>` : ""}
   `;
@@ -1187,37 +1389,40 @@ function renderFlashcardView() {
     return;
   }
 
-  if (fcIdx >= fcDeck.length) fcIdx = 0;
+  if (fcIdx >= fcDeck.length || fcIdx < 0) fcIdx = 0;
   const card = fcDeck[fcIdx];
   const isQ = card.kind === "question";
   const fullQ = isQ ? findStudyItemById(card.id) : null;
-  const speakText = isQ ? (fullQ?.jpText || card.sub || "") : card.title;
+  const speakText = getFlashcardSpeakText(card);
   const isMastered = masteredIds.has(card.id);
+  const isBookmarked = !!bmState.items[card.id];
 
   let bodyHtml = "";
   if (isQ && fullQ) {
     bodyHtml = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
         <span class="tag-pill">BÀI TẬP · ${escapeHtml(fullQ.shortLabel)}</span>
-        <span style="font-size:12px;color:var(--muted);font-weight:600;">Thẻ ${fcIdx + 1}/${fcDeck.length} · ${fcFlipped ? "Mặt sau" : "Bấm thẻ hoặc Space"}</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:600;">Thẻ ${fcIdx + 1}/${fcDeck.length} · ${fcFlipped ? "Mặt sau (Đáp án)" : "Mặt trước · Bấm thẻ hoặc Space"}</span>
       </div>
       <div class="jp-prompt" style="margin-bottom:8px;">${fullQ.promptHtml}</div>
       ${fcFlipped
-        ? `<div style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--border-strong);">${fullQ.answerHtml}</div>`
+        ? `<div class="fc-answer-reveal" style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--border-strong);">${fullQ.answerHtml}</div>`
         : `<div style="font-size:13px;color:var(--muted);text-align:center;margin-top:12px;">Tự chọn đáp án 1–4 rồi bấm vào thẻ để kiểm tra lời giải</div>`}
     `;
   } else {
-    const cleanSub = (card.sub || "").replace(/<[^>]+>/g, "");
-    const cleanNote = (card.note || "").replace(/<[^>]+>/g, "");
+    const cleanSub = (card.sub || "").replace(/<[^>]+>/g, "").trim();
+    const cleanNote = (card.note || "").replace(/<[^>]+>/g, "").trim();
+    const hasBackInfo = !!(cleanSub || cleanNote);
     bodyHtml = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <span class="tag-pill word">TỪ VỰNG</span>
-        <span style="font-size:12px;color:var(--muted);font-weight:600;">Thẻ ${fcIdx + 1}/${fcDeck.length}</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:600;">Thẻ ${fcIdx + 1}/${fcDeck.length} · ${fcFlipped ? "Đáp án" : "Mặt trước"}</span>
       </div>
       <div class="fc-word">${escapeHtml(card.title)}</div>
       ${fcFlipped ? `
         ${cleanSub ? `<div class="fc-reading">${escapeHtml(cleanSub)}</div>` : ""}
         ${cleanNote ? `<div class="fc-meaning">${escapeHtml(cleanNote)}</div>` : ""}
+        ${!hasBackInfo ? `<div class="fc-meaning" style="color:var(--muted);font-size:13.5px;">Chưa có ghi chú nghĩa — bấm Mazii bên dưới để tra nhanh.</div>` : ""}
         <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:16px;">${escapeHtml(card.session || "")}</div>
       ` : `<div style="font-size:13px;color:var(--muted);text-align:center;margin-top:6px;">Tự nhẩm cách đọc và nghĩa tiếng Việt</div>`}
     `;
@@ -1228,19 +1433,40 @@ function renderFlashcardView() {
       ${filterBar}
       <div class="fc-card" onclick="flipFlashcard()">${bodyHtml}</div>
       <div class="fc-controls">
-        <button class="btn" onclick="stepFlashcard(-1)" ${fcIdx <= 0 ? "disabled" : ""}>Trước</button>
-        ${speakText ? `<button class="btn" onclick='speakJapanese(${JSON.stringify(speakText)})'>${ICONS.volume}<span>Nghe</span></button>` : ""}
+        <button class="btn" onclick="stepFlashcard(-1)">Trước</button>
+        ${speakText ? `<button class="btn" onclick="speakCurrentFlashcard()">${ICONS.volume}<span>Nghe</span></button>` : ""}
         ${!isQ ? `<a class="mazii-link" href="${maziiUrl(card.title)}" target="_blank" rel="noopener" title="Tra từ trên Mazii">Mazii</a>` : ""}
         <button class="btn btn-primary" onclick="flipFlashcard()">${fcFlipped ? "Úp thẻ" : "Lật xem đáp án"}</button>
         <button class="btn" onclick="markFlashcardAgain()" style="border-color:var(--vermilion);color:var(--vermilion);" title="Đưa thẻ này lặp lại sau 3 thẻ">Chưa thuộc (lặp lại)</button>
         <button class="btn btn-active-matcha" onclick="markFlashcardMastered()" title="Đánh dấu đã thuộc và ẩn khỏi vòng ôn">${ICONS.check}<span>${isMastered ? "Bỏ đã thuộc" : "Đã thuộc"}</span></button>
-        <button class="btn" onclick="stepFlashcard(1)" ${fcIdx >= fcDeck.length - 1 ? "disabled" : ""}>Tiếp</button>
+        ${isBookmarked ? `<button class="btn" onclick="removeFlashcardFromBookmark()" style="border-color:var(--gold);color:var(--gold);" title="Bỏ thẻ này khỏi Sổ tay Bookmark sau khi học xong">${ICONS.starFill}<span>Bỏ Bookmark</span></button>` : ""}
+        <button class="btn" onclick="stepFlashcard(1)">Tiếp</button>
       </div>
     </div>
   `;
 }
 
-function toggleShowMastered() { fcConfig.showMastered = !fcConfig.showMastered; buildFlashcardDeck(); renderFlashcardView(); }
+function toggleShowMastered() { stopFlashcardAutoplay(true); fcConfig.showMastered = !fcConfig.showMastered; buildFlashcardDeck(); renderFlashcardView(); }
+
+function removeFlashcardFromBookmark() {
+  const card = fcDeck[fcIdx];
+  if (!card || !bmState.items[card.id]) return;
+  const wasPlaying = fcAutoPlaying;
+  if (wasPlaying) stopFlashcardAutoplay(true);
+
+  delete bmState.items[card.id];
+  bmState.deleted[card.id] = new Date().toISOString();
+  onBookmarksChanged();
+
+  if (fcConfig.source !== "cheatsheet") {
+    fcDeck.splice(fcIdx, 1);
+    if (fcIdx >= fcDeck.length) fcIdx = Math.max(0, fcDeck.length - 1);
+  }
+  fcFlipped = false;
+  showToast("Đã bỏ khỏi Bookmark");
+  renderFlashcardView();
+}
+
 function markFlashcardMastered() {
   const card = fcDeck[fcIdx]; if (!card) return;
   if (masteredIds.has(card.id)) {
@@ -1251,7 +1477,7 @@ function markFlashcardMastered() {
     setFlagState(masteredMap, card.id, true);
     saveMasteredIds();
     if (!fcConfig.showMastered) fcDeck.splice(fcIdx, 1);
-    else fcIdx = Math.min(fcIdx + 1, fcDeck.length - 1);
+    else if (fcDeck.length > 1) fcIdx = (fcIdx + 1) % fcDeck.length;
     showToast("Đã đánh dấu thuộc");
   }
   fcFlipped = false;
@@ -1285,7 +1511,7 @@ function stopFlashcardAutoplay(silent = false) {
   fcAutoRunId++;
   fcAutoStatus = "";
   clearTimeout(fcAutoTimer);
-  if ("speechSynthesis" in window) { try { window.speechSynthesis.cancel(); } catch {} }
+  stopJapaneseSpeech();
   if (fcWakeLock) { try { fcWakeLock.release(); } catch {} fcWakeLock = null; }
   if (!silent && currentTab === "flashcard") renderFlashcardView();
 }
@@ -1305,40 +1531,47 @@ async function toggleFlashcardAutoplay() {
   }
   if (!fcDeck.length) { showToast("Chưa có thẻ để phát"); return; }
 
+  // Unlock HTMLAudioElement synchronously inside the user's click gesture (critical for iOS/Android/Chrome)
+  unlockTtsAudio();
+
   fcAutoPlaying = true;
   const runId = ++fcAutoRunId;
   if (navigator.wakeLock?.request) {
-    try { fcWakeLock = await navigator.wakeLock.request("screen"); } catch {}
+    navigator.wakeLock.request("screen").then(wl => {
+      if (fcAutoPlaying && fcAutoRunId === runId) fcWakeLock = wl;
+      else try { wl.release(); } catch {}
+    }).catch(() => {});
   }
 
   while (fcAutoPlaying && fcAutoRunId === runId && currentTab === "flashcard" && fcDeck.length) {
-    if (fcIdx >= fcDeck.length) fcIdx = 0;
+    if (fcIdx >= fcDeck.length || fcIdx < 0) fcIdx = 0;
     const card = fcDeck[fcIdx];
     const isQ = card.kind === "question";
-    const fullQ = isQ ? findStudyItemById(card.id) : null;
-    const speakText = isQ ? (fullQ?.jpText || card.sub || "") : card.title;
+    const speakText = getFlashcardSpeakText(card);
+    const singleNote = fcDeck.length === 1 ? " (bộ chỉ có 1 thẻ)" : "";
 
-    // 1. Mặt trước + đọc tiếng Nhật
+    // 1. Mặt trước + đọc tiếng Nhật bản xứ
     fcFlipped = false;
-    fcAutoStatus = `Thẻ ${fcIdx + 1}/${fcDeck.length} — Đang đọc tiếng Nhật...`;
+    fcAutoStatus = `Thẻ ${fcIdx + 1}/${fcDeck.length}${singleNote} — Đang đọc tiếng Nhật...`;
     renderFlashcardView();
     if (speakText) await speakJapaneseAsync(speakText);
-    if (!fcAutoPlaying || fcAutoRunId !== runId) break;
+    if (!fcAutoPlaying || fcAutoRunId !== runId || currentTab !== "flashcard") break;
 
-    // 2. Dừng cho người học tự nhẩm
-    fcAutoStatus = `Thẻ ${fcIdx + 1}/${fcDeck.length} — Tự nhẩm (${fcConfig.delaySec}s)...`;
-    renderFlashcardView();
+    // 2. Dừng cho người học tự nhẩm (cập nhật text tại chỗ, không chớp DOM)
+    updateFcAutoStatusText(`Thẻ ${fcIdx + 1}/${fcDeck.length}${singleNote} — Tự nhẩm (${fcConfig.delaySec}s)...`);
     if (!(await sleepFc(fcConfig.delaySec * 1000, runId))) break;
+    if (!fcAutoPlaying || fcAutoRunId !== runId || currentTab !== "flashcard") break;
 
-    // 3. Tự lật mặt sau + nhắc lại âm đọc 1 lần nữa
+    // 3. Tự động lật mặt sau hiện đáp án & nghĩa + nhắc lại âm đọc
     fcFlipped = true;
-    fcAutoStatus = `Thẻ ${fcIdx + 1}/${fcDeck.length} — Đang hiện đáp án & nghĩa`;
+    fcAutoStatus = `Thẻ ${fcIdx + 1}/${fcDeck.length}${singleNote} — Đang hiện đáp án & nghĩa`;
     renderFlashcardView();
     if (speakText && !isQ) await speakJapaneseAsync(speakText);
-    if (!fcAutoPlaying || fcAutoRunId !== runId) break;
+    if (!fcAutoPlaying || fcAutoRunId !== runId || currentTab !== "flashcard") break;
     if (!(await sleepFc((fcConfig.delaySec + 1.5) * 1000, runId))) break;
+    if (!fcAutoPlaying || fcAutoRunId !== runId || currentTab !== "flashcard") break;
 
-    // 4. Chuyển sang thẻ tiếp theo (quay vòng khi hết bộ)
+    // 4. Tự động chuyển sang thẻ tiếp theo (quay vòng khi hết bộ)
     fcIdx = (fcIdx + 1) % fcDeck.length;
   }
   if (fcAutoRunId === runId) stopFlashcardAutoplay(false);
@@ -1346,7 +1579,17 @@ async function toggleFlashcardAutoplay() {
 
 function switchFlashcardSource(s) { stopFlashcardAutoplay(true); fcConfig.source = s; buildFlashcardDeck(); renderFlashcardView(); }
 function flipFlashcard() { fcFlipped = !fcFlipped; renderFlashcardView(); }
-function stepFlashcard(d) { stopFlashcardAutoplay(true); const n = fcIdx + d; if (n >= 0 && n < fcDeck.length) { fcIdx = n; fcFlipped = false; renderFlashcardView(); } }
+function stepFlashcard(d) {
+  stopFlashcardAutoplay(true);
+  if (!fcDeck.length) return;
+  if (fcDeck.length === 1) {
+    showToast("Bộ thẻ hiện chỉ có 1 thẻ — chuyển nguồn Cheat Sheet hoặc thêm Bookmark để ôn nhiều hơn");
+    return;
+  }
+  fcIdx = (fcIdx + d + fcDeck.length) % fcDeck.length;
+  fcFlipped = false;
+  renderFlashcardView();
+}
 function shuffleFlashcards() { stopFlashcardAutoplay(true); fcDeck = shuffleArray(fcDeck); fcIdx = 0; fcFlipped = false; renderFlashcardView(); showToast("Đã xáo trộn bộ thẻ"); }
 
 // ==================== EXAM ENGINE (DAY FILTER, STAR FILTER, COUNTDOWN, HISTORY) ====================
@@ -1967,7 +2210,7 @@ function initFirebase() {
           syncBookmarkBadgesOnly();
           if (STUDY_TABS.includes(currentTab)) renderCurrentView(true);
           else if (currentTab === "exam" && !examSession) renderExamView();
-          else if (currentTab === "flashcard") { buildFlashcardDeck(); renderFlashcardView(); }
+          else if (currentTab === "flashcard" && !fcAutoPlaying) { buildFlashcardDeck(true); renderFlashcardView(); }
           isApplyingRemote = false;
 
           if (!data.doneMap || Object.keys(mergedBm.items).length !== Object.keys(remoteBm.items || {}).length) {
