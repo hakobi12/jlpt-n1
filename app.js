@@ -1784,50 +1784,65 @@ function renderFlashcardView() {
   const isMastered = masteredIds.has(card.id);
   const isBookmarked = !!bmState.items[card.id];
 
+  const topToolsHtml = `
+    <div class="fc-card-tools" onclick="event.stopPropagation()">
+      ${speakText ? `<button type="button" class="btn" onclick="event.stopPropagation(); speakCurrentFlashcard();" title="Nghe phát âm tiếng Nhật">${ICONS.volume}<span>Nghe</span></button>` : ""}
+      ${!isQ ? `<a class="mazii-link" href="${maziiUrl(card.title)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Tra từ trên Mazii">Mazii</a>` : ""}
+      ${isBookmarked ? `<button type="button" class="btn" onclick="event.stopPropagation(); removeFlashcardFromBookmark();" style="border-color:var(--gold);color:var(--gold);" title="Bỏ thẻ này khỏi Sổ tay Bookmark sau khi học xong">${ICONS.starFill}<span>Bỏ BM</span></button>` : ""}
+    </div>
+  `;
+
   let bodyHtml = "";
   if (isQ && fullQ) {
     bodyHtml = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
-        <span class="tag-pill">BÀI TẬP · ${escapeHtml(fullQ.shortLabel)}</span>
-        <span style="font-size:12px;color:var(--muted);font-weight:600;">Thẻ ${fcIdx + 1}/${fcDeck.length} · ${fcFlipped ? "Mặt sau (Đáp án)" : "Mặt trước · Bấm thẻ hoặc Space"}</span>
+      <div class="fc-card-top">
+        <div class="fc-card-meta">
+          <span class="tag-pill">BÀI TẬP · ${escapeHtml(fullQ.shortLabel)}</span>
+          <span style="font-size:12px;color:var(--muted);font-weight:600;">Thẻ ${fcIdx + 1}/${fcDeck.length} · ${fcFlipped ? "Đáp án" : "Mặt trước"}</span>
+        </div>
+        ${topToolsHtml}
       </div>
-      <div class="jp-prompt" style="margin-bottom:8px;">${fullQ.promptHtml}</div>
-      ${fcFlipped
-        ? `<div class="fc-answer-reveal" style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--border-strong);">${fullQ.answerHtml}</div>`
-        : `<div style="font-size:13px;color:var(--muted);text-align:center;margin-top:12px;">Tự chọn đáp án 1–4 rồi bấm vào thẻ để kiểm tra lời giải</div>`}
+      <div class="fc-card-main">
+        <div class="jp-prompt" style="margin-bottom:8px;">${fullQ.promptHtml}</div>
+        ${fcFlipped
+          ? `<div class="fc-answer-reveal" style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--border-strong);">${fullQ.answerHtml}</div>`
+          : `<div style="font-size:13px;color:var(--muted);text-align:center;margin-top:12px;">Tự chọn đáp án 1–4 rồi bấm vào thẻ để kiểm tra lời giải</div>`}
+      </div>
     `;
   } else {
     const cleanSub = (card.sub || "").replace(/<[^>]+>/g, "").trim();
     const cleanNote = (card.note || "").replace(/<[^>]+>/g, "").trim();
     const hasBackInfo = !!(cleanSub || cleanNote);
     bodyHtml = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <span class="tag-pill word">TỪ VỰNG</span>
-        <span style="font-size:12px;color:var(--muted);font-weight:600;">Thẻ ${fcIdx + 1}/${fcDeck.length} · ${fcFlipped ? "Đáp án" : "Mặt trước"}</span>
+      <div class="fc-card-top">
+        <div class="fc-card-meta">
+          <span class="tag-pill word">TỪ VỰNG</span>
+          <span style="font-size:12px;color:var(--muted);font-weight:600;">Thẻ ${fcIdx + 1}/${fcDeck.length} · ${fcFlipped ? "Đáp án" : "Mặt trước"}</span>
+        </div>
+        ${topToolsHtml}
       </div>
-      <div class="fc-word">${escapeHtml(card.title)}</div>
-      ${fcFlipped ? `
-        ${cleanSub ? `<div class="fc-reading">${escapeHtml(cleanSub)}</div>` : ""}
-        ${cleanNote ? `<div class="fc-meaning">${escapeHtml(cleanNote)}</div>` : ""}
-        ${!hasBackInfo ? `<div class="fc-meaning" style="color:var(--muted);font-size:13.5px;">Chưa có ghi chú nghĩa — bấm Mazii bên dưới để tra nhanh.</div>` : ""}
-        <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:16px;">${escapeHtml(card.session || "")}</div>
-      ` : `<div style="font-size:13px;color:var(--muted);text-align:center;margin-top:6px;">Tự nhẩm cách đọc và nghĩa tiếng Việt</div>`}
+      <div class="fc-card-main">
+        <div class="fc-word">${escapeHtml(card.title)}</div>
+        ${fcFlipped ? `
+          ${cleanSub ? `<div class="fc-reading">${escapeHtml(cleanSub)}</div>` : ""}
+          ${cleanNote ? `<div class="fc-meaning">${escapeHtml(cleanNote)}</div>` : ""}
+          ${!hasBackInfo ? `<div class="fc-meaning" style="color:var(--muted);font-size:13.5px;">Chưa có ghi chú nghĩa — bấm Mazii ở góc trên để tra nhanh.</div>` : ""}
+          <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:16px;">${escapeHtml(card.session || "")}</div>
+        ` : `<div style="font-size:13px;color:var(--muted);text-align:center;margin-top:6px;">Tự nhẩm cách đọc và nghĩa tiếng Việt · Bấm vào thẻ để lật</div>`}
+      </div>
     `;
   }
 
   root.innerHTML = `
     <div class="fc-wrap">
       ${filterBar}
-      <div class="fc-card" onclick="flipFlashcard()">${bodyHtml}</div>
+      <div class="fc-card" onclick="flipFlashcard(event)">${bodyHtml}</div>
       <div class="fc-controls">
-        <button class="btn" onclick="stepFlashcard(-1)">Trước</button>
-        ${speakText ? `<button class="btn" onclick="speakCurrentFlashcard()">${ICONS.volume}<span>Nghe</span></button>` : ""}
-        ${!isQ ? `<a class="mazii-link" href="${maziiUrl(card.title)}" target="_blank" rel="noopener" title="Tra từ trên Mazii">Mazii</a>` : ""}
-        <button class="btn btn-primary" onclick="flipFlashcard()">${fcFlipped ? "Úp thẻ" : "Lật xem đáp án"}</button>
-        <button class="btn" onclick="markFlashcardAgain()" style="border-color:var(--vermilion);color:var(--vermilion);" title="Đưa thẻ này lặp lại sau 3 thẻ">Chưa thuộc (lặp lại)</button>
-        <button class="btn btn-active-matcha" onclick="markFlashcardMastered()" title="Đánh dấu đã thuộc và ẩn khỏi vòng ôn">${ICONS.check}<span>${isMastered ? "Bỏ đã thuộc" : "Đã thuộc"}</span></button>
-        ${isBookmarked ? `<button class="btn" onclick="removeFlashcardFromBookmark()" style="border-color:var(--gold);color:var(--gold);" title="Bỏ thẻ này khỏi Sổ tay Bookmark sau khi học xong">${ICONS.starFill}<span>Bỏ Bookmark</span></button>` : ""}
-        <button class="btn" onclick="stepFlashcard(1)">Tiếp</button>
+        <button type="button" class="btn fc-btn-prev" onclick="stepFlashcard(-1)">← Trước</button>
+        <button type="button" class="btn btn-primary fc-btn-flip" onclick="flipFlashcard()">${fcFlipped ? "Úp thẻ" : "Lật đáp án"}</button>
+        <button type="button" class="btn fc-btn-again" onclick="markFlashcardAgain()" style="border-color:var(--vermilion);color:var(--vermilion);" title="Đưa thẻ này lặp lại sau 3 thẻ">Chưa thuộc</button>
+        <button type="button" class="btn btn-active-matcha fc-btn-master" onclick="markFlashcardMastered()" title="Đánh dấu đã thuộc và ẩn khỏi vòng ôn">${ICONS.check}<span>${isMastered ? "Bỏ thuộc" : "Đã thuộc"}</span></button>
+        <button type="button" class="btn fc-btn-next" onclick="stepFlashcard(1)">Tiếp →</button>
       </div>
     </div>
   `;
@@ -1838,8 +1853,7 @@ function toggleShowMastered() { stopFlashcardAutoplay(true); fcConfig.showMaster
 function removeFlashcardFromBookmark() {
   const card = fcDeck[fcIdx];
   if (!card || !bmState.items[card.id]) return;
-  const wasPlaying = fcAutoPlaying;
-  if (wasPlaying) stopFlashcardAutoplay(true);
+  if (fcAutoPlaying) stopFlashcardAutoplay(true);
 
   delete bmState.items[card.id];
   bmState.deleted[card.id] = new Date().toISOString();
@@ -1856,6 +1870,7 @@ function removeFlashcardFromBookmark() {
 
 function markFlashcardMastered() {
   const card = fcDeck[fcIdx]; if (!card) return;
+  if (fcAutoPlaying) stopFlashcardAutoplay(true);
   if (masteredIds.has(card.id)) {
     setFlagState(masteredMap, card.id, false);
     saveMasteredIds();
@@ -1873,6 +1888,7 @@ function markFlashcardMastered() {
 }
 function markFlashcardAgain() {
   const card = fcDeck[fcIdx]; if (!card) return;
+  if (fcAutoPlaying) stopFlashcardAutoplay(true);
   setFlagState(masteredMap, card.id, false);
   saveMasteredIds();
   fcDeck.splice(fcIdx, 1);
@@ -1966,7 +1982,11 @@ async function toggleFlashcardAutoplay() {
 }
 
 function switchFlashcardSource(s) { stopFlashcardAutoplay(true); fcConfig.source = s; buildFlashcardDeck(); renderFlashcardView(); }
-function flipFlashcard() { fcFlipped = !fcFlipped; renderFlashcardView(); }
+function flipFlashcard(ev) {
+  if (ev && ev.target && ev.target.closest("a, button, input, textarea, select")) return;
+  fcFlipped = !fcFlipped;
+  renderFlashcardView();
+}
 function stepFlashcard(d) {
   stopFlashcardAutoplay(true);
   if (!fcDeck.length) return;
@@ -2598,7 +2618,12 @@ function initFirebase() {
           syncBookmarkBadgesOnly();
           if (STUDY_TABS.includes(currentTab)) renderCurrentView(true);
           else if (currentTab === "exam" && !examSession) renderExamView();
-          else if (currentTab === "flashcard" && !fcAutoPlaying) { buildFlashcardDeck(true); renderFlashcardView(); }
+          else if (currentTab === "flashcard" && !fcAutoPlaying) {
+            const prevSig = fcDeck.map(c => c.id).join("|") + "::" + Object.keys(bmState.items).length + "::" + masteredIds.size;
+            buildFlashcardDeck(true);
+            const nextSig = fcDeck.map(c => c.id).join("|") + "::" + Object.keys(bmState.items).length + "::" + masteredIds.size;
+            if (prevSig !== nextSig) renderFlashcardView();
+          }
           isApplyingRemote = false;
 
           if (!data.doneMap || Object.keys(mergedBm.items).length !== Object.keys(remoteBm.items || {}).length) {

@@ -579,6 +579,11 @@
   .fc-wrap {
     max-width: 780px;
     margin: 0 auto;
+    user-select: none;
+  }
+  .fc-wrap button, .fc-wrap a, .fc-card {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   .fc-toolbar {
     display: flex;
@@ -593,16 +598,48 @@
     border: 1px solid var(--border-strong);
     border-top: 3px solid var(--vermilion);
     border-radius: 10px;
-    padding: 28px 28px;
+    padding: 18px 24px 26px;
     min-height: 290px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     cursor: pointer;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
     transition: border-color 0.16s, background 0.16s;
   }
   .fc-card:hover { border-color: var(--vermilion); }
+  .fc-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .fc-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .fc-card-tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .fc-card-tools .btn {
+    padding: 4px 9px;
+    font-size: 12px;
+    min-height: 30px;
+  }
+  .fc-card-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
   .fc-word {
     font-family: var(--font-serif);
     font-size: 34px;
@@ -610,6 +647,7 @@
     color: var(--ink);
     text-align: center;
     margin: 10px 0;
+    user-select: text;
   }
   .fc-reading {
     font-size: 17px;
@@ -617,6 +655,7 @@
     color: var(--vermilion);
     text-align: center;
     margin-bottom: 6px;
+    user-select: text;
   }
   .fc-meaning {
     font-size: 15.5px;
@@ -624,12 +663,31 @@
     text-align: center;
     max-width: 560px;
     margin: 0 auto;
+    user-select: text;
   }
   .fc-controls {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto;
+    align-items: center;
+    gap: 8px;
+  }
+  .fc-controls .btn {
     justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    white-space: nowrap;
+    min-height: 40px;
+    padding: 7px 14px;
+  }
+  @media (max-width: 680px) {
+    .fc-card { padding: 14px 16px 20px; min-height: 250px; }
+    .fc-word { font-size: 28px; }
+    .fc-controls {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+    .fc-controls .fc-btn-prev { grid-column: 1; grid-row: 1; }
+    .fc-controls .fc-btn-flip { grid-column: 2; grid-row: 1; }
+    .fc-controls .fc-btn-next { grid-column: 3; grid-row: 1; }
+    .fc-controls .fc-btn-again { grid-column: 1 / span 2; grid-row: 2; }
+    .fc-controls .fc-btn-master { grid-column: 3; grid-row: 2; }
   }
 
   /* ==================== EXAM MODE (2-COLUMN EDITORIAL) ==================== */
