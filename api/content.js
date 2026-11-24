@@ -43,13 +43,16 @@ function countArticles(mdText) {
   return (mdText.match(/^### /gm) || []).length;
 }
 
-async function verifyFirebaseIdToken(idToken, apiKey) {
+async function verifyFirebaseIdToken(idToken, apiKey, referer) {
   if (!idToken || !apiKey) return null;
   const res = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(apiKey)}`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Referer": referer || "https://hocn1.vercel.app/"
+      },
       body: JSON.stringify({ idToken })
     }
   );
@@ -102,13 +105,15 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  const referer = process.env.DRIVE_REFERER || "https://hocn1.vercel.app/";
+
   // 1. Verify optional Firebase ID Token
   let authInfo = { access: "preview", status: "guest", role: "guest", email: "" };
   const authHeader = req.headers.authorization || "";
   const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
 
   if (idToken) {
-    const user = await verifyFirebaseIdToken(idToken, firebaseApiKey);
+    const user = await verifyFirebaseIdToken(idToken, firebaseApiKey, referer);
     if (user) {
       const member = await checkMemberStatus(user.email, idToken);
       authInfo = { ...member, email: user.email };
@@ -119,7 +124,6 @@ module.exports = async function handler(req, res) {
   try {
     const files = {};
     const totalCounts = {};
-    const referer = process.env.DRIVE_REFERER || "https://hocn1.vercel.app/";
 
     await Promise.all(
       Object.entries(driveFiles).map(async ([tabId, fileId]) => {
