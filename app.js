@@ -587,27 +587,53 @@ function splitBilingualSegments(rawText) {
   return finalSegs;
 }
 
-function extractCardReadableSegments(cardEl, fallbackTitle) {
-  if (!cardEl) return [];
-  const body = cardEl.querySelector(".card-body");
-  if (!body) return splitBilingualSegments(fallbackTitle || "");
-  const clone = body.cloneNode(true);
+function extractCleanBlocksFromContainer(containerEl) {
+  if (!containerEl) return [];
+  const clone = containerEl.cloneNode(true);
   clone.querySelectorAll("button, .inline-quiz-bar, .note-box, .toggle-ans-btn, .mazii-link, .pill-star, .bm-btn, .tts-btn, .sr-only, script, style").forEach(el => el.remove());
 
   const blocks = [];
-  if (fallbackTitle) blocks.push(fallbackTitle);
   const blockEls = clone.querySelectorAll("h2, h3, h4, p, li, tr, blockquote");
   if (blockEls.length) {
     blockEls.forEach(el => {
-      // Avoid duplicating nested elements (e.g., p inside li or blockquote)
       if (el.closest("li") && el.tagName !== "LI") return;
       if (el.closest("tr") && el.tagName !== "TR") return;
-      const txt = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
-      if (txt) blocks.push(txt);
+      if (el.closest("blockquote") && el.tagName !== "BLOCKQUOTE") return;
+      let txt = "";
+      if (el.tagName === "TR") {
+        const cells = Array.from(el.querySelectorAll("th, td"))
+          .map(c => (c.textContent || "").replace(/\s+/g, " ").trim())
+          .filter(Boolean);
+        txt = cells.join(" — ");
+      } else {
+        txt = (el.textContent || "").replace(/\s+/g, " ").trim();
+      }
+      if (txt && !/^[-–—:|]+$/.test(txt)) blocks.push(txt);
     });
   } else {
-    const txt = (clone.innerText || clone.textContent || "").replace(/\s+/g, " ").trim();
+    const txt = (clone.textContent || "").replace(/\s+/g, " ").trim();
     if (txt) blocks.push(txt);
+  }
+  return blocks;
+}
+
+function extractCardReadableSegments(cardEl, fallbackTitle, includeSessionHeading = "") {
+  if (!cardEl) return [];
+  const blocks = [];
+  if (includeSessionHeading) blocks.push(includeSessionHeading);
+  if (fallbackTitle) blocks.push(fallbackTitle);
+
+  const promptEl = cardEl.querySelector(".jp-prompt");
+  const answerEl = cardEl.querySelector(".q-answer");
+
+  if (promptEl || answerEl) {
+    if (promptEl) blocks.push(...extractCleanBlocksFromContainer(promptEl));
+    if (answerEl) blocks.push(...extractCleanBlocksFromContainer(answerEl));
+  } else {
+    // Fallback: clone entire card minus head & note-box
+    const clone = cardEl.cloneNode(true);
+    clone.querySelectorAll(".card-head, .note-box, .inline-quiz-bar, .toggle-ans-btn, button").forEach(el => el.remove());
+    blocks.push(...extractCleanBlocksFromContainer(clone));
   }
 
   const allSegs = [];
@@ -616,6 +642,14 @@ function extractCardReadableSegments(cardEl, fallbackTitle) {
     for (const s of segs) allSegs.push(s);
   }
   return allSegs;
+}
+
+function isTocOrIntroCard(cardEl) {
+  const title = (cardEl?.querySelector(".card-title")?.textContent || "").toLowerCase();
+  const sess = (cardEl?.dataset?.session || "").toLowerCase();
+  if (title.includes("mục lục") || title.includes("muc luc") || title.includes("tổng quan khóa") || title.includes("hướng dẫn")) return true;
+  if (!cardEl?.dataset?.qId && (sess.includes("tổng quan") || title === "tổng quan buổi học") && !cardEl.querySelector(".jp-prompt")) return true;
+  return false;
 }
 
 function updateStudyAudioBarUI({ open = true, lang = "ja", title = "", snippet = "" } = {}) {
@@ -694,12 +728,13 @@ function stopStudyReader(silent = false) {
   if (!silent && wasPlaying) showToast("Đã dừng đọc toàn bài");
 }
 
+let studyReaderQueue = [];
+let studyReaderQueuePos = 0;
+
 function stepStudyReader(delta) {
-  if (!studyReaderPlaying) return;
-  const cards = document.querySelectorAll("#stageRoot .study-card");
-  if (!cards.length) return;
-  const nextIdx = Math.max(0, Math.min(cards.length - 1, studyReaderCardIdx + delta));
-  startStudyReader(nextIdx);
+  if (!studyReaderPlaying || !studyReaderQueue.length) return;
+  const nextPos = Math.max(0, Math.min(studyReaderQueue.length - 1, studyReaderQueuePos + delta));
+  runStudyReaderQueue(studyReaderQueue, nextPos);
 }
 
 function toggleStudyReader() {
@@ -707,21 +742,48 @@ function toggleStudyReader() {
     stopStudyReader(false);
     return;
   }
-  startStudyReader(0);
+  const allCards = Array.from(document.querySelectorAll("#stageRoot .study-card"));
+  const contentCards = allCards.filter(c => !isTocOrIntroCard(c));
+  const queue = contentCards.length ? contentCards : allCards;
+  if (!queue.length) { showToast("Chưa có bài học để đọc"); return; }
+  runStudyReaderQueue(queue, 0);
 }
 
-async function startStudyReader(startIdx = 0) {
-  const cards = Array.from(document.querySelectorAll("#stageRoot .study-card"));
-  if (!cards.length) { showToast("Chưa có bài học để đọc"); return; }
+function startStudyReaderSession(sessionTitle) {
+  const allCards = Array.from(document.querySelectorAll("#stageRoot .study-card"));
+  const sessCards = allCards.filter(c => (c.dataset.session || "") === sessionTitle && !isTocOrIntroCard(c));
+  const queue = sessCards.length ? sessCards : allCards.filter(c => (c.dataset.session || "") === sessionTitle);
+  if (!queue.length) { showToast("Không tìm thấy nội dung trong buổi này"); return; }
+  runStudyReaderQueue(queue, 0);
+}
+
+function startStudyReaderSingle(cardIdx) {
+  const cardEl = document.getElementById("list-item-" + cardIdx);
+  if (!cardEl) return;
+  runStudyReaderQueue([cardEl], 0);
+}
+
+function startStudyReader(startIdx = 0) {
+  const allCards = Array.from(document.querySelectorAll("#stageRoot .study-card"));
+  if (!allCards.length) { showToast("Chưa có bài học để đọc"); return; }
+  const startEl = document.getElementById("list-item-" + startIdx) || allCards[0];
+  const fromIdx = Math.max(0, allCards.indexOf(startEl));
+  const queue = allCards.slice(fromIdx).filter((c, i) => i === 0 || !isTocOrIntroCard(c));
+  runStudyReaderQueue(queue, 0);
+}
+
+async function runStudyReaderQueue(queue, startPos = 0) {
+  if (!queue || !queue.length) { showToast("Chưa có bài học để đọc"); return; }
 
   stopFlashcardAutoplay(true);
   stopStudyReader(true);
   unlockTtsAudio();
 
+  studyReaderQueue = queue;
+  studyReaderQueuePos = Math.max(0, Math.min(startPos, queue.length - 1));
   studyReaderPlaying = true;
   studyReaderPaused = false;
   const runId = ++studyReaderRunId;
-  studyReaderCardIdx = Math.max(0, Math.min(startIdx, cards.length - 1));
   syncStudyReaderButtons();
 
   if (navigator.wakeLock?.request) {
@@ -731,17 +793,21 @@ async function startStudyReader(startIdx = 0) {
     }).catch(() => {});
   }
 
-  for (let i = studyReaderCardIdx; i < cards.length; i++) {
+  let lastAnnouncedSession = "";
+  for (let i = studyReaderQueuePos; i < queue.length; i++) {
     if (!studyReaderPlaying || studyReaderRunId !== runId || !STUDY_TABS.includes(currentTab)) break;
-    studyReaderCardIdx = i;
-    const cardEl = cards[i];
+    studyReaderQueuePos = i;
+    const cardEl = queue[i];
     const title = (cardEl.querySelector(".card-title")?.textContent || `Mục ${i + 1}`).trim();
+    const sessTitle = (cardEl.dataset.session || "").trim();
+    const announceSess = (sessTitle && sessTitle !== lastAnnouncedSession && queue.length > 1) ? sessTitle : "";
+    if (sessTitle) lastAnnouncedSession = sessTitle;
 
     clearReadingCardHighlights();
     cardEl.classList.add("is-reading-active");
     try { cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch {}
 
-    const segments = extractCardReadableSegments(cardEl, title);
+    const segments = extractCardReadableSegments(cardEl, title, announceSess);
     if (!segments.length) continue;
 
     for (let sIdx = 0; sIdx < segments.length; sIdx++) {
@@ -752,7 +818,7 @@ async function startStudyReader(startIdx = 0) {
       updateStudyAudioBarUI({
         open: true,
         lang: seg.lang,
-        title: `[${i + 1}/${cards.length}] ${title}`,
+        title: `[${i + 1}/${queue.length}] ${title}`,
         snippet: seg.text
       });
 
@@ -771,7 +837,7 @@ async function startStudyReader(startIdx = 0) {
   if (studyReaderRunId === runId) {
     const completed = studyReaderPlaying;
     stopStudyReader(true);
-    if (completed) showToast("Đã đọc xong toàn bộ bài học!");
+    if (completed) showToast("Đã đọc xong!");
   }
 }
 
@@ -1402,12 +1468,8 @@ function renderCurrentView(preserveScroll = false) {
         <button class="btn ${studyReaderPlaying ? "btn-active-vermilion" : "btn-indigo"}" id="studyReadAllBtn" onclick="toggleStudyReader()" style="font-size:12.5px;padding:5px 12px;">
           ${studyReaderPlaying ? ICONS.pause : ICONS.play}<span>${studyReaderPlaying ? "Dừng nghe toàn bài" : "Nghe toàn bài (Nhật + Việt)"}</span>
         </button>
-        <select onchange="setTtsVoice(this.value)" title="Chọn giọng đọc bản xứ (Nhật + Việt)" style="padding:4px 7px;border:1px solid var(--border-strong);border-radius:5px;background:var(--bg);color:var(--ink);font-size:12px;font-family:inherit;">
-          <option value="female" ${ttsVoice==='female'?'selected':''}>Nữ · Nanami / Hoài My</option>
-          <option value="male" ${ttsVoice==='male'?'selected':''}>Nam · Keita / Nam Minh</option>
-        </select>
       </div>
-      <span class="study-reader-hint">Tự đọc từ trên xuống: tiếng Nhật giọng bản xứ, tiếng Việt giọng Việt</span>
+      <span class="study-reader-hint">Tự bỏ qua mục lục · Đọc trọn nội dung tiếng Nhật → Đáp án → Phân biệt nhanh (đổi giọng Nam/Nữ trong Cài đặt)</span>
     </div>
   `;
   if (!preserveScroll && savedIdx > 0 && savedIdx < list.length && !onlyBookmarked && !onlyUndone && !onlyWrong && !(document.getElementById("searchInput")?.value || "").trim()) {
@@ -1426,7 +1488,7 @@ function renderCurrentView(preserveScroll = false) {
       lastSess = item.sessionTitle;
       const st = sessStats[lastSess];
       const progBadge = st && st.total
-        ? `<span class="sess-head-right"><span class="sess-prog">${st.done} / ${st.total} đã học</span><button class="sess-done-all-btn" onclick='markSessionDone(${JSON.stringify(lastSess)})' title="Đánh dấu xong / bỏ xong toàn bộ buổi này">${st.done === st.total ? "Bỏ xong buổi" : "✓ Xong cả buổi"}</button></span>`
+        ? `<span class="sess-head-right"><button class="sess-done-all-btn" onclick='startStudyReaderSession(${JSON.stringify(lastSess)})' title="Nghe trọn bộ các câu trong buổi này (Nhật + Việt)">▶ Nghe buổi này</button><span class="sess-prog">${st.done} / ${st.total} đã học</span><button class="sess-done-all-btn" onclick='markSessionDone(${JSON.stringify(lastSess)})' title="Đánh dấu xong / bỏ xong toàn bộ buổi này">${st.done === st.total ? "Bỏ xong buổi" : "✓ Xong cả buổi"}</button></span>`
         : "";
       html += `<h1 class="session-heading"><span>${escapeHtml(lastSess)}</span>${progBadge}</h1>`;
     }
@@ -1434,12 +1496,12 @@ function renderCurrentView(preserveScroll = false) {
     const isDone = doneIds.has(item.id);
     const noteText = getNoteText(item.id);
     html += `
-      <article class="study-card ${isBm ? 'is-bookmarked' : ''} ${isDone ? 'is-done' : ''}" id="list-item-${idx}" data-idx="${idx}" ${item.type === "question" ? `data-q-id="${escapeHtml(item.id)}"` : ""} data-bm-card="${escapeHtml(item.id)}">
+      <article class="study-card ${isBm ? 'is-bookmarked' : ''} ${isDone ? 'is-done' : ''}" id="list-item-${idx}" data-idx="${idx}" data-session="${escapeHtml(item.sessionTitle)}" ${item.type === "question" ? `data-q-id="${escapeHtml(item.id)}"` : ""} data-bm-card="${escapeHtml(item.id)}">
         <div class="card-head">
           <h2 class="card-title">${escapeHtml(item.shortLabel || item.title)}</h2>
           <div class="card-actions">
-            <button class="tts-btn" onclick="startStudyReader(${idx})" title="Đọc song ngữ Nhật + Việt liên tục từ mục này trở xuống">${ICONS.play}<span>Đọc từ đây</span></button>
-            ${item.jpText ? `<button class="tts-btn" onclick='speakJapanese(${JSON.stringify(item.jpText)})' title="Chỉ nghe câu tiếng Nhật">${ICONS.volume}<span>JP</span></button>` : ""}
+            <button class="tts-btn" onclick="startStudyReaderSingle(${idx})" title="Nghe trọn bài này (tiếng Nhật + đáp án + giải thích)">${ICONS.volume}<span>Nghe bài</span></button>
+            <button class="tts-btn" onclick="startStudyReader(${idx})" title="Đọc liên tục từ bài này đến hết tab">${ICONS.play}<span>Từ đây</span></button>
             ${item.type === "question" ? `
               <button class="note-btn ${noteText ? 'has-note' : ''}" id="note-btn-${idx}" onclick="toggleNoteBox(${idx})" title="Ghi chú mẹo nhớ cá nhân">
                 ${ICONS.note}<span>Ghi chú</span>
@@ -1689,10 +1751,6 @@ function renderFlashcardView() {
         <button class="btn ${fcAutoPlaying?'btn-active-vermilion':'btn-indigo'}" onclick="toggleFlashcardAutoplay()" style="font-size:12px;padding:4px 10px;" title="Nghe thụ động: tự đọc tiếng Nhật → chờ nhẩm → tự lật nghĩa → chuyển thẻ">
           ${fcAutoPlaying ? ICONS.pause : ICONS.play}<span>${fcAutoPlaying ? "Dừng phát" : "Nghe thụ động"}</span>
         </button>
-        <select onchange="setTtsVoice(this.value)" title="Chọn giọng đọc bản xứ (Neural)" style="padding:4px 6px;border:1px solid var(--border-strong);border-radius:5px;background:var(--surface);color:var(--ink);font-size:12px;font-family:inherit;">
-          <option value="female" ${ttsVoice==='female'?'selected':''}>Giọng Nữ · Nanami</option>
-          <option value="male" ${ttsVoice==='male'?'selected':''}>Giọng Nam · Keita</option>
-        </select>
         <select onchange="setFcDelaySec(this.value)" title="Thời gian dừng để tự nhẩm" style="padding:4px 6px;border:1px solid var(--border-strong);border-radius:5px;background:var(--surface);color:var(--ink);font-size:12px;font-family:inherit;">
           <option value="2" ${fcConfig.delaySec===2?'selected':''}>Nhẩm 2s</option>
           <option value="3" ${fcConfig.delaySec===3?'selected':''}>Nhẩm 3s</option>
