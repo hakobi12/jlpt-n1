@@ -359,22 +359,25 @@ function stopJapaneseSpeech() {
   }
 }
 
-function pickBestJapaneseVoice() {
+function pickBestVoiceForLang(lang = "ja") {
   if (!("speechSynthesis" in window)) return null;
   const voices = window.speechSynthesis.getVoices() || [];
-  const jaVoices = voices.filter(v => (v.lang || "").toLowerCase().startsWith("ja"));
-  if (!jaVoices.length) return null;
-  const preferred = ttsVoice === "male"
-    ? ["keita", "hattori", "ichiro", "otoya", "google 日本語", "natural"]
-    : ["nanami", "kyoko", "o-ren", "google 日本語", "haruka", "natural"];
+  const prefix = lang === "vi" ? "vi" : "ja";
+  const matched = voices.filter(v => (v.lang || "").toLowerCase().startsWith(prefix));
+  if (!matched.length) return null;
+  const preferred = lang === "vi"
+    ? (ttsVoice === "male" ? ["namminh", "an", "google", "natural"] : ["hoaimy", "linh", "google", "natural"])
+    : (ttsVoice === "male"
+      ? ["keita", "hattori", "ichiro", "otoya", "google 日本語", "natural"]
+      : ["nanami", "kyoko", "o-ren", "google 日本語", "haruka", "natural"]);
   for (const kw of preferred) {
-    const hit = jaVoices.find(v => (v.name || "").toLowerCase().includes(kw));
+    const hit = matched.find(v => (v.name || "").toLowerCase().includes(kw));
     if (hit) return hit;
   }
-  return jaVoices[0];
+  return matched[0];
 }
 
-function speakWithBrowserFallback(text, seq) {
+function speakWithBrowserFallback(text, seq, lang = "ja") {
   return new Promise((resolve) => {
     if (seq !== ttsSpeakSeq || !("speechSynthesis" in window)) { resolve(); return; }
     let settled = false;
@@ -391,9 +394,9 @@ function speakWithBrowserFallback(text, seq) {
     try {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = "ja-JP";
+      u.lang = lang === "vi" ? "vi-VN" : "ja-JP";
       u.rate = ttsRate;
-      const v = pickBestJapaneseVoice();
+      const v = pickBestVoiceForLang(lang);
       if (v) u.voice = v;
       u.onend = done;
       u.onerror = done;
@@ -402,19 +405,20 @@ function speakWithBrowserFallback(text, seq) {
   });
 }
 
-async function fetchNaturalTtsUrl(chunk) {
+async function fetchNaturalTtsUrl(chunk, lang = "ja") {
+  const safeLang = lang === "vi" ? "vi" : "ja";
   const voiceKey = ttsVoice === "male" ? "male" : "female";
-  const cacheKey = `${voiceKey}::${chunk}`;
+  const cacheKey = `${safeLang}::${voiceKey}::${chunk}`;
   if (ttsBlobCache.has(cacheKey)) return ttsBlobCache.get(cacheKey);
   if (!location.protocol.startsWith("http")) return null;
-  const res = await fetch(`/api/tts?q=${encodeURIComponent(chunk)}&voice=${voiceKey}`);
+  const res = await fetch(`/api/tts?q=${encodeURIComponent(chunk)}&lang=${safeLang}&voice=${voiceKey}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const ct = (res.headers.get("content-type") || "").toLowerCase();
   if (!ct.includes("audio")) throw new Error("Non-audio TTS response");
   const blob = await res.blob();
   if (!blob.size) throw new Error("Empty audio blob");
   const url = URL.createObjectURL(blob);
-  if (ttsBlobCache.size >= 80) {
+  if (ttsBlobCache.size >= 100) {
     const oldestKey = ttsBlobCache.keys().next().value;
     const oldestUrl = ttsBlobCache.get(oldestKey);
     ttsBlobCache.delete(oldestKey);
@@ -444,7 +448,7 @@ function playAudioUrlAsync(url, seq, estMs) {
       finish(false);
     };
     ttsCurrentCancel = cancelFn;
-    const guard = setTimeout(() => finish(false), Math.max(5000, estMs));
+    const guard = setTimeout(() => finish(false), Math.max(6000, estMs));
     a.onended = () => finish(false);
     a.onerror = () => finish(true);
     a.src = url;
@@ -454,8 +458,37 @@ function playAudioUrlAsync(url, seq, estMs) {
   });
 }
 
+async function speakSegmentAsync(text, lang = "ja") {
+  const safeLang = lang === "vi" ? "vi" : "ja";
+  const clean = String(text || "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/[★☆①②③④＿＿＿_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!clean) return;
+  stopJapaneseSpeech();
+  const seq = ttsSpeakSeq;
+
+  const chunks = clean.length <= 360 ? [clean] : splitJapaneseChunks(clean, 360);
+  for (const chunk of chunks) {
+    if (seq !== ttsSpeakSeq) return;
+    try {
+      const url = await fetchNaturalTtsUrl(chunk, safeLang);
+      if (seq !== ttsSpeakSeq) return;
+      if (url) {
+        await playAudioUrlAsync(url, seq, Math.round((chunk.length * 240 + 3000) / Math.max(0.6, ttsRate)));
+        continue;
+      }
+    } catch {
+      // Fallback to browser voice when offline or blocked
+    }
+    if (seq !== ttsSpeakSeq) return;
+    await speakWithBrowserFallback(chunk, seq, safeLang);
+  }
+}
+
 async function speakJapaneseAsync(text) {
-  const chunks = splitJapaneseChunks(text);
+  const chunks = splitJapaneseChunks(text, 380);
   if (!chunks.length) return;
   stopJapaneseSpeech();
   const seq = ttsSpeakSeq;
@@ -463,7 +496,7 @@ async function speakJapaneseAsync(text) {
   for (const chunk of chunks) {
     if (seq !== ttsSpeakSeq) return;
     try {
-      const url = await fetchNaturalTtsUrl(chunk);
+      const url = await fetchNaturalTtsUrl(chunk, "ja");
       if (seq !== ttsSpeakSeq) return;
       if (url) {
         await playAudioUrlAsync(url, seq, Math.round((chunk.length * 220 + 2500) / Math.max(0.6, ttsRate)));
@@ -473,13 +506,273 @@ async function speakJapaneseAsync(text) {
       // Fallback to best browser Japanese voice when offline or blocked
     }
     if (seq !== ttsSpeakSeq) return;
-    await speakWithBrowserFallback(chunk, seq);
+    await speakWithBrowserFallback(chunk, seq, "ja");
   }
 }
 
 function speakJapanese(text) {
+  stopStudyReader(true);
   unlockTtsAudio();
   speakJapaneseAsync(text);
+}
+
+// ==================== BILINGUAL FULL-ARTICLE CONTINUOUS READER (JP + VI) ====================
+let studyReaderPlaying = false;
+let studyReaderPaused = false;
+let studyReaderRunId = 0;
+let studyReaderCardIdx = 0;
+let studyReaderWakeLock = null;
+let studyReaderPauseResolve = null;
+
+function splitBilingualSegments(rawText) {
+  const cleaned = String(rawText || "")
+    .replace(/[★☆●•▪◆■▶▼※→←↔⇒⇔|]/g, " ")
+    .replace(/＿＿＿+|___+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return [];
+
+  // Match Japanese runs (Hiragana, Katakana, Kanji + Japanese punctuation) vs non-Japanese runs
+  const jpRunRe = /[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff][\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff\u3000-\u303f\uff01-\uff600-9\s・ー〜～「」『』（）【】、。！？]*/g;
+  const rawSegs = [];
+  let lastIdx = 0;
+  let m;
+  while ((m = jpRunRe.exec(cleaned)) !== null) {
+    if (m.index > lastIdx) {
+      const viPart = cleaned.slice(lastIdx, m.index).trim();
+      if (viPart) rawSegs.push({ lang: "vi", text: viPart });
+    }
+    const jpPart = m[0].trim();
+    if (jpPart) rawSegs.push({ lang: "ja", text: jpPart });
+    lastIdx = m.index + m[0].length;
+  }
+  if (lastIdx < cleaned.length) {
+    const tail = cleaned.slice(lastIdx).trim();
+    if (tail) rawSegs.push({ lang: "vi", text: tail });
+  }
+
+  // Filter pure punctuation/symbols and merge adjacent same-language segments
+  const merged = [];
+  for (const seg of rawSegs) {
+    const t = seg.text.replace(/^[\s\-–—:;,.()\[\]\/]+|[\s\-–—:;,()\[\]\/]+$/g, "").trim();
+    if (!t) continue;
+    // Skip tiny non-alphanumeric / non-JP fragments
+    if (!/[\u3040-\u30ff\u4e00-\u9fffA-Za-zÀ-ỹ0-9]/.test(t)) continue;
+    if (merged.length && merged[merged.length - 1].lang === seg.lang && (merged[merged.length - 1].text.length + t.length + 2) <= 340) {
+      merged[merged.length - 1].text += (seg.lang === "ja" ? "。" : ". ") + t;
+    } else {
+      merged.push({ lang: seg.lang, text: t });
+    }
+  }
+
+  // Ensure no segment exceeds 360 chars
+  const finalSegs = [];
+  for (const seg of merged) {
+    if (seg.text.length <= 360) {
+      finalSegs.push(seg);
+    } else {
+      const subParts = seg.text.split(/(?<=[。！？.!?\n])/).map(s => s.trim()).filter(Boolean);
+      let buf = "";
+      for (const p of subParts) {
+        if ((buf + " " + p).trim().length <= 360) {
+          buf = (buf ? buf + " " : "") + p;
+        } else {
+          if (buf) finalSegs.push({ lang: seg.lang, text: buf });
+          buf = p.slice(0, 360);
+        }
+      }
+      if (buf) finalSegs.push({ lang: seg.lang, text: buf });
+    }
+  }
+  return finalSegs;
+}
+
+function extractCardReadableSegments(cardEl, fallbackTitle) {
+  if (!cardEl) return [];
+  const body = cardEl.querySelector(".card-body");
+  if (!body) return splitBilingualSegments(fallbackTitle || "");
+  const clone = body.cloneNode(true);
+  clone.querySelectorAll("button, .inline-quiz-bar, .note-box, .toggle-ans-btn, .mazii-link, .pill-star, .bm-btn, .tts-btn, .sr-only, script, style").forEach(el => el.remove());
+
+  const blocks = [];
+  if (fallbackTitle) blocks.push(fallbackTitle);
+  const blockEls = clone.querySelectorAll("h2, h3, h4, p, li, tr, blockquote");
+  if (blockEls.length) {
+    blockEls.forEach(el => {
+      // Avoid duplicating nested elements (e.g., p inside li or blockquote)
+      if (el.closest("li") && el.tagName !== "LI") return;
+      if (el.closest("tr") && el.tagName !== "TR") return;
+      const txt = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
+      if (txt) blocks.push(txt);
+    });
+  } else {
+    const txt = (clone.innerText || clone.textContent || "").replace(/\s+/g, " ").trim();
+    if (txt) blocks.push(txt);
+  }
+
+  const allSegs = [];
+  for (const line of blocks) {
+    const segs = splitBilingualSegments(line);
+    for (const s of segs) allSegs.push(s);
+  }
+  return allSegs;
+}
+
+function updateStudyAudioBarUI({ open = true, lang = "ja", title = "", snippet = "" } = {}) {
+  const bar = document.getElementById("studyAudioBar");
+  if (!bar) return;
+  bar.classList.toggle("open", open);
+  if (!open) return;
+  const langEl = document.getElementById("studyAudioLang");
+  const titleEl = document.getElementById("studyAudioTitle");
+  const snipEl = document.getElementById("studyAudioSnippet");
+  const pauseBtn = document.getElementById("studyAudioPauseBtn");
+  if (langEl) {
+    langEl.textContent = lang === "vi" ? (ttsVoice === "male" ? "VI · Nam Minh" : "VI · Hoài My") : (ttsVoice === "male" ? "JP · Keita" : "JP · Nanami");
+    langEl.classList.toggle("vi", lang === "vi");
+  }
+  if (titleEl && title) titleEl.textContent = title;
+  if (snipEl && snippet) snipEl.textContent = snippet;
+  if (pauseBtn) pauseBtn.textContent = studyReaderPaused ? "Tiếp tục" : "Tạm dừng";
+}
+
+function syncStudyReaderButtons() {
+  const topBtn = document.getElementById("studyReadAllBtn");
+  if (topBtn) {
+    topBtn.className = `btn ${studyReaderPlaying ? "btn-active-vermilion" : "btn-indigo"}`;
+    topBtn.innerHTML = `${studyReaderPlaying ? ICONS.pause : ICONS.play}<span>${studyReaderPlaying ? "Dừng nghe toàn bài" : "Nghe toàn bài (Nhật + Việt)"}</span>`;
+  }
+}
+
+function clearReadingCardHighlights() {
+  document.querySelectorAll(".study-card.is-reading-active").forEach(el => el.classList.remove("is-reading-active"));
+}
+
+function waitIfStudyReaderPaused(runId) {
+  if (!studyReaderPaused) return Promise.resolve(studyReaderPlaying && studyReaderRunId === runId);
+  return new Promise(resolve => {
+    studyReaderPauseResolve = () => resolve(studyReaderPlaying && studyReaderRunId === runId);
+  });
+}
+
+function toggleStudyReaderPause() {
+  if (!studyReaderPlaying) return;
+  studyReaderPaused = !studyReaderPaused;
+  if (studyReaderPaused) {
+    if (ttsAudio) { try { ttsAudio.pause(); } catch {} }
+    if ("speechSynthesis" in window) { try { window.speechSynthesis.pause(); } catch {} }
+  } else {
+    if (ttsAudio && ttsAudio.src && ttsAudio.paused && !ttsAudio.ended) {
+      const p = ttsAudio.play();
+      if (p && p.catch) p.catch(() => {});
+    }
+    if ("speechSynthesis" in window) { try { window.speechSynthesis.resume(); } catch {} }
+    if (studyReaderPauseResolve) {
+      const fn = studyReaderPauseResolve;
+      studyReaderPauseResolve = null;
+      fn();
+    }
+  }
+  updateStudyAudioBarUI({ open: true });
+}
+
+function stopStudyReader(silent = false) {
+  const wasPlaying = studyReaderPlaying;
+  studyReaderPlaying = false;
+  studyReaderPaused = false;
+  studyReaderRunId++;
+  if (studyReaderPauseResolve) {
+    const fn = studyReaderPauseResolve;
+    studyReaderPauseResolve = null;
+    fn();
+  }
+  if (wasPlaying) stopJapaneseSpeech();
+  clearReadingCardHighlights();
+  if (studyReaderWakeLock) { try { studyReaderWakeLock.release(); } catch {} studyReaderWakeLock = null; }
+  updateStudyAudioBarUI({ open: false });
+  syncStudyReaderButtons();
+  if (!silent && wasPlaying) showToast("Đã dừng đọc toàn bài");
+}
+
+function stepStudyReader(delta) {
+  if (!studyReaderPlaying) return;
+  const cards = document.querySelectorAll("#stageRoot .study-card");
+  if (!cards.length) return;
+  const nextIdx = Math.max(0, Math.min(cards.length - 1, studyReaderCardIdx + delta));
+  startStudyReader(nextIdx);
+}
+
+function toggleStudyReader() {
+  if (studyReaderPlaying) {
+    stopStudyReader(false);
+    return;
+  }
+  startStudyReader(0);
+}
+
+async function startStudyReader(startIdx = 0) {
+  const cards = Array.from(document.querySelectorAll("#stageRoot .study-card"));
+  if (!cards.length) { showToast("Chưa có bài học để đọc"); return; }
+
+  stopFlashcardAutoplay(true);
+  stopStudyReader(true);
+  unlockTtsAudio();
+
+  studyReaderPlaying = true;
+  studyReaderPaused = false;
+  const runId = ++studyReaderRunId;
+  studyReaderCardIdx = Math.max(0, Math.min(startIdx, cards.length - 1));
+  syncStudyReaderButtons();
+
+  if (navigator.wakeLock?.request) {
+    navigator.wakeLock.request("screen").then(wl => {
+      if (studyReaderPlaying && studyReaderRunId === runId) studyReaderWakeLock = wl;
+      else try { wl.release(); } catch {}
+    }).catch(() => {});
+  }
+
+  for (let i = studyReaderCardIdx; i < cards.length; i++) {
+    if (!studyReaderPlaying || studyReaderRunId !== runId || !STUDY_TABS.includes(currentTab)) break;
+    studyReaderCardIdx = i;
+    const cardEl = cards[i];
+    const title = (cardEl.querySelector(".card-title")?.textContent || `Mục ${i + 1}`).trim();
+
+    clearReadingCardHighlights();
+    cardEl.classList.add("is-reading-active");
+    try { cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch {}
+
+    const segments = extractCardReadableSegments(cardEl, title);
+    if (!segments.length) continue;
+
+    for (let sIdx = 0; sIdx < segments.length; sIdx++) {
+      if (!studyReaderPlaying || studyReaderRunId !== runId) break;
+      if (!(await waitIfStudyReaderPaused(runId))) break;
+
+      const seg = segments[sIdx];
+      updateStudyAudioBarUI({
+        open: true,
+        lang: seg.lang,
+        title: `[${i + 1}/${cards.length}] ${title}`,
+        snippet: seg.text
+      });
+
+      // Prefetch next segment in background so JP <-> VI transitions are seamless
+      const nextSeg = segments[sIdx + 1];
+      if (nextSeg) {
+        fetchNaturalTtsUrl(nextSeg.text, nextSeg.lang).catch(() => {});
+      }
+
+      await speakSegmentAsync(seg.text, seg.lang);
+      if (!studyReaderPlaying || studyReaderRunId !== runId) break;
+      if (!(await waitIfStudyReaderPaused(runId))) break;
+    }
+  }
+
+  if (studyReaderRunId === runId) {
+    const completed = studyReaderPlaying;
+    stopStudyReader(true);
+    if (completed) showToast("Đã đọc xong toàn bộ bài học!");
+  }
 }
 
 // ==================== THEME ====================
@@ -1100,9 +1393,23 @@ function renderCurrentView(preserveScroll = false) {
     if (doneIds.has(it.id)) sessStats[it.sessionTitle].done++;
   });
 
-  // Resume last-read banner if user has saved position > 0 on this tab
+  // Resume last-read banner + Full-article bilingual reader bar
   const savedIdx = lastReadMap[currentTab];
   let html = renderMiniDashboardHtml();
+  html += `
+    <div class="study-reader-strip">
+      <div class="study-reader-left">
+        <button class="btn ${studyReaderPlaying ? "btn-active-vermilion" : "btn-indigo"}" id="studyReadAllBtn" onclick="toggleStudyReader()" style="font-size:12.5px;padding:5px 12px;">
+          ${studyReaderPlaying ? ICONS.pause : ICONS.play}<span>${studyReaderPlaying ? "Dừng nghe toàn bài" : "Nghe toàn bài (Nhật + Việt)"}</span>
+        </button>
+        <select onchange="setTtsVoice(this.value)" title="Chọn giọng đọc bản xứ (Nhật + Việt)" style="padding:4px 7px;border:1px solid var(--border-strong);border-radius:5px;background:var(--bg);color:var(--ink);font-size:12px;font-family:inherit;">
+          <option value="female" ${ttsVoice==='female'?'selected':''}>Nữ · Nanami / Hoài My</option>
+          <option value="male" ${ttsVoice==='male'?'selected':''}>Nam · Keita / Nam Minh</option>
+        </select>
+      </div>
+      <span class="study-reader-hint">Tự đọc từ trên xuống: tiếng Nhật giọng bản xứ, tiếng Việt giọng Việt</span>
+    </div>
+  `;
   if (!preserveScroll && savedIdx > 0 && savedIdx < list.length && !onlyBookmarked && !onlyUndone && !onlyWrong && !(document.getElementById("searchInput")?.value || "").trim()) {
     const savedItem = list[savedIdx];
     html += `
@@ -1131,7 +1438,8 @@ function renderCurrentView(preserveScroll = false) {
         <div class="card-head">
           <h2 class="card-title">${escapeHtml(item.shortLabel || item.title)}</h2>
           <div class="card-actions">
-            ${item.jpText ? `<button class="tts-btn" onclick='speakJapanese(${JSON.stringify(item.jpText)})' title="Nghe đọc tiếng Nhật">${ICONS.volume}<span>Nghe</span></button>` : ""}
+            <button class="tts-btn" onclick="startStudyReader(${idx})" title="Đọc song ngữ Nhật + Việt liên tục từ mục này trở xuống">${ICONS.play}<span>Đọc từ đây</span></button>
+            ${item.jpText ? `<button class="tts-btn" onclick='speakJapanese(${JSON.stringify(item.jpText)})' title="Chỉ nghe câu tiếng Nhật">${ICONS.volume}<span>JP</span></button>` : ""}
             ${item.type === "question" ? `
               <button class="note-btn ${noteText ? 'has-note' : ''}" id="note-btn-${idx}" onclick="toggleNoteBox(${idx})" title="Ghi chú mẹo nhớ cá nhân">
                 ${ICONS.note}<span>Ghi chú</span>
@@ -1553,6 +1861,7 @@ async function toggleFlashcardAutoplay() {
   if (!fcDeck.length) { showToast("Chưa có thẻ để phát"); return; }
 
   // Unlock HTMLAudioElement synchronously inside the user's click gesture (critical for iOS/Android/Chrome)
+  stopStudyReader(true);
   unlockTtsAudio();
 
   fcAutoPlaying = true;
@@ -2524,6 +2833,7 @@ function loadLocalMarkdownFiles(event) {
 // ==================== UI ACTIONS & SHORTCUTS ====================
 function switchTab(tabId) {
   if (currentTab === "flashcard" && tabId !== "flashcard") stopFlashcardAutoplay(true);
+  if (STUDY_TABS.includes(currentTab) && tabId !== currentTab) stopStudyReader(true);
   currentTab = tabId;
   document.querySelectorAll(".tab-btn, .bnav-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
   if (tabId === "flashcard") buildFlashcardDeck();

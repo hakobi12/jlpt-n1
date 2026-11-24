@@ -1,6 +1,7 @@
-// Vercel Serverless Function: Ultra-Natural Native Japanese Neural TTS
-// Supports Female (ja-JP-NanamiNeural) & Male (ja-JP-KeitaNeural) with natural Japanese intonation.
-// GET /api/tts?q=<japanese_text>&voice=female|male
+// Vercel Serverless Function: Ultra-Natural Bilingual Neural TTS (Japanese & Vietnamese)
+// Japanese: ja-JP-NanamiNeural (female) / ja-JP-KeitaNeural (male)
+// Vietnamese: vi-VN-HoaiMyNeural (female) / vi-VN-NamMinhNeural (male)
+// GET /api/tts?q=<text>&lang=ja|vi&voice=female|male
 
 if (!globalThis.crypto || !globalThis.crypto.subtle) {
   try {
@@ -10,14 +11,30 @@ if (!globalThis.crypto || !globalThis.crypto.subtle) {
 
 const { MsEdgeTTS, OUTPUT_FORMAT } = require("msedge-tts");
 
-const VOICE_MAP = {
-  female: "ja-JP-NanamiNeural",
-  male: "ja-JP-KeitaNeural",
-  nanami: "ja-JP-NanamiNeural",
-  keita: "ja-JP-KeitaNeural",
-  "ja-JP-NanamiNeural": "ja-JP-NanamiNeural",
-  "ja-JP-KeitaNeural": "ja-JP-KeitaNeural"
+const VOICE_MATRIX = {
+  ja: {
+    female: "ja-JP-NanamiNeural",
+    male: "ja-JP-KeitaNeural"
+  },
+  vi: {
+    female: "vi-VN-HoaiMyNeural",
+    male: "vi-VN-NamMinhNeural"
+  }
 };
+
+function resolveVoice(langKey, voiceKey) {
+  const lang = langKey === "vi" ? "vi" : "ja";
+  const gender = voiceKey === "male" || voiceKey === "keita" || voiceKey === "namminh" ? "male" : "female";
+  return { lang, voiceName: VOICE_MATRIX[lang][gender] };
+}
+
+function escapeXmlSafe(str) {
+  return String(str || "")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, " ")
+    .replace(/[&<>]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 async function synthesizeEdgeNeural(text, voiceName) {
   const tts = new MsEdgeTTS();
@@ -34,9 +51,10 @@ async function synthesizeEdgeNeural(text, voiceName) {
   }
 }
 
-async function fallbackGoogleTts(text) {
+async function fallbackGoogleTts(text, lang) {
+  const tl = lang === "vi" ? "vi" : "ja";
   const upstreamUrl =
-    "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ja&ttsspeed=1&q=" +
+    `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${tl}&ttsspeed=1&q=` +
     encodeURIComponent(text.slice(0, 190));
 
   const upstream = await fetch(upstreamUrl, {
@@ -58,19 +76,19 @@ module.exports = async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
   const raw = typeof req.query?.q === "string" ? req.query.q : "";
-  const clean = raw
-    .replace(/<[^>]+>/g, " ")
-    .replace(/[★☆①②③④＿＿＿_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 450);
+  const clean = escapeXmlSafe(
+    raw
+      .replace(/<[^>]+>/g, " ")
+      .replace(/[★☆①②③④＿＿＿_]+/g, " ")
+  ).slice(0, 450);
 
   if (!clean) {
     return res.status(400).json({ error: "Missing q parameter" });
   }
 
-  const voiceKey = typeof req.query?.voice === "string" ? req.query.voice.trim() : "female";
-  const voiceName = VOICE_MAP[voiceKey] || VOICE_MAP.female;
+  const langKey = typeof req.query?.lang === "string" ? req.query.lang.trim().toLowerCase() : "ja";
+  const voiceKey = typeof req.query?.voice === "string" ? req.query.voice.trim().toLowerCase() : "female";
+  const { lang, voiceName } = resolveVoice(langKey, voiceKey);
 
   try {
     let buf = null;
@@ -80,7 +98,7 @@ module.exports = async function handler(req, res) {
     } catch (edgeErr) {
       console.warn("Edge Neural TTS failed, falling back:", edgeErr?.message || edgeErr);
       engine = "google-fallback";
-      buf = await fallbackGoogleTts(clean);
+      buf = await fallbackGoogleTts(clean, lang);
     }
 
     if (!buf || !buf.length) {
@@ -91,6 +109,7 @@ module.exports = async function handler(req, res) {
     res.setHeader("Content-Length", String(buf.length));
     res.setHeader("X-TTS-Engine", engine);
     res.setHeader("X-TTS-Voice", voiceName);
+    res.setHeader("X-TTS-Lang", lang);
     res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=604800");
     return res.status(200).send(buf);
   } catch (err) {
