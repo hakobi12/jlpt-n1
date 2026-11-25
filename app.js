@@ -1414,8 +1414,9 @@ function isItemBookmarked(item) {
 }
 
 function renderCurrentView(preserveScroll = false) {
+  const isMobile = window.innerWidth <= 960;
   const scrollEl = document.getElementById("stageScroll");
-  const prevTop = preserveScroll ? scrollEl.scrollTop : 0;
+  const prevTop = preserveScroll ? (isMobile ? window.scrollY : scrollEl.scrollTop) : 0;
   const isStudyTab = STUDY_TABS.includes(currentTab);
   document.getElementById("sidebar").classList.toggle("hidden-mode", !isStudyTab);
   const root = document.getElementById("stageRoot");
@@ -1540,7 +1541,10 @@ function renderCurrentView(preserveScroll = false) {
     `;
   });
   root.innerHTML = html + (accessState.access !== "full" ? renderPaywallCardHtml(currentTab) : "");
-  if (preserveScroll) scrollEl.scrollTop = prevTop;
+  if (preserveScroll) {
+    if (isMobile) window.scrollTo(0, prevTop);
+    else scrollEl.scrollTop = prevTop;
+  }
   syncBookmarkBadgesOnly();
   bindScrollSpy();
   setupAutoReadObserver();
@@ -1645,7 +1649,7 @@ function renderSidebar(list) {
     const isWrong = wrongIds.has(item.id);
     const isDone = doneIds.has(item.id);
     html += `
-      <div class="nav-item" onclick="scrollToStudyItem(${idx})" id="nav-item-${idx}">
+      <div class="nav-item" onclick='scrollToStudyItem(${idx}, ${JSON.stringify(item.id)})' id="nav-item-${idx}">
         <span class="nav-item-text">${escapeHtml(item.shortLabel)}</span>
         <span class="nav-badges">
           ${isDone ? '<span class="dot-done-mini" title="Đã học xong"></span>' : ''}
@@ -1670,27 +1674,55 @@ function ensureSidebarItemVisible(navEl) {
   }
 }
 
-function scrollToStudyItem(idx) {
+function scrollToStudyItem(idx, itemId = "") {
   closeMobileSidebar();
-  suppressScrollSpyUntil = Date.now() + 1400;
+  suppressScrollSpyUntil = Date.now() + 1200;
+
+  let card = null;
+  if (itemId) {
+    try { card = document.querySelector(`#stageRoot .study-card[data-bm-card="${CSS.escape(itemId)}"]`); } catch {}
+  }
+  if (!card) card = document.getElementById("list-item-" + idx);
+  if (!card) return;
+
+  const actualIdx = card.dataset.idx !== undefined ? parseInt(card.dataset.idx, 10) : idx;
   document.querySelectorAll(".nav-item.active").forEach(el => el.classList.remove("active"));
-  const navEl = document.getElementById("nav-item-" + idx);
+  const navEl = document.getElementById("nav-item-" + actualIdx);
   if (navEl) {
     navEl.classList.add("active");
     if (window.innerWidth > 960) ensureSidebarItemVisible(navEl);
   }
-  const card = document.getElementById("list-item-" + idx);
-  if (!card) return;
-  if (window.innerWidth <= 960) {
-    card.scrollIntoView({ behavior: "smooth", block: "start" });
-  } else {
-    const stageEl = document.getElementById("stageScroll");
-    if (stageEl) {
-      const targetTop = stageEl.scrollTop + (card.getBoundingClientRect().top - stageEl.getBoundingClientRect().top) - 12;
-      stageEl.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+
+  const jumpNow = () => {
+    if (window.innerWidth <= 960) {
+      const topbarH = document.querySelector(".topbar")?.getBoundingClientRect().height || 58;
+      const targetY = window.scrollY + card.getBoundingClientRect().top - topbarH - 10;
+      window.scrollTo({ top: Math.max(0, targetY), behavior: "auto" });
     } else {
-      card.scrollIntoView({ behavior: "smooth", block: "start" });
+      const stageEl = document.getElementById("stageScroll");
+      if (stageEl) {
+        const targetTop = stageEl.scrollTop + (card.getBoundingClientRect().top - stageEl.getBoundingClientRect().top) - 12;
+        stageEl.scrollTo({ top: Math.max(0, targetTop), behavior: "auto" });
+      } else {
+        card.scrollIntoView({ behavior: "auto", block: "start" });
+      }
     }
+  };
+
+  jumpNow();
+  requestAnimationFrame(jumpNow);
+
+  if (!onlyBookmarked && !(document.getElementById("searchInput")?.value || "").trim()) {
+    lastReadMap[currentTab] = actualIdx;
+    localStorage.setItem(KEYS.LAST_READ, JSON.stringify(lastReadMap));
+  }
+
+  // Brief visual highlight on the exact destination card
+  if (!studyReaderPlaying) {
+    clearReadingCardHighlights();
+    card.classList.add("is-reading-active");
+    clearTimeout(card._hlTimer);
+    card._hlTimer = setTimeout(() => { if (!studyReaderPlaying) card.classList.remove("is-reading-active"); }, 1400);
   }
 }
 
@@ -2647,7 +2679,18 @@ function initFirebase() {
 
           saveBookmarksLocal(); saveWrongIds(true); saveDoneIds(true); saveMasteredIds(true); saveExamHistory(true); saveNotesMap(true);
           syncBookmarkBadgesOnly();
-          if (STUDY_TABS.includes(currentTab)) renderCurrentView(true);
+          if (STUDY_TABS.includes(currentTab)) {
+            if (onlyBookmarked || onlyUndone || onlyWrong) renderCurrentView(true);
+            else {
+              renderSidebar(getFilteredItems(currentTab));
+              document.querySelectorAll("#stageRoot .study-card[data-q-id]").forEach(c => {
+                const isD = doneIds.has(c.dataset.qId);
+                c.classList.toggle("is-done", isD);
+                const btn = c.querySelector(".done-btn");
+                if (btn) { btn.classList.toggle("is-done", isD); btn.innerHTML = `${ICONS.check}<span>${isD ? "Đã học" : "Xong"}</span>`; }
+              });
+            }
+          }
           else if (currentTab === "exam" && !examSession) renderExamView();
           else if (currentTab === "flashcard" && !fcAutoPlaying) {
             const prevSig = fcDeck.map(c => c.id).join("|") + "::" + Object.keys(bmState.items).length + "::" + masteredIds.size;

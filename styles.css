@@ -1094,6 +1094,7 @@
 
   /* ==================== RESPONSIVE (MOBILE & TABLET) ==================== */
   @media (max-width: 960px) {
+    html { height: auto; }
     body { overflow: auto; height: auto; min-height: 100%; }
     .topbar {
       position: sticky;
@@ -1117,7 +1118,7 @@
     }
     .sidebar.mobile-open { transform: translateX(0); }
     .stage { overflow: visible; padding: 12px 12px 86px; }
-    .study-card { padding: 14px 14px; }
+    .study-card { padding: 14px 14px; scroll-margin-top: 72px; }
     .jp-prompt { font-size: calc(15.5px * var(--font-scale)); padding: 11px 13px; }
     .exam-2col { grid-template-columns: 1fr; }
     .exam-options-grid { grid-template-columns: 1fr; }
